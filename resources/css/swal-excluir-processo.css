@@ -1,0 +1,183 @@
+/* Modal «Excluir processo» — mesmo desenho base do popup de pendências (modo claro). */
+
+.swal2-popup.nx-swal-excluir-popup {
+    padding: 0 !important;
+    width: 420px !important;
+    max-width: calc(100vw - 2rem) !important;
+    border-radius: 20px !important;
+    background: #fff !important;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.2) !important;
+}
+
+.nx-swal-excluir-popup .swal2-html-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+.nx-swal-excluir-popup .swal2-actions {
+    margin: 0 !important;
+    padding: 1.25rem 1.5rem 1.5rem !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: stretch !important;
+}
+
+/* Botão X — só fecha pelo X ou pelos botões (sem clique fora / Esc) */
+.nx-swal-excluir-popup .swal2-close {
+    position: absolute !important;
+    top: 0.65rem !important;
+    right: 0.65rem !important;
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0.5rem !important;
+    font-size: 1.5rem !important;
+    line-height: 1 !important;
+    color: #dc2626 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+.nx-swal-excluir-popup .swal2-close:hover {
+    color: #b91c1c !important;
+    background: #fef2f2 !important;
+}
+
+.nx-swal-excluir-popup .swal2-close:focus {
+    box-shadow: 0 0 0 3px rgb(220 38 38 / 0.25) !important;
+}
+
+.nx-swal-excluir-inner {
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    color: #0f172a;
+}
+
+.nx-swal-excluir-header {
+    background: #fef2f2;
+    text-align: center;
+    padding: 1.75rem 2.5rem 1.35rem 1.5rem;
+    border-radius: 20px 20px 0 0;
+}
+
+.nx-swal-excluir-icon-circle {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin: 0 auto 1rem;
+    border-radius: 9999px;
+    background: #fee2e2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nx-swal-excluir-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+}
+
+.nx-swal-excluir-main {
+    padding: 1.25rem 1.5rem 0.25rem;
+    background: #fff;
+}
+
+.nx-swal-excluir-sub {
+    margin: 0 0 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    line-height: 1.45;
+}
+
+.nx-swal-excluir-box {
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+    background: #f3f4f6;
+    border-radius: 12px;
+    padding: 1rem 1.125rem;
+    text-align: left;
+}
+
+.nx-swal-excluir-box-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    color: #ea580c;
+}
+
+.nx-swal-excluir-box-strong {
+    margin: 0 0 0.35rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.4;
+}
+
+.nx-swal-excluir-pergunta {
+    margin: 0.875rem 0 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.45;
+    letter-spacing: -0.015em;
+    text-align: center;
+}
+
+/* Reutiliza estilos dos botões do popup de pendências */
+.nx-swal-excluir-popup .swal2-actions button.nx-swal-pendencias-btn-nao,
+.nx-swal-excluir-popup button.swal2-cancel.nx-swal-pendencias-btn-nao,
+.nx-swal-excluir-popup .swal2-styled.nx-swal-pendencias-btn-nao {
+    margin: 0 !important;
+    flex: 1 !important;
+    border-radius: 10px !important;
+    padding: 0.7rem 1rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+    background-color: #fff1f2 !important;
+    background-image: none !important;
+    color: #b91c1c !important;
+    border: 1px solid #f87171 !important;
+}
+
+.nx-swal-excluir-popup .swal2-actions button.nx-swal-pendencias-btn-nao:hover,
+.nx-swal-excluir-popup button.swal2-cancel.nx-swal-pendencias-btn-nao:hover,
+.nx-swal-excluir-popup .swal2-styled.nx-swal-pendencias-btn-nao:hover {
+    background-color: #ffe4e6 !important;
+    color: #991b1b !important;
+}
+
+.nx-swal-excluir-popup .swal2-actions button.nx-swal-pendencias-btn-sim,
+.nx-swal-excluir-popup button.swal2-confirm.nx-swal-pendencias-btn-sim,
+.nx-swal-excluir-popup .swal2-styled.nx-swal-pendencias-btn-sim {
+    margin: 0 !important;
+    flex: 1.12 !important;
+    border-radius: 10px !important;
+    padding: 0.7rem 1rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 2px rgb(67 56 202 / 0.25) !important;
+    background-color: #4338ca !important;
+    background-image: none !important;
+    color: #fff !important;
+    border: none !important;
+}
+
+.nx-swal-excluir-popup .swal2-actions button.nx-swal-pendencias-btn-sim:hover,
+.nx-swal-excluir-popup button.swal2-confirm.nx-swal-pendencias-btn-sim:hover,
+.nx-swal-excluir-popup .swal2-styled.nx-swal-pendencias-btn-sim:hover {
+    background-color: #3730a3 !important;
+}

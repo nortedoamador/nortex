@@ -1,0 +1,105 @@
+<?php
+
+namespace App\Support;
+
+use Illuminate\Support\Str;
+
+/**
+ * Rótulos para chaves de {@see Normam211212TemplateVars::bladeBindingKeyList()} e variáveis relacionadas.
+ */
+final class DocumentoModeloVariavelLabels
+{
+    /** @var array<string, string> */
+    private const LABELS = [
+        'nome' => 'Nome do cliente',
+        'cpf' => 'CPF',
+        'rg' => 'RG',
+        'orgao' => 'Órgão expedidor',
+        'endereco' => 'Endereço (logradouro)',
+        'numero' => 'Número',
+        'bairro' => 'Bairro',
+        'cidade' => 'Cidade',
+        'uf' => 'UF',
+        'cep' => 'CEP',
+        'complemento' => 'Complemento',
+        'apartamento' => 'Apartamento',
+        'telefone' => 'Telefone',
+        'tel' => 'Telefone (alias)',
+        'celular' => 'Celular',
+        'email' => 'E-mail',
+        'fax' => 'Fax',
+        'nacionalidade' => 'Nacionalidade',
+        'naturalidade' => 'Naturalidade',
+        'dt_emissao' => 'Data de emissão (RG)',
+        'nome_embarcacao' => 'Nome da embarcação',
+        'inscricao' => 'Inscrição da embarcação',
+        'comprimento' => 'Comprimento',
+        'casco' => 'Número do casco',
+        'numero_casco' => 'Número do casco',
+        'classificacao' => 'Classificação / atividade',
+        'tipo' => 'Tipo de embarcação',
+        'area_navegacao' => 'Área de navegação',
+        'construtor' => 'Construtor / estaleiro',
+        'ano' => 'Ano de construção',
+        'tripulantes' => 'Tripulantes',
+        'passageiros' => 'Passageiros',
+        'boca' => 'Boca',
+        'pontal' => 'Pontal',
+        'calado' => 'Calado',
+        'contorno' => 'Contorno',
+        'material_casco' => 'Material do casco',
+        'potmax_casco' => 'Potência máxima do casco',
+        'arq_bruta' => 'Arqueação bruta',
+        'arq_liquida' => 'Arqueação líquida',
+        'marca_motor' => 'Marca do motor',
+        'potmax_motor' => 'Potência máx. do motor',
+        'numero_motor' => 'Número do motor',
+        'marca_motor2' => 'Marca do motor 2',
+        'marca_motor3' => 'Marca do motor 3',
+        'potmax_motor2' => 'Potência motor 2',
+        'potmax_motor3' => 'Potência motor 3',
+        'numero_motor2' => 'Número motor 2',
+        'numero_motor3' => 'Número motor 3',
+        'numero_nf' => 'Número da NF',
+        'dt_nf' => 'Data da NF',
+        'local_nf' => 'Local da NF',
+        'vendedor_nf' => 'Vendedor (NF)',
+        'documento_vendedor_nf' => 'Documento do vendedor (NF)',
+        'dt_emissao_fmt' => 'Data de emissão (formatada)',
+        'data' => 'Data (hoje)',
+        'nascimento' => 'Data de nascimento',
+        'identidade' => 'Documento de identidade',
+        'endereco_completo' => 'Endereço completo (linha)',
+        'telefone_email_linha' => 'Telefone e e-mail (linha)',
+        'cha_numero' => 'Número da CHA',
+        'categoria_cha' => 'Categoria da CHA',
+        'cha_dt_emissao_fmt' => 'Data de emissão da CHA (texto)',
+        'cha_emissao_dia' => 'Dia emissão CHA',
+        'cha_emissao_mes' => 'Mês emissão CHA',
+        'cha_emissao_ano' => 'Ano emissão CHA',
+        'rg_dia' => 'Dia emissão RG',
+        'rg_mes' => 'Mês emissão RG',
+        'rg_ano' => 'Ano emissão RG',
+        'decl_dia' => 'Dia da declaração',
+        'decl_mes' => 'Mês da declaração',
+        'decl_ano' => 'Ano da declaração',
+        'local_declaracao' => 'Local da declaração',
+        'jurisdicao_destino' => 'Jurisdição (CP/DL/AG) do processo',
+        'numero_compl' => 'Número e complemento (linha)',
+        'cidade_uf_linha' => 'Cidade / UF (linha)',
+        'ocorrencia' => 'Ocorrência',
+        'observacao' => 'Observação',
+        'novo_nome_embarcacao' => 'Novo nome da embarcação',
+        'novo_nome_embarcacao2' => 'Novo nome da embarcação (2)',
+        'novo_nome_embarcacao3' => 'Novo nome da embarcação (3)',
+        'complemento1' => 'Complemento 1',
+        'complemento2' => 'Complemento 2',
+        'nome_embarcacao_parte1' => 'Nome embarcação (parte 1)',
+        'nome_embarcacao_parte2' => 'Nome embarcação (parte 2)',
+    ];
+
+    public static function labelPara(string $chave): string
+    {
+        return self::LABELS[$chave] ?? Str::title(str_replace('_', ' ', $chave));
+    }
+}

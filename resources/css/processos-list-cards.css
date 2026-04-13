@@ -1,0 +1,157 @@
+/* Lista de processos: entrada suave e aviso de pendências (respeita reduced-motion) */
+
+@keyframes nx-processo-card-enter {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 14px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes nx-processo-warn-nudge {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.88;
+        transform: scale(1.06);
+    }
+}
+
+.nx-processo-list-item {
+    animation: nx-processo-card-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(min(var(--nx-card-i, 0), 18) * 42ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nx-processo-list-item {
+        animation: none;
+    }
+
+    .nx-processo-warn-icon {
+        animation: none !important;
+    }
+}
+
+.nx-processo-warn-icon {
+    animation: nx-processo-warn-nudge 2.4s ease-in-out infinite;
+}
+
+/* Filtros de status: lista vertical (ícone colorido + texto escuro). --nx-pill = cor do ícone / realce ativo. */
+.nx-processo-status-shell {
+    border-radius: 0.75rem;
+    border: 1px solid rgb(226 232 240);
+    background-color: #fff;
+}
+
+.dark .nx-processo-status-shell {
+    border-color: rgb(51 65 85);
+    background-color: rgb(15 23 42 / 0.45);
+}
+
+.nx-processo-status-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    border: 0;
+    background-color: transparent;
+    padding: 0.625rem 1rem;
+    text-align: left;
+    border-left: 3px solid transparent;
+    transition:
+        background-color 0.15s ease,
+        border-left-color 0.15s ease;
+}
+
+.nx-processo-status-row:hover {
+    background-color: rgb(248 250 252);
+}
+
+.dark .nx-processo-status-row:hover {
+    background-color: rgb(30 41 59 / 0.55);
+}
+
+.nx-processo-status-row[aria-current='true'] {
+    border-left-color: var(--nx-pill);
+    background-color: color-mix(in srgb, var(--nx-pill) 9%, white);
+}
+
+.dark .nx-processo-status-row[aria-current='true'] {
+    background-color: color-mix(in srgb, var(--nx-pill) 16%, rgb(15 23 42));
+}
+
+.nx-processo-status-row__icon {
+    display: flex;
+    width: 1.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.nx-processo-status-dropdown-scroll {
+    max-height: min(70vh, 20rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225) rgb(248 250 252);
+}
+
+.dark .nx-processo-status-dropdown-scroll {
+    scrollbar-color: rgb(100 116 139) rgb(30 41 59);
+}
+
+.nx-processo-status-dropdown-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.nx-processo-status-dropdown-scroll::-webkit-scrollbar-track {
+    margin: 0.35rem 0;
+    border-radius: 9999px;
+    background: rgb(248 250 252);
+}
+
+.dark .nx-processo-status-dropdown-scroll::-webkit-scrollbar-track {
+    background: rgb(30 41 59);
+}
+
+.nx-processo-status-dropdown-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    background-color: rgb(203 213 225);
+}
+
+.dark .nx-processo-status-dropdown-scroll::-webkit-scrollbar-thumb {
+    background-color: rgb(100 116 139);
+}
+
+/* Linha «Todos os status»: texto roxo só quando é o filtro ativo (como no mockup). */
+.nx-processo-status-row--todos .nx-processo-status-row__icon--todos {
+    color: rgb(100 116 139);
+}
+
+.nx-processo-status-row--todos .nx-processo-status-row__label--todos {
+    color: rgb(30 41 59);
+}
+
+.dark .nx-processo-status-row--todos .nx-processo-status-row__label--todos {
+    color: rgb(241 245 249);
+}
+
+.nx-processo-status-row--todos.nx-processo-status-row--todos-active .nx-processo-status-row__icon--todos {
+    color: rgb(124 58 237);
+}
+
+.nx-processo-status-row--todos.nx-processo-status-row--todos-active .nx-processo-status-row__label--todos {
+    color: rgb(109 40 217);
+}
+
+.dark .nx-processo-status-row--todos.nx-processo-status-row--todos-active .nx-processo-status-row__label--todos {
+    color: rgb(196 181 253);
+}

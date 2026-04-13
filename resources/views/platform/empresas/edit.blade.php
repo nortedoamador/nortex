@@ -1,0 +1,86 @@
+<x-platform-layout :title="__('Editar empresa')">
+    <x-slot name="header">
+        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Editar empresa') }} — {{ $empresa->nome }}</h2>
+    </x-slot>
+
+    <div class="max-w-xl space-y-4">
+        @if (session('status'))
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200">
+                {{ session('status') }}
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('platform.empresas.update', $empresa) }}" class="space-y-4">
+            @csrf
+            @method('PATCH')
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('Nome') }}</label>
+                    <input name="nome" value="{{ old('nome', $empresa->nome) }}" required class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    @error('nome')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('Slug') }}</label>
+                    <input name="slug" value="{{ old('slug', $empresa->slug) }}" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 font-mono text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    @error('slug')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('CNPJ') }}</label>
+                    <input name="cnpj" value="{{ old('cnpj', $empresa->cnpj) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    @error('cnpj')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                        <input type="hidden" name="ativo" value="0" />
+                        <input type="checkbox" name="ativo" value="1" @checked(old('ativo', $empresa->ativo)) class="rounded border-slate-300 text-violet-600" />
+                        {{ __('Empresa ativa') }}
+                    </label>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-500">{{ __('Guardar') }}</button>
+                <a href="{{ route('platform.empresas.index') }}" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold dark:border-slate-600">{{ __('Voltar') }}</a>
+            </div>
+        </form>
+
+        <div class="max-w-xl space-y-3 pt-8 border-t border-slate-200 dark:border-slate-700">
+            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ __('Login do administrador da empresa') }}</h3>
+            <p class="text-xs text-slate-600 dark:text-slate-400">{{ __('Cria um utilizador com papel Administrador para a empresa aceder ao sistema (clientes, processos, equipe).') }}</p>
+            <form method="POST" action="{{ route('platform.empresas.admin-user.store', $empresa) }}" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4" x-data="{ convite: {{ old('enviar_convite') ? 'true' : 'false' }} }">
+                @csrf
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('Nome') }}</label>
+                    <input name="name" value="{{ old('name') }}" required class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    @error('name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('E-mail (login)') }}</label>
+                    <input type="email" name="email" value="{{ old('email') }}" required class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    @error('email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                    <label class="flex cursor-pointer items-start gap-3">
+                        <input type="checkbox" name="enviar_convite" value="1" class="mt-1 rounded border-slate-300 text-violet-600 dark:border-slate-600 dark:bg-slate-900" x-model="convite" />
+                        <span>
+                            <span class="block text-sm font-medium text-slate-800 dark:text-slate-200">{{ __('Convite por e-mail') }}</span>
+                            <span class="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">{{ __('O utilizador recebe um link para definir a senha (recomendado). Exige SMTP configurado.') }}</span>
+                        </span>
+                    </label>
+                </div>
+                <div x-show="!convite" x-cloak class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('Senha inicial') }}</label>
+                        <input type="password" name="password" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" x-bind:disabled="convite" x-bind:required="!convite" autocomplete="new-password" />
+                        @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('Confirmar senha') }}</label>
+                        <input type="password" name="password_confirmation" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" x-bind:disabled="convite" x-bind:required="!convite" autocomplete="new-password" />
+                    </div>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">{{ __('O papel «Administrador» é atribuído automaticamente.') }}</p>
+                <button type="submit" class="rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-500">{{ __('Criar utilizador') }}</button>
+            </form>
+        </div>
+    </div>
+</x-platform-layout>

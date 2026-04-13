@@ -1,0 +1,77 @@
+@import './processos-list-cards.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * CTA "+ Adicionar" (ficha embarcação): texto branco + fundo na cor do card.
+ * O fundo é reforçado aqui porque, se os utilitários Tailwind não aplicarem no <a>,
+ * o texto branco ficaria invisível sobre o cabeçalho branco do card.
+ */
+a.nx-fotos-adicionar,
+a.nx-fotos-adicionar:visited {
+    background-color: rgb(13 148 136) !important;
+    background-image: linear-gradient(to right, rgb(13 148 136), rgb(15 118 110)) !important;
+    border-color: rgba(17 94 89 / 0.2) !important;
+}
+
+a.nx-fotos-adicionar:hover {
+    background-image: linear-gradient(to right, rgb(20 184 166), rgb(13 148 136)) !important;
+    border-color: rgba(19 78 74 / 0.3) !important;
+}
+
+a.nx-arquivos-adicionar,
+a.nx-arquivos-adicionar:visited {
+    background-color: rgb(124 58 237) !important;
+    background-image: linear-gradient(to right, rgb(124 58 237), rgb(147 51 234)) !important;
+    border-color: rgba(91 33 182 / 0.2) !important;
+}
+
+a.nx-arquivos-adicionar:hover {
+    background-image: linear-gradient(to right, rgb(139 92 246), rgb(168 85 247)) !important;
+    border-color: rgba(76 29 149 / 0.3) !important;
+}
+
+a.nx-fotos-adicionar,
+a.nx-fotos-adicionar:visited,
+a.nx-fotos-adicionar:hover,
+a.nx-fotos-adicionar:active,
+a.nx-fotos-adicionar:focus,
+a.nx-fotos-adicionar:focus-visible,
+a.nx-arquivos-adicionar,
+a.nx-arquivos-adicionar:visited,
+a.nx-arquivos-adicionar:hover,
+a.nx-arquivos-adicionar:active,
+a.nx-arquivos-adicionar:focus,
+a.nx-arquivos-adicionar:focus-visible {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* Lista processos: anular borda/sombra padrão do @tailwindcss/forms neste select (contorno = wrapper colorido). */
+select[data-nx-processo-list-status='1'] {
+    appearance: none;
+    -webkit-appearance: none;
+    border-width: 0 !important;
+    border-style: solid !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    background-clip: padding-box;
+}
+
+select[data-nx-processo-list-status='1']:focus,
+select[data-nx-processo-list-status='1']:focus-visible {
+    outline: none !important;
+    border-width: 0 !important;
+    border-color: transparent !important;
+}
+
+/* Espaço visual entre o texto e a seta (lista de processos). */
+.nx-processo-list-status-select {
+    text-overflow: clip;
+}
