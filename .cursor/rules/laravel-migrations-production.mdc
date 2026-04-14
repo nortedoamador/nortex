@@ -1,0 +1,21 @@
+---
+description: Laravel — analisar efeito das migrations antes de produção/servidor
+alwaysApply: true
+---
+
+# Migrations em produção ou servidor
+
+Quando o utilizador falar em **`php artisan migrate`**, **`migrate --force`**, **produção**, **servidor** ou **deploy** da base de dados:
+
+1. **Não assumir** que migrate só altera esquema. Neste projeto existem migrations que **inserem ou atualizam dados** no `up()`.
+
+2. **Identificar** quais migrations estão em causa: pedir ou usar o output de `php artisan migrate:status`, ou os **nomes dos ficheiros** em `database/migrations/` que ainda não constam como executados.
+
+3. **Para cada migration relevante**, ler o ficheiro e resumir o **`up()`** em categorias:
+   - **Schema**: criar/alterar/apagar tabelas ou colunas (`Schema::create`, `table()`, `drop`, `rename`, etc.).
+   - **Dados**: `DB::table`, `insert`, `update`, `updateOrInsert`, `delete`, backfills, loops que alteram linhas.
+   - **Riscos**: operações destrutivas, sobrescrita de registos (ex.: mesmo `slug`), possível downtime ou locks.
+
+4. **`down()`** e **`migrate:rollback`** só se aplicam se alguém **reverter** migrations; ao explicar o efeito de **correr migrate para a frente**, focar no `up()`.
+
+5. Se faltar informação sobre o que está pendente no servidor, pedir **`php artisan migrate:status`** (ou a lista de ficheiros novos no deploy) antes de conclusões finais.
