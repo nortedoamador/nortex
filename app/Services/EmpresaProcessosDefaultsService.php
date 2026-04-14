@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 final class EmpresaProcessosDefaultsService
 {
     /** Incrementar quando os templates PHP (Normam / checklist) mudarem de forma a exigir nova sincronização. */
-    private const TEMPLATE_BASICO_CACHE_BUSTER = 'v12';
+    private const TEMPLATE_BASICO_CACHE_BUSTER = 'v13';
 
     public function garantirTemplateBasico(Empresa $empresa): void
     {

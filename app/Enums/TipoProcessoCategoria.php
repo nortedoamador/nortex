@@ -12,7 +12,7 @@ enum TipoProcessoCategoria: string
     {
         return match ($this) {
             self::Cha => __('Carteira de Habilitação de Amador (CHA)'),
-            self::Embarcacao => __('Embarcação (TIE — Título de Inscrição de Embarcação)'),
+            self::Embarcacao => __('Embarcação (Capitanias, Delegacias e Agências)'),
             self::Cir => __('Caderneta de Inscrição e Registro (CIR)'),
         };
     }

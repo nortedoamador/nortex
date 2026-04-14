@@ -113,7 +113,7 @@ final class TieProcessosTemplateService
         ];
         $resid211 = [
             'codigo' => Normam211DocumentoCodigos::COMPROVANTE_RESIDENCIA_CEP,
-            'nome' => 'Comprovante de residência (até 120 dias) ou Declaração de Residência (Anexo 2-G da NORMAM-211).',
+            'nome' => 'Comprovante de residência ou Declaração (Anexo 2-G da NORMAM-211, Anexo 2-P da NORMAM-201 ou Anexo 2-P da NORMAM-202).',
         ];
         $resid212 = [
             'codigo' => 'TIE_COMPROVANTE_RESID_212_1C',
@@ -193,12 +193,12 @@ final class TieProcessosTemplateService
         return [
             [
                 'slug' => 'tie-inscricao-embarcacao-ate-12m',
-                'nome' => 'Inscrição de embarcação (até 12 metros)',
+                'nome' => 'Embarcação com comprimento igual ou menor que 12 metros - Inscrição',
                 'categoria' => $cat,
                 'documentos' => [
                     [
                         'codigo' => 'TIE_REQ_INTERESSADO_ANEXO_2C_211',
-                        'nome' => 'Requerimento do interessado (Anexo 2-C da NORMAM-211).',
+                        'nome' => 'Requerimento do interessado (Anexo 2-C da NORMAM-211, Anexo 2-E da NORMAM-201 ou Anexo 2-F da NORMAM-202).',
                     ],
                     $proc,
                     $docProc,
@@ -206,7 +206,7 @@ final class TieProcessosTemplateService
                     $resid211,
                     [
                         'codigo' => 'TIE_BSADE_211_2B_DUAS_VIAS',
-                        'nome' => 'Boletim Simplificado de Atualização de Embarcação — BSADE (Anexo 2-B da NORMAM-211), em duas vias.',
+                        'nome' => 'BSADE (Anexo 2-B da NORMAM-211) ou  BADE (Anexo 2-B da NORMAM-201 ou Anexo 2-B da NORMAM-202) em duas vias',
                     ],
                     [
                         'codigo' => 'TIE_DOC_PROPRIEDADE_EMBARCACAO',
@@ -237,7 +237,7 @@ final class TieProcessosTemplateService
             ],
             [
                 'slug' => 'tie-inscricao-moto-aquatica',
-                'nome' => 'Inscrição de moto aquática',
+                'nome' => 'TIE (Título de Inscrição de Embarcação) - Moto aquática - Inscrição',
                 'categoria' => $cat,
                 'documentos' => [
                     [
@@ -268,7 +268,7 @@ final class TieProcessosTemplateService
             ],
             [
                 'slug' => 'tie-renovacao-moto-aquatica',
-                'nome' => 'Renovação de moto aquática',
+                'nome' => 'TIE (Título de Inscrição de Embarcação) - Moto aquática - Renovação',
                 'categoria' => $cat,
                 'documentos' => [
                     [
@@ -288,7 +288,7 @@ final class TieProcessosTemplateService
             ],
             [
                 'slug' => 'tie-inscricao-mar-aberto-ab100',
-                'nome' => 'Inscrição — navegação mar aberto (AB ≤ 100)',
+                'nome' => 'TIE (Título de Inscrição de Embarcação) - Nav. mar aberto - AB menor ou igual a 100, exceto as miúdas - Inscrição',
                 'categoria' => $cat,
                 'documentos' => [
                     [
@@ -320,7 +320,7 @@ final class TieProcessosTemplateService
             ],
             [
                 'slug' => 'tie-inscricao-navegacao-interior-ab100',
-                'nome' => 'Inscrição — navegação interior (AB ≤ 100)',
+                'nome' => 'TIE (Título de Inscrição de Embarcação) - Navegação interior - AB menor ou igual a 100, exceto as miúdas - Inscrição',
                 'categoria' => $cat,
                 'documentos' => [
                     [
@@ -348,12 +348,12 @@ final class TieProcessosTemplateService
             ],
             [
                 'slug' => 'tie-renovacao-tie',
-                'nome' => 'Renovação de TIE',
+                'nome' => 'TIE (Título de Inscrição de Embarcação) - Renovação',
                 'categoria' => $cat,
                 'documentos' => [
                     [
                         'codigo' => 'TIE_REQ_INTERESSADO',
-                        'nome' => 'Requerimento do interessado.',
+                        'nome' => 'Requerimento do interessado (Anexo 2-C da NORMAM-211, Anexo 2-E da NORMAM-201 ou Anexo 2-F da NORMAM-202)',
                     ],
                     $docId,
                     $resid211,
