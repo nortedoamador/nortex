@@ -1,8 +1,11 @@
 <x-platform-layout :title="__('Tipos de serviço (global)')">
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Tipos de serviço (global)') }}</h2>
-            <a href="{{ route('platform.cadastros.tipos-servico.create') }}" class="inline-flex items-center rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-violet-500">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Tipos de serviço (global)') }}</h2>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ __('Cadastros globais da plataforma (valem para todas as empresas).') }}</p>
+            </div>
+            <a href="{{ route('platform.cadastros.tipos-servico.create') }}" class="inline-flex shrink-0 items-center rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-violet-500">
                 {{ __('Novo tipo') }}
             </a>
         </div>
@@ -58,7 +61,6 @@
             </table>
         </div>
 
-        <div>{{ $tipos->links() }}</div>
     </div>
 </x-platform-layout>
 

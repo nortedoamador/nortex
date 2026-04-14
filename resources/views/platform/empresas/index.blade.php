@@ -28,11 +28,12 @@
                 <thead class="bg-slate-50 dark:bg-slate-800/50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Nome') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Slug') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('CNPJ') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Estado') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Utilizadores') }}</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Gerir') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Processos') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Estado') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Data de criação') }}</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Ações') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -41,24 +42,28 @@
                             <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                                 <a href="{{ route('platform.empresas.show', $e) }}" class="text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ $e->nome }}</a>
                             </td>
-                            <td class="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-300">{{ $e->slug }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $e->cnpj ?: '—' }}</td>
+                            <td class="px-4 py-3 text-sm tabular-nums text-slate-700 dark:text-slate-300">{{ $e->users_count }}</td>
+                            <td class="px-4 py-3 text-sm tabular-nums text-slate-700 dark:text-slate-300">{{ $e->processos_count }}</td>
                             <td class="px-4 py-3 text-sm">
                                 @if ($e->ativo)
-                                    <span class="text-emerald-600 dark:text-emerald-400">{{ __('Ativa') }}</span>
+                                    <span class="text-emerald-600 dark:text-emerald-400">{{ __('Ativo') }}</span>
                                 @else
-                                    <span class="text-red-600 dark:text-red-400">{{ __('Inativa') }}</span>
+                                    <span class="text-red-600 dark:text-red-400">{{ __('Inativo') }}</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-sm tabular-nums text-slate-700 dark:text-slate-300">{{ $e->users_count }}</td>
-                            <td class="px-4 py-3 text-right text-sm space-x-3">
-                                <a href="{{ route('platform.empresas.show', $e) }}" class="font-semibold text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ __('Painel') }}</a>
-                                <a href="{{ route('platform.empresas.edit', $e) }}" class="font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">{{ __('Dados') }}</a>
+                            <td class="px-4 py-3 text-sm tabular-nums text-slate-600 dark:text-slate-300">{{ $e->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-right text-sm">
+                                <div class="flex flex-wrap items-center justify-end gap-2">
+                                    <a href="{{ route('platform.empresas.edit', $e) }}" class="font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ __('Editar') }}</a>
+                                    <a href="{{ route('platform.empresas.show', $e) }}" class="font-semibold text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ __('Painel') }}</a>
+                                    <a href="{{ route('platform.empresas.edit', $e) }}" class="font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">{{ __('Dados') }}</a>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-10 text-center text-sm text-slate-500">{{ __('Nenhuma empresa encontrada.') }}</td>
+                            <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">{{ __('Nenhuma empresa encontrada.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

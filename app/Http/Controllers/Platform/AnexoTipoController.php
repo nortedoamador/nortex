@@ -27,7 +27,7 @@ class AnexoTipoController extends Controller
             });
         }
 
-        $tipos = $query->paginate(30)->withQueryString();
+        $tipos = $query->get();
 
         return view('platform.cadastros.anexo-tipos.index', compact('tipos', 'q'));
     }

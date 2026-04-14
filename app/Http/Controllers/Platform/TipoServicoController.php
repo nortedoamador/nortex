@@ -27,7 +27,7 @@ class TipoServicoController extends Controller
             });
         }
 
-        $tipos = $query->paginate(30)->withQueryString();
+        $tipos = $query->get();
 
         return view('platform.cadastros.tipos-servico.index', compact('tipos', 'q'));
     }

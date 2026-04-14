@@ -70,7 +70,6 @@
             </table>
         </div>
 
-        <div>{{ $tipos->links() }}</div>
     </div>
 </x-platform-layout>
 

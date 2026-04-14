@@ -32,7 +32,7 @@ class UsuarioController extends Controller
         $q = trim((string) $request->query('q', ''));
         $empresaId = max(0, (int) $request->query('empresa_id', 0));
 
-        $query = User::query()->with('empresa')->orderBy('name');
+        $query = User::query()->with(['empresa', 'roles'])->orderBy('name');
 
         if ($empresaId > 0) {
             $query->where('empresa_id', $empresaId);

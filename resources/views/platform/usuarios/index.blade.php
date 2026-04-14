@@ -42,20 +42,41 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Nome') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('E-mail') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Empresa') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Papel') }}</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Data de criação') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Estado') }}</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Ações') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                     @forelse ($usuarios as $u)
+                        @php
+                            $papeisEmpresa = $u->empresa_id
+                                ? $u->roles->where('empresa_id', (int) $u->empresa_id)->pluck('name')->filter()->unique()->values()
+                                : collect();
+                        @endphp
                         <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                             <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{{ $u->name }}</td>
                             <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{{ $u->email }}</td>
                             <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{{ $u->empresa?->nome ?? '—' }}</td>
-                            <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
-                                @if ($u->is_platform_admin)<span class="inline-flex rounded-full bg-violet-100 px-2 py-0.5 font-semibold text-violet-800 dark:bg-violet-950/60 dark:text-violet-300">{{ __('Plataforma') }}</span>@endif
-                                @if ($u->is_disabled)<span class="{{ $u->is_platform_admin ? 'ml-1 ' : '' }}inline-flex rounded-full bg-red-100 px-2 py-0.5 font-semibold text-red-800 dark:bg-red-950/60 dark:text-red-300">{{ __('Bloqueado') }}</span>@endif
-                                @if (! $u->is_platform_admin && ! $u->is_disabled)<span class="text-slate-400">—</span>@endif
+                            <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                @if ($u->is_platform_admin)
+                                    <span class="text-slate-600 dark:text-slate-400">{{ __('Administrador da plataforma') }}</span>
+                                @elseif ($papeisEmpresa->isNotEmpty())
+                                    {{ $papeisEmpresa->implode(', ') }}
+                                @else
+                                    <span class="text-slate-400">—</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm tabular-nums text-slate-600 dark:text-slate-300">{{ $u->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
+                                @if ($u->is_disabled)
+                                    <span class="text-red-600 dark:text-red-400">{{ __('Bloqueado') }}</span>
+                                @elseif ($u->is_platform_admin || $u->empresa_id)
+                                    <span class="text-emerald-600 dark:text-emerald-400">{{ __('Ativo') }}</span>
+                                @else
+                                    <span class="text-amber-700 dark:text-amber-400">{{ __('Inativo') }}</span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-right text-sm">
                                 <div class="flex flex-wrap items-center justify-end gap-2">
@@ -63,7 +84,7 @@
                                     @if (auth()->id() !== $u->id)
                                         <form method="POST" action="{{ route('platform.impersonate.start', $u) }}" class="inline" onsubmit="return confirm(@json(__('Entrar como este utilizador? A ação será registada.')));">
                                             @csrf
-                                            <button type="submit" class="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400">{{ __('Como utilizador') }}</button>
+                                            <button type="submit" class="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400">{{ __('Impersonar') }}</button>
                                         </form>
                                     @endif
                                 </div>
@@ -71,7 +92,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-10 text-center text-sm text-slate-500">{{ __('Nenhum utilizador encontrado.') }}</td>
+                            <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">{{ __('Nenhum utilizador encontrado.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

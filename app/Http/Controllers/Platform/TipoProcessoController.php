@@ -29,7 +29,7 @@ class TipoProcessoController extends Controller
             });
         }
 
-        $tipos = $query->paginate(30)->withQueryString();
+        $tipos = $query->get();
         $categorias = TipoProcessoCategoria::cases();
 
         return view('platform.cadastros.tipos-processo.index', compact('tipos', 'q', 'categorias'));

@@ -83,6 +83,11 @@ class Empresa extends Model
         return $this->hasMany(User::class);
     }
 
+    public function processos(): HasMany
+    {
+        return $this->hasMany(Processo::class);
+    }
+
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);

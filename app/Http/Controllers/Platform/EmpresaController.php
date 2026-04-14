@@ -26,7 +26,7 @@ class EmpresaController extends Controller
         $q = trim((string) $request->query('q', ''));
 
         $query = Empresa::query()
-            ->withCount('users')
+            ->withCount(['users', 'processos'])
             ->orderBy('nome');
 
         if ($q !== '') {
