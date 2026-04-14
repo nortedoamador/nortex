@@ -3,6 +3,8 @@
 namespace App\Services\Anexos;
 
 use App\Enums\AnexoValidacaoStatus;
+use App\Support\EncryptedS3AnexoStorage;
+use App\Support\FileEncryption;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
 
@@ -14,8 +16,13 @@ class ValidadorAnexoPosUpload
     /** @var list<string> */
     private const EXTENSOES_PERMITIDAS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'];
 
-    public function validar(string $disk, string $path, ?string $mimeDeclarado): array
-    {
+    public function validar(
+        string $disk,
+        string $path,
+        ?string $mimeDeclarado,
+        ?string $nomeOriginal = null,
+        bool $decryptS3Payload = false,
+    ): array {
         if (! Storage::disk($disk)->exists($path)) {
             return [
                 'status' => AnexoValidacaoStatus::Falhou,
@@ -23,8 +30,10 @@ class ValidadorAnexoPosUpload
             ];
         }
 
-        $absoluto = Storage::disk($disk)->path($path);
-        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $extSource = (EncryptedS3AnexoStorage::isEncryptedDisk($disk) && $decryptS3Payload && $nomeOriginal)
+            ? $nomeOriginal
+            : $path;
+        $ext = strtolower(pathinfo($extSource, PATHINFO_EXTENSION));
 
         if ($ext !== '' && ! in_array($ext, self::EXTENSOES_PERMITIDAS, true)) {
             return [
@@ -34,7 +43,29 @@ class ValidadorAnexoPosUpload
         }
 
         if (config('nortex.anexos.clamav_enabled')) {
-            return $this->rodarClamAv($absoluto);
+            $tmpPath = null;
+            if (EncryptedS3AnexoStorage::isEncryptedDisk($disk) && $decryptS3Payload) {
+                $plain = FileEncryption::decrypt(Storage::disk($disk)->get($path));
+                $tmpPath = tempnam(sys_get_temp_dir(), 'nx_clam');
+                if ($tmpPath === false) {
+                    return [
+                        'status' => AnexoValidacaoStatus::Alerta,
+                        'notas' => 'Não foi possível criar ficheiro temporário para varredura antivírus.',
+                    ];
+                }
+                file_put_contents($tmpPath, $plain);
+                $absoluto = $tmpPath;
+            } else {
+                $absoluto = Storage::disk($disk)->path($path);
+            }
+
+            try {
+                return $this->rodarClamAv($absoluto);
+            } finally {
+                if ($tmpPath !== null && is_file($tmpPath)) {
+                    @unlink($tmpPath);
+                }
+            }
         }
 
         if ($mimeDeclarado && str_contains($mimeDeclarado, 'octet-stream')) {

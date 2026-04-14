@@ -75,3 +75,128 @@ select[data-nx-processo-list-status='1']:focus-visible {
 .nx-processo-list-status-select {
     text-overflow: clip;
 }
+
+@layer components {
+    .nx-platform-card {
+        @apply rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900;
+    }
+
+    .nx-platform-metric-card {
+        @apply flex items-start justify-between rounded-[24px] border border-slate-200/80 bg-white px-5 py-4 shadow-[0_14px_30px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900;
+    }
+
+    .nx-platform-metric-label {
+        @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500;
+    }
+
+    .nx-platform-metric-value {
+        @apply mt-2 text-[2rem] font-semibold leading-none text-slate-950 dark:text-white;
+    }
+
+    .nx-platform-metric-meta {
+        @apply mt-2 text-xs text-slate-500 dark:text-slate-400;
+    }
+
+    .nx-platform-metric-icon {
+        @apply flex h-11 w-11 items-center justify-center rounded-2xl border border-violet-100 bg-violet-50 text-violet-500 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300;
+    }
+
+    .nx-platform-metric-icon svg {
+        @apply h-5 w-5;
+    }
+
+    .nx-platform-shortcut {
+        @apply flex items-center justify-center rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-violet-200 hover:text-violet-600 dark:border-slate-700 dark:text-slate-200 dark:hover:border-violet-500/50 dark:hover:text-violet-300;
+    }
+
+    .nx-platform-shortcut-primary {
+        @apply border-violet-500 bg-violet-600 text-white hover:bg-violet-500 hover:text-white dark:border-violet-400 dark:bg-violet-500 dark:text-white;
+    }
+
+    .nx-platform-legend {
+        @apply inline-block h-2.5 w-2.5 rounded-full;
+    }
+}
+
+.nx-platform-map-shell {
+    max-width: 430px;
+    margin-inline: auto;
+    position: relative;
+}
+
+.nx-platform-map {
+    width: min(100%, 396px);
+    max-height: 400px;
+    aspect-ratio: 460 / 465;
+    height: auto !important;
+    margin-inline: auto;
+    padding-bottom: 0 !important;
+}
+
+.nx-platform-map svg {
+    overflow: visible;
+}
+
+.nx-platform-map #brmap {
+    width: 100%;
+    height: 100%;
+    position: static !important;
+}
+
+.nx-platform-map .state .shape,
+.nx-platform-map .state .icon_state {
+    stroke: rgba(255, 255, 255, 0.94);
+    stroke-width: 1.8;
+    transition: fill 160ms ease, transform 160ms ease, stroke 160ms ease, filter 160ms ease;
+}
+
+.nx-platform-map .state .label_icon_state {
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    transition: fill 160ms ease;
+}
+
+.nx-platform-map .state:hover .shape,
+.nx-platform-map .state:hover .icon_state {
+    filter: drop-shadow(0 10px 18px rgba(91, 61, 245, 0.18));
+    transform: translateY(-1px);
+}
+
+.nx-platform-map-legend {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 5;
+    min-width: 170px;
+    max-width: 220px;
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+    padding: 10px 12px;
+    transition: opacity 160ms ease, transform 160ms ease;
+    backdrop-filter: blur(10px);
+}
+
+.nx-platform-map-legend.is-hidden {
+    opacity: 0;
+    transform: translateY(6px);
+    pointer-events: none;
+}
+
+.nx-platform-map-legend-title {
+    color: rgb(15 23 42);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.nx-platform-map-legend-meta {
+    margin-top: 4px;
+    color: rgb(71 85 105);
+    font-size: 12px;
+    line-height: 1.35;
+}

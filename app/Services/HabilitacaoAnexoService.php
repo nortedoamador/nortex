@@ -7,6 +7,7 @@ use App\Jobs\ValidarAnexoUploadJob;
 use App\Models\Habilitacao;
 use App\Models\HabilitacaoAnexo;
 use App\Models\PlatformAnexoTipo;
+use App\Support\EncryptedS3AnexoStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,13 +33,13 @@ class HabilitacaoAnexoService
             }
 
             $dir = "habilitacoes/{$empresaId}/{$habilitacao->id}";
-            $path = $file->store($dir, 'public');
+            $path = EncryptedS3AnexoStorage::storeEncryptedUpload($file, $dir);
 
             $anexo = HabilitacaoAnexo::withoutGlobalScopes()->create([
                 'habilitacao_id' => $habilitacao->id,
                 'tipo_codigo' => $tipoCodigo,
                 'platform_anexo_tipo_id' => $platformTipo?->id,
-                'disk' => 'public',
+                'disk' => EncryptedS3AnexoStorage::DISK,
                 'path' => $path,
                 'nome_original' => $file->getClientOriginalName(),
                 'mime' => $file->getClientMimeType(),

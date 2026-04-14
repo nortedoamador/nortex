@@ -3,14 +3,17 @@
 namespace App\Models;
 
 use App\Enums\AnexoValidacaoStatus;
+use App\Models\Concerns\HasOpaqueAnexoRoutes;
+use App\Support\EncryptedS3AnexoStorage;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class ProcessoDocumentoAnexo extends Model
 {
+    use HasOpaqueAnexoRoutes;
+
     protected $table = 'processo_documento_anexos';
 
     protected $fillable = [
@@ -54,6 +57,16 @@ class ProcessoDocumentoAnexo extends Model
 
     public function urlPublica(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        return $this->signedInlineUrl();
+    }
+
+    protected function anexoInlineRouteName(): string
+    {
+        return 'processos.documentos.anexos.inline';
+    }
+
+    protected function anexoDestroyRouteName(): ?string
+    {
+        return 'processos.documentos.anexos.destroy';
     }
 }

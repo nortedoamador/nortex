@@ -2,25 +2,38 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Habilitacao;
 use App\Models\HabilitacaoAnexo;
 use App\Support\AnexoPrintHtml;
+use App\Support\EncryptedS3AnexoStorage;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HabilitacaoAnexoFileController extends Controller
 {
-    public function inline(Habilitacao $habilitacao, HabilitacaoAnexo $anexo): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function inline(HabilitacaoAnexo $anexo): SymfonyResponse|\Symfony\Component\HttpFoundation\BinaryFileResponse
     {
+        $habilitacao = $anexo->habilitacao;
+        abort_unless($habilitacao, 404);
+
         $this->authorize('view', $habilitacao);
 
-        if ((int) $anexo->habilitacao_id !== (int) $habilitacao->id) {
-            abort(404);
-        }
+        abort_unless(EncryptedS3AnexoStorage::exists($anexo->disk, $anexo->path), 404);
 
-        abort_unless(Storage::disk($anexo->disk)->exists($anexo->path), 404);
+        if (EncryptedS3AnexoStorage::isEncryptedDisk($anexo->disk)) {
+            $plain = EncryptedS3AnexoStorage::readPlain($anexo->disk, $anexo->path);
+
+            return response($plain, 200, [
+                'Content-Type' => $anexo->mime ?: 'application/octet-stream',
+                'Content-Disposition' => HeaderUtils::makeDisposition(
+                    HeaderUtils::DISPOSITION_INLINE,
+                    $anexo->nome_original,
+                    'document'
+                ),
+            ]);
+        }
 
         $absolute = Storage::disk($anexo->disk)->path($anexo->path);
 
@@ -33,27 +46,35 @@ class HabilitacaoAnexoFileController extends Controller
         ]);
     }
 
-    public function download(Habilitacao $habilitacao, HabilitacaoAnexo $anexo): StreamedResponse
+    public function download(HabilitacaoAnexo $anexo): StreamedResponse
     {
+        $habilitacao = $anexo->habilitacao;
+        abort_unless($habilitacao, 404);
+
         $this->authorize('view', $habilitacao);
 
-        if ((int) $anexo->habilitacao_id !== (int) $habilitacao->id) {
-            abort(404);
+        abort_unless(EncryptedS3AnexoStorage::exists($anexo->disk, $anexo->path), 404);
+
+        if (EncryptedS3AnexoStorage::isEncryptedDisk($anexo->disk)) {
+            return response()->streamDownload(function () use ($anexo) {
+                echo EncryptedS3AnexoStorage::readPlain($anexo->disk, $anexo->path);
+            }, $anexo->nome_original, [
+                'Content-Type' => $anexo->mime ?: 'application/octet-stream',
+            ]);
         }
 
         return Storage::disk($anexo->disk)->download($anexo->path, $anexo->nome_original);
     }
 
-    public function print(Habilitacao $habilitacao, HabilitacaoAnexo $anexo): Response
+    public function print(HabilitacaoAnexo $anexo): Response
     {
+        $habilitacao = $anexo->habilitacao;
+        abort_unless($habilitacao, 404);
+
         $this->authorize('view', $habilitacao);
 
-        if ((int) $anexo->habilitacao_id !== (int) $habilitacao->id) {
-            abort(404);
-        }
-
         return AnexoPrintHtml::response(
-            route('habilitacoes.anexos.inline', [$habilitacao, $anexo]),
+            $anexo->signedInlineUrl(),
             $anexo->nome_original
         );
     }

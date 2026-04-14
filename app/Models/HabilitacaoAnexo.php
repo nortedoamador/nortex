@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use App\Enums\AnexoValidacaoStatus;
+use App\Models\Concerns\HasOpaqueAnexoRoutes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class HabilitacaoAnexo extends Model
 {
+    use HasOpaqueAnexoRoutes;
+
     protected $fillable = [
         'habilitacao_id',
         'tipo_codigo',
@@ -54,6 +56,26 @@ class HabilitacaoAnexo extends Model
 
     public function urlPublica(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        return $this->signedInlineUrl();
+    }
+
+    protected function anexoInlineRouteName(): string
+    {
+        return 'habilitacoes.anexos.inline';
+    }
+
+    protected function anexoDownloadRouteName(): ?string
+    {
+        return 'habilitacoes.anexos.download';
+    }
+
+    protected function anexoPrintRouteName(): ?string
+    {
+        return 'habilitacoes.anexos.print';
+    }
+
+    protected function anexoDestroyRouteName(): ?string
+    {
+        return 'habilitacoes.anexos.destroy';
     }
 }

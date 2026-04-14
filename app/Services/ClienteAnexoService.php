@@ -7,6 +7,7 @@ use App\Jobs\ValidarAnexoUploadJob;
 use App\Models\Cliente;
 use App\Models\ClienteAnexo;
 use App\Models\PlatformAnexoTipo;
+use App\Support\ClienteAnexoStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,13 +33,13 @@ class ClienteAnexoService
             }
 
             $dir = "clientes/{$empresaId}/{$cliente->id}";
-            $path = $file->store($dir, 'public');
+            $path = ClienteAnexoStorage::storeEncryptedUpload($file, $dir);
 
             $anexo = ClienteAnexo::withoutGlobalScopes()->create([
                 'cliente_id' => $cliente->id,
                 'tipo_codigo' => $tipoCodigo,
                 'platform_anexo_tipo_id' => $platformTipo?->id,
-                'disk' => 'public',
+                'disk' => ClienteAnexoStorage::DISK,
                 'path' => $path,
                 'nome_original' => $file->getClientOriginalName(),
                 'mime' => $file->getClientMimeType(),

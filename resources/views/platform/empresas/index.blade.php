@@ -32,13 +32,15 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('CNPJ') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Estado') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Utilizadores') }}</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Ações') }}</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Gerir') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
                     @forelse ($empresas as $e)
                         <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                            <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{{ $e->nome }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
+                                <a href="{{ route('platform.empresas.show', $e) }}" class="text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ $e->nome }}</a>
+                            </td>
                             <td class="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-300">{{ $e->slug }}</td>
                             <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">{{ $e->cnpj ?: '—' }}</td>
                             <td class="px-4 py-3 text-sm">
@@ -50,8 +52,8 @@
                             </td>
                             <td class="px-4 py-3 text-sm tabular-nums text-slate-700 dark:text-slate-300">{{ $e->users_count }}</td>
                             <td class="px-4 py-3 text-right text-sm space-x-3">
-                                <a href="{{ route('platform.empresas.admin.roles.index', $e) }}" class="font-medium text-slate-600 hover:text-violet-600 dark:text-slate-400 dark:hover:text-violet-400">{{ __('Configurar') }}</a>
-                                <a href="{{ route('platform.empresas.edit', $e) }}" class="font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ __('Dados') }}</a>
+                                <a href="{{ route('platform.empresas.show', $e) }}" class="font-semibold text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ __('Painel') }}</a>
+                                <a href="{{ route('platform.empresas.edit', $e) }}" class="font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">{{ __('Dados') }}</a>
                             </td>
                         </tr>
                     @empty

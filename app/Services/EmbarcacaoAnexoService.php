@@ -7,6 +7,7 @@ use App\Jobs\ValidarAnexoUploadJob;
 use App\Models\Embarcacao;
 use App\Models\EmbarcacaoAnexo;
 use App\Models\PlatformAnexoTipo;
+use App\Support\EncryptedS3AnexoStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,7 +33,7 @@ class EmbarcacaoAnexoService
             }
 
             $dir = "embarcacoes/{$empresaId}/{$embarcacao->id}";
-            $path = $file->store($dir, 'public');
+            $path = EncryptedS3AnexoStorage::storeEncryptedUpload($file, $dir);
 
             $rotuloNorm = $rotulo !== null && trim($rotulo) !== '' ? trim($rotulo) : null;
 
@@ -40,7 +41,7 @@ class EmbarcacaoAnexoService
                 'embarcacao_id' => $embarcacao->id,
                 'tipo_codigo' => $tipoCodigo,
                 'platform_anexo_tipo_id' => $platformTipo?->id,
-                'disk' => 'public',
+                'disk' => EncryptedS3AnexoStorage::DISK,
                 'path' => $path,
                 'nome_original' => $file->getClientOriginalName(),
                 'rotulo' => $rotuloNorm,

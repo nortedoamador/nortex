@@ -27,6 +27,7 @@ use App\Http\Controllers\Platform\UsuarioController as PlatformUsuarioController
 use App\Http\Controllers\Platform\DashboardController as PlatformDashboardController;
 use App\Http\Controllers\Platform\EmpresaAdminUserController as PlatformEmpresaAdminUserController;
 use App\Http\Controllers\ProcessoController;
+use App\Http\Controllers\ProcessoDocumentoAnexoFileController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Role;
 use App\Models\User;
@@ -74,7 +75,7 @@ Route::get('/', function () {
     if (auth()->check()) {
         $user = auth()->user();
         if ($user->is_platform_admin && ! $user->empresa_id) {
-            return redirect()->route('platform.empresas.index');
+            return redirect()->route('platform.dashboard');
         }
 
         return redirect()->route('dashboard');
@@ -105,6 +106,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/empresas', [PlatformEmpresaController::class, 'index'])->name('empresas.index');
         Route::get('/empresas/criar', [PlatformEmpresaController::class, 'create'])->name('empresas.create');
         Route::post('/empresas', [PlatformEmpresaController::class, 'store'])->name('empresas.store');
+        Route::get('/empresas/{empresa}', [PlatformEmpresaController::class, 'show'])->name('empresas.show');
         Route::get('/empresas/{empresa}/editar', [PlatformEmpresaController::class, 'edit'])->name('empresas.edit');
         Route::patch('/empresas/{empresa}', [PlatformEmpresaController::class, 'update'])->name('empresas.update');
 
@@ -163,9 +165,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/auditoria', [PlatformAuditoriaController::class, 'index'])->name('auditoria.index');
 
-        Route::post('/impersonate/{user}', [PlatformImpersonateController::class, 'start'])->name('impersonate.start');
+        Route::post('/impersonate/{user}', [PlatformImpersonateController::class, 'start'])
+            ->whereNumber('user')
+            ->name('impersonate.start');
 
         Route::get('/usuarios', [PlatformUsuarioController::class, 'index'])->name('usuarios.index');
+        Route::get('/usuarios/criar', [PlatformUsuarioController::class, 'create'])->name('usuarios.create');
+        Route::post('/usuarios', [PlatformUsuarioController::class, 'store'])->name('usuarios.store');
         Route::get('/usuarios/{user}/editar', [PlatformUsuarioController::class, 'edit'])->name('usuarios.edit');
         Route::patch('/usuarios/{user}', [PlatformUsuarioController::class, 'update'])->name('usuarios.update');
         Route::post('/usuarios/{user}/password-reset', [PlatformUsuarioController::class, 'sendPasswordReset'])->name('usuarios.password-reset');
@@ -191,7 +197,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
-    // Encerrar impersonate deve funcionar mesmo como usuário alvo (sem ser platform admin)
+});
+
+// Encerrar impersonate deve funcionar mesmo como usuário alvo,
+// inclusive quando não passou pelo middleware `verified`.
+Route::middleware('auth')->group(function () {
     Route::post('/platform/impersonate/stop', [PlatformImpersonateController::class, 'stop'])->name('platform.impersonate.stop');
 });
 
@@ -217,10 +227,12 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
     Route::patch('/clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
     Route::delete('/clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
     Route::post('/clientes/{cliente}/anexos', [ClienteController::class, 'storeAnexos'])->name('clientes.anexos.store');
-    Route::delete('/clientes/{cliente}/anexos/{anexo}', [ClienteController::class, 'destroyAnexo'])->name('clientes.anexos.destroy');
-    Route::get('/clientes/{cliente}/anexos/{anexo}/inline', [ClienteAnexoFileController::class, 'inline'])->name('clientes.anexos.inline');
-    Route::get('/clientes/{cliente}/anexos/{anexo}/download', [ClienteAnexoFileController::class, 'download'])->name('clientes.anexos.download');
-    Route::get('/clientes/{cliente}/anexos/{anexo}/print', [ClienteAnexoFileController::class, 'print'])->name('clientes.anexos.print');
+    Route::delete('/f/c/{anexo}', [ClienteController::class, 'destroyAnexo'])->name('clientes.anexos.destroy');
+    Route::middleware('signed')->group(function () {
+        Route::get('/f/c/{anexo}/v', [ClienteAnexoFileController::class, 'inline'])->name('clientes.anexos.inline');
+        Route::get('/f/c/{anexo}/d', [ClienteAnexoFileController::class, 'download'])->name('clientes.anexos.download');
+        Route::get('/f/c/{anexo}/p', [ClienteAnexoFileController::class, 'print'])->name('clientes.anexos.print');
+    });
 
     Route::get('/embarcacoes', [EmbarcacaoController::class, 'index'])->name('embarcacoes.index');
     Route::get('/embarcacoes/criar', [EmbarcacaoController::class, 'create'])->name('embarcacoes.create');
@@ -230,10 +242,12 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
     Route::get('/embarcacoes/{embarcacao}', [EmbarcacaoController::class, 'show'])->name('embarcacoes.show');
     Route::post('/embarcacoes/{embarcacao}/fotos-cadastro', [EmbarcacaoController::class, 'storeFotosCadastro'])->name('embarcacoes.fotos-cadastro.store');
     Route::post('/embarcacoes/{embarcacao}/anexos', [EmbarcacaoController::class, 'storeAnexos'])->name('embarcacoes.anexos.store');
-    Route::delete('/embarcacoes/{embarcacao}/anexos/{anexo}', [EmbarcacaoController::class, 'destroyAnexo'])->name('embarcacoes.anexos.destroy');
-    Route::get('/embarcacoes/{embarcacao}/anexos/{anexo}/inline', [EmbarcacaoAnexoFileController::class, 'inline'])->name('embarcacoes.anexos.inline');
-    Route::get('/embarcacoes/{embarcacao}/anexos/{anexo}/download', [EmbarcacaoAnexoFileController::class, 'download'])->name('embarcacoes.anexos.download');
-    Route::get('/embarcacoes/{embarcacao}/anexos/{anexo}/print', [EmbarcacaoAnexoFileController::class, 'print'])->name('embarcacoes.anexos.print');
+    Route::delete('/f/e/{anexo}', [EmbarcacaoController::class, 'destroyAnexo'])->name('embarcacoes.anexos.destroy');
+    Route::middleware('signed')->group(function () {
+        Route::get('/f/e/{anexo}/v', [EmbarcacaoAnexoFileController::class, 'inline'])->name('embarcacoes.anexos.inline');
+        Route::get('/f/e/{anexo}/d', [EmbarcacaoAnexoFileController::class, 'download'])->name('embarcacoes.anexos.download');
+        Route::get('/f/e/{anexo}/p', [EmbarcacaoAnexoFileController::class, 'print'])->name('embarcacoes.anexos.print');
+    });
 
     Route::get('/habilitacoes', [HabilitacaoController::class, 'index'])->name('habilitacoes.index');
     Route::get('/habilitacoes/criar', [HabilitacaoController::class, 'create'])->name('habilitacoes.create');
@@ -242,10 +256,12 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
     Route::patch('/habilitacoes/{habilitacao}', [HabilitacaoController::class, 'update'])->name('habilitacoes.update');
     Route::get('/habilitacoes/{habilitacao}', [HabilitacaoController::class, 'show'])->name('habilitacoes.show');
     Route::post('/habilitacoes/{habilitacao}/anexos', [HabilitacaoController::class, 'storeAnexos'])->name('habilitacoes.anexos.store');
-    Route::delete('/habilitacoes/{habilitacao}/anexos/{anexo}', [HabilitacaoController::class, 'destroyAnexo'])->name('habilitacoes.anexos.destroy');
-    Route::get('/habilitacoes/{habilitacao}/anexos/{anexo}/inline', [HabilitacaoAnexoFileController::class, 'inline'])->name('habilitacoes.anexos.inline');
-    Route::get('/habilitacoes/{habilitacao}/anexos/{anexo}/download', [HabilitacaoAnexoFileController::class, 'download'])->name('habilitacoes.anexos.download');
-    Route::get('/habilitacoes/{habilitacao}/anexos/{anexo}/print', [HabilitacaoAnexoFileController::class, 'print'])->name('habilitacoes.anexos.print');
+    Route::delete('/f/h/{anexo}', [HabilitacaoController::class, 'destroyAnexo'])->name('habilitacoes.anexos.destroy');
+    Route::middleware('signed')->group(function () {
+        Route::get('/f/h/{anexo}/v', [HabilitacaoAnexoFileController::class, 'inline'])->name('habilitacoes.anexos.inline');
+        Route::get('/f/h/{anexo}/d', [HabilitacaoAnexoFileController::class, 'download'])->name('habilitacoes.anexos.download');
+        Route::get('/f/h/{anexo}/p', [HabilitacaoAnexoFileController::class, 'print'])->name('habilitacoes.anexos.print');
+    });
 
     Route::get('/processos/create', [ProcessoController::class, 'create'])->name('processos.create');
     Route::post('/processos', [ProcessoController::class, 'store'])->name('processos.store');
@@ -261,7 +277,10 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
     Route::delete('/processos/{processo}/post-its/{postIt}', [ProcessoController::class, 'destroyPostIt'])->name('processos.post-its.destroy');
     Route::patch('/processos/{processo}/status', [ProcessoController::class, 'updateStatus'])->name('processos.status');
     Route::post('/processos/{processo}/documentos/{documento}/anexos', [ProcessoController::class, 'storeAnexos'])->name('processos.documentos.anexos.store');
-    Route::delete('/processos/{processo}/documentos/{documento}/anexos/{anexo}', [ProcessoController::class, 'destroyAnexo'])->name('processos.documentos.anexos.destroy');
+    Route::middleware('signed')->group(function () {
+        Route::get('/f/p/{anexo}/v', [ProcessoDocumentoAnexoFileController::class, 'inline'])->name('processos.documentos.anexos.inline');
+    });
+    Route::delete('/f/p/{anexo}', [ProcessoController::class, 'destroyAnexo'])->name('processos.documentos.anexos.destroy');
     Route::patch('/processos/{processo}/documentos/{documento}', [ProcessoController::class, 'updateDocumento'])->name('processos.documentos.update');
 
     Route::middleware(['permission:clientes.manage'])->group(function () {

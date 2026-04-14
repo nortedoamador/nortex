@@ -10,11 +10,12 @@ use App\Jobs\ValidarAnexoUploadJob;
 use App\Models\Processo;
 use App\Models\ProcessoDocumento;
 use App\Models\ProcessoDocumentoAnexo;
+use App\Support\EncryptedS3AnexoStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Armazena anexos em storage público e marca o item do checklist como enviado quando aplicável.
+ * Armazena anexos cifrados no disco s3 e marca o item do checklist como enviado quando aplicável.
  */
 class ProcessoDocumentoAnexoService
 {
@@ -72,11 +73,11 @@ class ProcessoDocumentoAnexoService
         $empresaId = (int) $processo->empresa_id;
         $dir = "processos/{$empresaId}/{$processo->id}/{$documento->id}";
 
-        $path = $file->store($dir, 'public');
+        $path = EncryptedS3AnexoStorage::storeEncryptedUpload($file, $dir);
 
         $anexo = ProcessoDocumentoAnexo::withoutGlobalScopes()->create([
             'processo_documento_id' => $documento->id,
-            'disk' => 'public',
+            'disk' => EncryptedS3AnexoStorage::DISK,
             'path' => $path,
             'nome_original' => $file->getClientOriginalName(),
             'mime' => $file->getClientMimeType(),

@@ -432,13 +432,12 @@ class EmbarcacaoController extends Controller
         return back()->with('status', $n === 1 ? '1 arquivo enviado.' : "{$n} arquivos enviados.");
     }
 
-    public function destroyAnexo(Embarcacao $embarcacao, EmbarcacaoAnexo $anexo): RedirectResponse
+    public function destroyAnexo(EmbarcacaoAnexo $anexo): RedirectResponse
     {
-        $this->authorize('manage', $embarcacao);
+        $embarcacao = $anexo->embarcacao;
+        abort_unless($embarcacao, 404);
 
-        if ((int) $anexo->embarcacao_id !== (int) $embarcacao->id) {
-            abort(404);
-        }
+        $this->authorize('manage', $embarcacao);
 
         $this->anexoService->remover($anexo);
 

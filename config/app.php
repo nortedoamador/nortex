@@ -99,6 +99,12 @@ return [
 
     'key' => env('APP_KEY'),
 
+    /*
+    | Chave AES separada para criptografar binários de anexos antes do envio ao S3/B2.
+    | Formato igual ao APP_KEY: base64:... (32 bytes após decode). Não reutilize APP_KEY.
+    */
+    'file_encryption_key' => env('FILE_ENCRYPTION_KEY'),
+
     'previous_keys' => [
         ...array_filter(
             explode(',', (string) env('APP_PREVIOUS_KEYS', ''))

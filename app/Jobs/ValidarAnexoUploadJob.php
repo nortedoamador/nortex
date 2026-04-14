@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Enums\AnexoValidacaoStatus;
+use App\Support\EncryptedS3AnexoStorage;
 use App\Services\Anexos\ValidadorAnexoPosUpload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -36,8 +37,16 @@ class ValidarAnexoUploadJob implements ShouldQueue
         $disk = (string) $model->getAttribute('disk');
         $path = (string) $model->getAttribute('path');
         $mime = $model->getAttribute('mime');
+        $nomeOriginal = $model->getAttribute('nome_original');
+        $decryptS3Payload = EncryptedS3AnexoStorage::isEncryptedDisk($disk);
 
-        $r = $validador->validar($disk, $path, $mime ? (string) $mime : null);
+        $r = $validador->validar(
+            $disk,
+            $path,
+            $mime ? (string) $mime : null,
+            $nomeOriginal ? (string) $nomeOriginal : null,
+            $decryptS3Payload,
+        );
 
         $model->forceFill([
             'extra_validation_status' => $r['status']->value,

@@ -14,6 +14,7 @@ return [
     'anexos' => [
         'clamav_enabled' => env('NORTEX_CLAMAV_ENABLED', false),
         'clamav_binary' => env('NORTEX_CLAMAV_BINARY', 'clamscan'),
+        'signed_url_ttl_minutes' => env('NORTEX_ANEXOS_SIGNED_URL_TTL_MINUTES', 60),
     ],
 
 ];

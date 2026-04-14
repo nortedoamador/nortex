@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cliente;
+use App\Models\DocumentoTipo;
 use App\Models\Empresa;
+use App\Models\Processo;
+use App\Models\TipoProcesso;
 use App\Services\EmpresaRbacService;
+use App\Support\BrazilStates;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -40,7 +45,9 @@ class EmpresaController extends Controller
 
     public function create(): View
     {
-        return view('platform.empresas.create');
+        $ufs = BrazilStates::labels();
+
+        return view('platform.empresas.create', compact('ufs'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -49,6 +56,7 @@ class EmpresaController extends Controller
             'nome' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('empresas', 'slug')],
             'cnpj' => ['nullable', 'string', 'max:18'],
+            'uf' => ['nullable', 'string', Rule::in(BrazilStates::codes())],
             'ativo' => ['nullable', 'boolean'],
         ]);
 
@@ -56,6 +64,7 @@ class EmpresaController extends Controller
             'nome' => $data['nome'],
             'slug' => $data['slug'],
             'cnpj' => $data['cnpj'] ?? null,
+            'uf' => $data['uf'] ?? null,
             'ativo' => $request->boolean('ativo', true),
         ]);
 
@@ -66,9 +75,29 @@ class EmpresaController extends Controller
             ->with('status', __('Empresa criada e papéis padrão gerados.'));
     }
 
+    public function show(Empresa $empresa): View
+    {
+        $empresa->loadCount(['users', 'roles']);
+
+        $totClientes = Cliente::query()->where('empresa_id', $empresa->id)->count();
+        $totProcessos = Processo::query()->where('empresa_id', $empresa->id)->count();
+        $totTiposProcesso = TipoProcesso::query()->where('empresa_id', $empresa->id)->count();
+        $totTiposDocumento = DocumentoTipo::query()->where('empresa_id', $empresa->id)->count();
+
+        return view('platform.empresas.show', compact(
+            'empresa',
+            'totClientes',
+            'totProcessos',
+            'totTiposProcesso',
+            'totTiposDocumento',
+        ));
+    }
+
     public function edit(Empresa $empresa): View
     {
-        return view('platform.empresas.edit', compact('empresa'));
+        $ufs = BrazilStates::labels();
+
+        return view('platform.empresas.edit', compact('empresa', 'ufs'));
     }
 
     public function update(Request $request, Empresa $empresa): RedirectResponse
@@ -77,6 +106,7 @@ class EmpresaController extends Controller
             'nome' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::unique('empresas', 'slug')->ignore($empresa->id)],
             'cnpj' => ['nullable', 'string', 'max:18'],
+            'uf' => ['nullable', 'string', Rule::in(BrazilStates::codes())],
             'ativo' => ['nullable', 'boolean'],
         ]);
 
@@ -84,6 +114,7 @@ class EmpresaController extends Controller
             'nome' => $data['nome'],
             'slug' => $data['slug'],
             'cnpj' => $data['cnpj'] ?? null,
+            'uf' => $data['uf'] ?? null,
             'ativo' => $request->boolean('ativo', true),
         ]);
 

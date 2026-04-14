@@ -187,10 +187,10 @@
                                             <span x-text="previewId === {{ $anexo->id }} ? @js(__('Ocultar preview')) : @js(__('Preview'))"></span>
                                         </button>
                                         <x-anexo-list-icon-actions
-                                            :nova-aba-url="route('habilitacoes.anexos.inline', [$habilitacao, $anexo])"
-                                            :download-url="route('habilitacoes.anexos.download', [$habilitacao, $anexo])"
-                                            :print-url="route('habilitacoes.anexos.print', [$habilitacao, $anexo])"
-                                            :destroy-url="Auth::user()->can('manage', $habilitacao) ? route('habilitacoes.anexos.destroy', [$habilitacao, $anexo]) : null"
+                                            :nova-aba-url="$anexo->signedInlineUrl()"
+                                            :download-url="$anexo->signedDownloadUrl()"
+                                            :print-url="$anexo->signedPrintUrl()"
+                                            :destroy-url="Auth::user()->can('manage', $habilitacao) ? $anexo->opaqueDestroyUrl() : null"
                                         />
                                     </div>
                                 </div>
@@ -198,7 +198,7 @@
                                     <p class="text-xs text-slate-600 dark:text-slate-400">{{ $anexo->extra_validation_notes }}</p>
                                 @endif
                                 <div x-show="previewId === {{ $anexo->id }}" class="pt-2" x-cloak>
-                                    <x-anexo-preview :url="route('habilitacoes.anexos.inline', [$habilitacao, $anexo])" :mime="$anexo->mime" :nome="$anexo->nome_original" />
+                                    <x-anexo-preview :url="$anexo->signedInlineUrl()" :mime="$anexo->mime" :nome="$anexo->nome_original" />
                                 </div>
                             </li>
                         @empty

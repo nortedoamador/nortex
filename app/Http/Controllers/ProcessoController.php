@@ -793,7 +793,7 @@ class ProcessoController extends Controller
                 ->map(fn (ProcessoDocumentoAnexo $a) => [
                     'id' => $a->id,
                     'nome_original' => $a->nome_original,
-                    'url' => $a->urlPublica(),
+                    'url' => $a->signedInlineUrl(),
                 ])
                 ->values()
                 ->all(),
@@ -1298,14 +1298,14 @@ class ProcessoController extends Controller
         return back()->with('status', $n === 1 ? '1 arquivo enviado.' : "{$n} arquivos enviados.");
     }
 
-    public function destroyAnexo(Request $request, Processo $processo, ProcessoDocumento $documento, ProcessoDocumentoAnexo $anexo): RedirectResponse|JsonResponse
+    public function destroyAnexo(Request $request, ProcessoDocumentoAnexo $anexo): RedirectResponse|JsonResponse
     {
-        $this->authorize('updateDocumento', $processo);
+        $anexo->loadMissing('processoDocumento.processo');
+        $documento = $anexo->processoDocumento;
+        $processo = $documento?->processo;
+        abort_unless($documento && $processo, 404);
 
-        if ((int) $anexo->processo_documento_id !== (int) $documento->id
-            || (int) $documento->processo_id !== (int) $processo->id) {
-            abort(404);
-        }
+        $this->authorize('updateDocumento', $processo);
 
         $this->anexoService->remover($anexo);
 

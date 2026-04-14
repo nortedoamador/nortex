@@ -375,7 +375,7 @@
                                                             @can('updateDocumento', $processo)
                                                                 <form
                                                                     method="POST"
-                                                                    action="{{ route('processos.documentos.anexos.destroy', [$processo, $doc, $anexo]) }}"
+                                                                    action="{{ $anexo->opaqueDestroyUrl() }}"
                                                                     class="inline"
                                                                     onsubmit="return confirm(@json(__('Remover este anexo?')))"
                                                                 >

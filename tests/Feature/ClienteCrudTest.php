@@ -6,6 +6,7 @@ use App\Models\Cliente;
 use App\Models\Empresa;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\FileEncryption;
 use App\Support\ClienteTiposAnexo;
 use Tests\Concerns\SafeRefreshDatabase;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
@@ -169,7 +170,7 @@ class ClienteCrudTest extends TestCase
 
     public function test_cadastro_ficha_com_anexo_cnh(): void
     {
-        Storage::fake('public');
+        Storage::fake('s3');
 
         $empresa = Empresa::factory()->create();
         $admin = User::factory()->create(['empresa_id' => $empresa->id]);
@@ -188,6 +189,45 @@ class ClienteCrudTest extends TestCase
         $cliente = Cliente::query()->where('email', 'comcnh@test.com')->firstOrFail();
         $this->assertCount(1, $cliente->anexos);
         $this->assertSame(ClienteTiposAnexo::CNH, $cliente->anexos->first()->tipo_codigo);
-        Storage::disk('public')->assertExists($cliente->anexos->first()->path);
+        Storage::disk('s3')->assertExists($cliente->anexos->first()->path);
+    }
+
+    public function test_download_de_cliente_retorna_payload_descriptografado(): void
+    {
+        Storage::fake('s3');
+
+        $empresa = Empresa::factory()->create();
+        $admin = User::factory()->create(['empresa_id' => $empresa->id]);
+
+        $plain = 'cliente-anexo-conteudo-original';
+        $file = UploadedFile::fake()->createWithContent('cnh.pdf', $plain);
+
+        $this->actingAs($admin)
+            ->post(route('clientes.store'), array_merge($this->payloadFichaCliente([
+                'email' => 'download@test.com',
+            ]), [
+                'anexo_cnh' => [$file],
+            ]))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('clientes.index'));
+
+        $cliente = Cliente::query()->where('email', 'download@test.com')->firstOrFail();
+        $anexo = $cliente->anexos()->firstOrFail();
+        $raw = Storage::disk('s3')->get($anexo->path);
+
+        $this->assertNotSame($plain, $raw);
+        $this->assertSame($plain, FileEncryption::decrypt($raw));
+
+        $response = $this->actingAs($admin)
+            ->get($anexo->signedDownloadUrl());
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('attachment;', (string) $response->headers->get('content-disposition'));
+        $this->assertSame($plain, $response->streamedContent());
+
+        $this->actingAs($admin)
+            ->get(route('clientes.anexos.download', ['anexo' => $anexo]))
+            ->assertForbidden();
     }
 }

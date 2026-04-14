@@ -3,15 +3,17 @@
 namespace App\Models;
 
 use App\Enums\AnexoValidacaoStatus;
+use App\Models\Concerns\HasOpaqueAnexoRoutes;
 use App\Support\ClienteTiposAnexo;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class ClienteAnexo extends Model
 {
+    use HasOpaqueAnexoRoutes;
+
     protected $fillable = [
         'cliente_id',
         'tipo_codigo',
@@ -55,11 +57,31 @@ class ClienteAnexo extends Model
 
     public function urlPublica(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        return $this->signedInlineUrl();
     }
 
     public function tipoLabel(): string
     {
         return ClienteTiposAnexo::label($this->tipo_codigo);
+    }
+
+    protected function anexoInlineRouteName(): string
+    {
+        return 'clientes.anexos.inline';
+    }
+
+    protected function anexoDownloadRouteName(): ?string
+    {
+        return 'clientes.anexos.download';
+    }
+
+    protected function anexoPrintRouteName(): ?string
+    {
+        return 'clientes.anexos.print';
+    }
+
+    protected function anexoDestroyRouteName(): ?string
+    {
+        return 'clientes.anexos.destroy';
     }
 }

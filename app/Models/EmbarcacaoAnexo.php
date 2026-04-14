@@ -3,15 +3,17 @@
 namespace App\Models;
 
 use App\Enums\AnexoValidacaoStatus;
+use App\Models\Concerns\HasOpaqueAnexoRoutes;
 use App\Support\EmbarcacaoTiposAnexo;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class EmbarcacaoAnexo extends Model
 {
+    use HasOpaqueAnexoRoutes;
+
     protected $fillable = [
         'embarcacao_id',
         'tipo_codigo',
@@ -56,11 +58,31 @@ class EmbarcacaoAnexo extends Model
 
     public function urlPublica(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        return $this->signedInlineUrl();
     }
 
     public function tipoLabel(): string
     {
         return EmbarcacaoTiposAnexo::label($this->tipo_codigo);
+    }
+
+    protected function anexoInlineRouteName(): string
+    {
+        return 'embarcacoes.anexos.inline';
+    }
+
+    protected function anexoDownloadRouteName(): ?string
+    {
+        return 'embarcacoes.anexos.download';
+    }
+
+    protected function anexoPrintRouteName(): ?string
+    {
+        return 'embarcacoes.anexos.print';
+    }
+
+    protected function anexoDestroyRouteName(): ?string
+    {
+        return 'embarcacoes.anexos.destroy';
     }
 }

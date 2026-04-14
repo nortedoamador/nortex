@@ -1,6 +1,14 @@
-<x-platform-layout :title="__('Usuários (global)')">
+<x-platform-layout :title="__('Utilizadores')">
     <x-slot name="header">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Usuários (global)') }}</h2>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Utilizadores') }}</h2>
+                <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ __('Lista global: filtre por empresa ou pesquise por nome e e-mail.') }}</p>
+            </div>
+            <a href="{{ route('platform.usuarios.create', $empresaId > 0 ? ['empresa_id' => $empresaId] : []) }}" class="inline-flex items-center rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white transition hover:bg-violet-500">
+                {{ __('Novo utilizador') }}
+            </a>
+        </div>
     </x-slot>
 
     <div class="space-y-4">
@@ -34,8 +42,8 @@
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Nome') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('E-mail') }}</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Empresa') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Flags') }}</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400"></th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Estado') }}</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Ações') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -45,16 +53,25 @@
                             <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{{ $u->email }}</td>
                             <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{{ $u->empresa?->nome ?? '—' }}</td>
                             <td class="px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
-                                @if ($u->is_platform_admin)<span class="font-semibold text-violet-600 dark:text-violet-400">platform</span>@endif
-                                @if ($u->is_disabled)<span class="ml-2 font-semibold text-red-600 dark:text-red-400">disabled</span>@endif
+                                @if ($u->is_platform_admin)<span class="inline-flex rounded-full bg-violet-100 px-2 py-0.5 font-semibold text-violet-800 dark:bg-violet-950/60 dark:text-violet-300">{{ __('Plataforma') }}</span>@endif
+                                @if ($u->is_disabled)<span class="{{ $u->is_platform_admin ? 'ml-1 ' : '' }}inline-flex rounded-full bg-red-100 px-2 py-0.5 font-semibold text-red-800 dark:bg-red-950/60 dark:text-red-300">{{ __('Bloqueado') }}</span>@endif
+                                @if (! $u->is_platform_admin && ! $u->is_disabled)<span class="text-slate-400">—</span>@endif
                             </td>
                             <td class="px-4 py-3 text-right text-sm">
-                                <a href="{{ route('platform.usuarios.edit', $u) }}" class="font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ __('Editar') }}</a>
+                                <div class="flex flex-wrap items-center justify-end gap-2">
+                                    <a href="{{ route('platform.usuarios.edit', $u) }}" class="font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400">{{ __('Editar') }}</a>
+                                    @if (auth()->id() !== $u->id)
+                                        <form method="POST" action="{{ route('platform.impersonate.start', $u) }}" class="inline" onsubmit="return confirm(@json(__('Entrar como este utilizador? A ação será registada.')));">
+                                            @csrf
+                                            <button type="submit" class="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400">{{ __('Como utilizador') }}</button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-10 text-center text-sm text-slate-500">{{ __('Nenhum usuário encontrado.') }}</td>
+                            <td colspan="5" class="px-4 py-10 text-center text-sm text-slate-500">{{ __('Nenhum utilizador encontrado.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

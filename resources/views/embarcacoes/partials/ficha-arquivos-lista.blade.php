@@ -68,14 +68,14 @@
                             </button>
                             <x-anexo-list-icon-actions
                                 class="!py-0"
-                                :nova-aba-url="route('embarcacoes.anexos.inline', [$embarcacao, $anexo])"
-                                :download-url="route('embarcacoes.anexos.download', [$embarcacao, $anexo])"
-                                :print-url="route('embarcacoes.anexos.print', [$embarcacao, $anexo])"
-                                :destroy-url="Auth::user()->can('manage', $embarcacao) ? route('embarcacoes.anexos.destroy', [$embarcacao, $anexo]) : null"
+                                :nova-aba-url="$anexo->signedInlineUrl()"
+                                :download-url="$anexo->signedDownloadUrl()"
+                                :print-url="$anexo->signedPrintUrl()"
+                                :destroy-url="Auth::user()->can('manage', $embarcacao) ? $anexo->opaqueDestroyUrl() : null"
                             />
                         </div>
                         <div x-show="previewId === {{ $anexo->id }}" class="pt-2" x-cloak>
-                            <x-anexo-preview :url="route('embarcacoes.anexos.inline', [$embarcacao, $anexo])" :mime="$anexo->mime" :nome="$anexo->nome_original" />
+                            <x-anexo-preview :url="$anexo->signedInlineUrl()" :mime="$anexo->mime" :nome="$anexo->nome_original" />
                         </div>
                     </div>
                 </div>

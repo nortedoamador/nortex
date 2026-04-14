@@ -65,7 +65,7 @@ class AuthenticatedSessionController extends Controller
     {
         $user = Auth::user();
         if ($user && $user->is_platform_admin && ! $user->empresa_id) {
-            return route('platform.empresas.index', absolute: false);
+            return route('platform.dashboard', absolute: false);
         }
 
         return route('dashboard', absolute: false);

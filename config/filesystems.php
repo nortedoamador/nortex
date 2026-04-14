@@ -47,7 +47,12 @@ return [
             'report' => false,
         ],
 
-        's3' => [
+        's3' => env('APP_ENV') === 'testing' ? [
+            'driver' => 'local',
+            'root' => storage_path('framework/testing/disks/s3'),
+            'throw' => false,
+            'report' => false,
+        ] : [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),

@@ -12,6 +12,7 @@ import { registerNovoProcessoModal } from './novo-processo-modal';
 import { initProcessoStatusFormConfirm } from './processo-status-form-confirm';
 import { registerProcessosBulkActions } from './processos-bulk-actions';
 import { registerProcessoPostIts } from './processo-post-its';
+import './platform-dashboard-map';
 import { initTipoProcessoRegrasSort } from './tipo-processo-regras-sort';
 import Alpine from 'alpinejs';
 

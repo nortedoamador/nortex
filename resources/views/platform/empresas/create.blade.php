@@ -23,6 +23,16 @@
                     @error('cnpj')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('UF') }}</label>
+                    <select name="uf" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                        <option value="">{{ __('Selecione o estado') }}</option>
+                        @foreach ($ufs as $sigla => $nome)
+                            <option value="{{ $sigla }}" @selected(old('uf') === $sigla)>{{ $sigla }} - {{ $nome }}</option>
+                        @endforeach
+                    </select>
+                    @error('uf')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
                     <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
                         <input type="hidden" name="ativo" value="0" />
                         <input type="checkbox" name="ativo" value="1" @checked(old('ativo', true)) class="rounded border-slate-300 text-violet-600" />

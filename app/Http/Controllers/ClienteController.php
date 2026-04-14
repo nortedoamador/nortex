@@ -298,13 +298,12 @@ class ClienteController extends Controller
         return back()->with('status', $n === 1 ? __('1 arquivo enviado.') : __(':count arquivos enviados.', ['count' => $n]));
     }
 
-    public function destroyAnexo(Cliente $cliente, ClienteAnexo $anexo): RedirectResponse
+    public function destroyAnexo(ClienteAnexo $anexo): RedirectResponse
     {
-        $this->authorize('manage', $cliente);
+        $cliente = $anexo->cliente;
+        abort_unless($cliente, 404);
 
-        if ((int) $anexo->cliente_id !== (int) $cliente->id) {
-            abort(404);
-        }
+        $this->authorize('manage', $cliente);
 
         $this->anexoService->remover($anexo);
 

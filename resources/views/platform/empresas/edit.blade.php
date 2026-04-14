@@ -1,6 +1,15 @@
 <x-platform-layout :title="__('Editar empresa')">
     <x-slot name="header">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Editar empresa') }} — {{ $empresa->nome }}</h2>
+        <div>
+            <nav class="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                <a href="{{ route('platform.empresas.index') }}" class="hover:text-violet-600 dark:hover:text-violet-400">{{ __('Empresas') }}</a>
+                <span class="mx-1.5 text-slate-300 dark:text-slate-600">/</span>
+                <a href="{{ route('platform.empresas.show', $empresa) }}" class="hover:text-violet-600 dark:hover:text-violet-400">{{ __('Painel') }}</a>
+                <span class="mx-1.5 text-slate-300 dark:text-slate-600">/</span>
+                <span class="text-slate-700 dark:text-slate-200">{{ __('Dados') }}</span>
+            </nav>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Editar empresa') }} — {{ $empresa->nome }}</h2>
+        </div>
     </x-slot>
 
     <div class="max-w-xl space-y-4">
@@ -28,6 +37,16 @@
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('CNPJ') }}</label>
                     <input name="cnpj" value="{{ old('cnpj', $empresa->cnpj) }}" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
                     @error('cnpj')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('UF') }}</label>
+                    <select name="uf" class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+                        <option value="">{{ __('Selecione o estado') }}</option>
+                        @foreach ($ufs as $sigla => $nome)
+                            <option value="{{ $sigla }}" @selected(old('uf', $empresa->uf) === $sigla)>{{ $sigla }} - {{ $nome }}</option>
+                        @endforeach
+                    </select>
+                    @error('uf')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">

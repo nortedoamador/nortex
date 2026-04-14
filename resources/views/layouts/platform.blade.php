@@ -13,47 +13,54 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="h-full bg-slate-50 text-slate-900 font-sans antialiased dark:bg-slate-950 dark:text-slate-100">
-        <div class="min-h-full">
-            @include('layouts.partials.impersonate-banner')
+        <div
+            class="min-h-full"
+            x-data="{ sidebarCollapsed: false, mobileOpen: false }"
+            @keydown.escape.window="mobileOpen = false"
+        >
+            @include('layouts.platform-sidebar')
 
-            <header class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-                <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
-                    <div class="flex items-center gap-4">
-                        <a href="{{ route('platform.empresas.index') }}" class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
-                            NorteX <span class="text-violet-600 dark:text-violet-400">{{ __('Plataforma') }}</span>
-                        </a>
-                        <nav class="flex items-center gap-3 text-sm font-medium">
-                            <a href="{{ route('platform.dashboard') }}" class="text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 {{ request()->routeIs('platform.dashboard') ? 'text-indigo-600 dark:text-indigo-400' : '' }}">{{ __('Dashboard') }}</a>
-                            <a href="{{ route('platform.empresas.index') }}" class="text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 {{ request()->routeIs('platform.empresas.*') ? 'text-indigo-600 dark:text-indigo-400' : '' }}">{{ __('Empresas') }}</a>
-                            <a href="{{ route('platform.cadastros.tipos-processo.index') }}" class="text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 {{ request()->routeIs('platform.cadastros.*') ? 'text-indigo-600 dark:text-indigo-400' : '' }}">{{ __('Cadastros') }}</a>
-                            <a href="{{ route('platform.auditoria.index') }}" class="text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 {{ request()->routeIs('platform.auditoria.*') ? 'text-indigo-600 dark:text-indigo-400' : '' }}">{{ __('Auditoria') }}</a>
-                            <a href="{{ route('platform.usuarios.index') }}" class="text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 {{ request()->routeIs('platform.usuarios.*') ? 'text-indigo-600 dark:text-indigo-400' : '' }}">{{ __('Usuários') }}</a>
-                            @if (Auth::user()?->empresa_id)
-                                <a href="{{ route('dashboard') }}" class="text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400">{{ __('Aplicação') }}</a>
-                            @endif
-                        </nav>
-                    </div>
-                    <div class="flex items-center gap-3 text-sm">
-                        <a href="{{ route('profile.edit') }}" class="text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400">{{ __('Perfil') }}</a>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="font-medium text-red-600 hover:text-red-500 dark:text-red-400">{{ __('Sair') }}</button>
-                        </form>
-                    </div>
-                </div>
-            </header>
+            <div
+                x-show="mobileOpen"
+                x-transition.opacity
+                class="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+                @click="mobileOpen = false"
+                style="display: none;"
+            ></div>
 
-            @isset($header)
-                <div class="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-                    <div class="mx-auto max-w-6xl px-4 py-5 sm:px-6">
-                        {{ $header }}
-                    </div>
-                </div>
-            @endisset
+            <div
+                class="min-h-screen transition-[padding] duration-200"
+                :class="sidebarCollapsed ? 'lg:pl-[4.5rem]' : 'lg:pl-64'"
+            >
+                @include('layouts.partials.impersonate-banner')
 
-            <main class="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-                {{ $slot }}
-            </main>
+                <header class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 lg:hidden">
+                    <button
+                        type="button"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                        @click="mobileOpen = true"
+                        aria-label="{{ __('Abrir menu') }}"
+                    >
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+                    <span class="text-sm font-bold text-slate-900 dark:text-white">NorteX</span>
+                    <span class="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ __('Plataforma') }}</span>
+                </header>
+
+                @isset($header)
+                    <header class="border-b border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 [&_a:not([class*='bg-indigo-']):not([class*='bg-violet-'])]:text-indigo-600 [&_a:not([class*='bg-indigo-']):not([class*='bg-violet-'])]:dark:text-indigo-400">
+                        <div class="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-slate-900 [&_h2]:dark:text-white">
+                            {{ $header }}
+                        </div>
+                    </header>
+                @endisset
+
+                <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                    {{ $slot }}
+                </main>
+            </div>
         </div>
     </body>
 </html>

@@ -232,13 +232,12 @@ class HabilitacaoController extends Controller
         return back()->with('status', $n === 1 ? __('1 arquivo enviado.') : __(':count arquivos enviados.', ['count' => $n]));
     }
 
-    public function destroyAnexo(Habilitacao $habilitacao, HabilitacaoAnexo $anexo): RedirectResponse
+    public function destroyAnexo(HabilitacaoAnexo $anexo): RedirectResponse
     {
-        $this->authorize('manage', $habilitacao);
+        $habilitacao = $anexo->habilitacao;
+        abort_unless($habilitacao, 404);
 
-        if ((int) $anexo->habilitacao_id !== (int) $habilitacao->id) {
-            abort(404);
-        }
+        $this->authorize('manage', $habilitacao);
 
         $this->anexoService->remover($anexo);
 

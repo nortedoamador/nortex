@@ -25,7 +25,7 @@ class ChaAtestadoDispensaPorCnhTest extends TestCase
 
     public function test_cnh_valida_com_anexo_dispensa_atestado_automaticamente(): void
     {
-        Storage::fake('public');
+        Storage::fake('s3');
 
         $empresa = Empresa::factory()->create();
         $user = User::factory()->create(['empresa_id' => $empresa->id]);
@@ -192,7 +192,7 @@ class ChaAtestadoDispensaPorCnhTest extends TestCase
 
     public function test_cnh_vencida_reverte_atestado_dispensado_para_pendente(): void
     {
-        Storage::fake('public');
+        Storage::fake('s3');
 
         $empresa = Empresa::factory()->create();
         $user = User::factory()->create(['empresa_id' => $empresa->id]);

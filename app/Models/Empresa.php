@@ -17,6 +17,7 @@ class Empresa extends Model
         'nome',
         'slug',
         'cnpj',
+        'uf',
         'ativo',
         'email_contato',
         'telefone',

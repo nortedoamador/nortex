@@ -81,7 +81,7 @@ class ImpersonateController extends Controller
             );
         }
 
-        return redirect()->route('platform.empresas.index')->with('status', __('Impersonate finalizado.'));
+        return redirect()->route('platform.dashboard')->with('status', __('Impersonate finalizado.'));
     }
 }
 

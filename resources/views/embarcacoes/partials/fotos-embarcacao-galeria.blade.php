@@ -24,7 +24,7 @@
                 $anexo = $item['anexo'];
                 $mime = (string) ($anexo->mime ?? '');
                 $ehImagem = str_starts_with($mime, 'image/');
-                $urlInline = route('embarcacoes.anexos.inline', [$embarcacao, $anexo]);
+                $urlInline = $anexo->signedInlineUrl();
             @endphp
             <div
                 class="group relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200/90 dark:bg-slate-800 dark:ring-slate-700"
@@ -80,7 +80,7 @@
                             type="button"
                             class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-800/20 bg-red-600 !text-white text-white shadow-lg transition hover:bg-red-500 hover:!text-white focus:outline-none focus:ring-2 focus:ring-red-400"
                             data-nx-embarcacao-foto-delete
-                            data-nx-url="{{ route('embarcacoes.anexos.destroy', [$embarcacao, $anexo]) }}"
+                            data-nx-url="{{ $anexo->opaqueDestroyUrl() }}"
                             data-nx-csrf="{{ csrf_token() }}"
                             data-nx-confirm="{{ e(__('Remover esta foto?')) }}"
                             aria-label="{{ __('Remover') }}"
