@@ -1,0 +1,35 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-C3RqrTX6.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/css/auth-nortex.css": {
+    "file": "assets/auth-nortex-DjD72Ct4.css",
+    "src": "resources/css/auth-nortex.css",
+    "isEntry": true,
+    "name": "auth-nortex",
+    "names": [
+      "auth-nortex.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-B-zsRMw1.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "css": [
+      "assets/app-Bqu6Iv8I.css"
+    ]
+  },
+  "resources/js/auth-nortex.js": {
+    "file": "assets/auth-nortex-Co87nPOI.js",
+    "name": "auth-nortex",
+    "src": "resources/js/auth-nortex.js",
+    "isEntry": true
+  }
+}
