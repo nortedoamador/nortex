@@ -177,6 +177,84 @@
                         class="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
                     />
                 </div>
+
+                <div class="space-y-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Inscrição') }}</p>
+                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-slate-800 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="emb_insc"
+                            value="1"
+                            x-model="state.emb_insc"
+                            @change="apply()"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900"
+                        />
+                        <span>{{ __('Inscrita') }}</span>
+                    </label>
+                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-slate-800 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="emb_sin"
+                            value="1"
+                            x-model="state.emb_sin"
+                            @change="apply()"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900"
+                        />
+                        <span>{{ __('Sem inscrição') }}</span>
+                    </label>
+                </div>
+
+                <div class="space-y-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Alienação fiduciária') }}</p>
+                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-slate-800 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="emb_ali"
+                            value="1"
+                            x-model="state.emb_ali"
+                            @change="apply()"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900"
+                        />
+                        <span>{{ __('Com alienação') }}</span>
+                    </label>
+                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-slate-800 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="emb_sal"
+                            value="1"
+                            x-model="state.emb_sal"
+                            @change="apply()"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900"
+                        />
+                        <span>{{ __('Sem alienação') }}</span>
+                    </label>
+                </div>
+
+                <div class="space-y-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Vencimento da inscrição') }}</p>
+                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-slate-800 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="emb_vig"
+                            value="1"
+                            x-model="state.emb_vig"
+                            @change="apply()"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900"
+                        />
+                        <span>{{ __('Em vigor') }}</span>
+                    </label>
+                    <label class="flex cursor-pointer items-center gap-2.5 text-sm text-slate-800 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="emb_ven"
+                            value="1"
+                            x-model="state.emb_ven"
+                            @change="apply()"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900"
+                        />
+                        <span>{{ __('Vencida') }}</span>
+                    </label>
+                </div>
             </div>
 
             <div class="border-t border-slate-200 bg-slate-50/90 px-4 py-4 dark:border-slate-700 dark:bg-slate-800/50 sm:px-5">
@@ -184,7 +262,7 @@
                     <button
                         type="button"
                         class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                        @click="state.tipo = ''; state.atividade = ''; state.construtor = ''; state.ano_construcao = ''; state.numero_motor = ''; apply(); open = false"
+                        @click="state.tipo = ''; state.atividade = ''; state.construtor = ''; state.ano_construcao = ''; state.numero_motor = ''; state.emb_insc = false; state.emb_sin = false; state.emb_ali = false; state.emb_sal = false; state.emb_vig = false; state.emb_ven = false; apply(); open = false"
                     >
                         {{ __('Limpar filtros') }}
                     </button>

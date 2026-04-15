@@ -313,10 +313,13 @@ class ClienteController extends Controller
     private function armazenarAnexosDaFicha(Request $request, Cliente $cliente): int
     {
         $n = 0;
+        $tipoSlotPrincipal = (string) $request->input('tipo_documento') === 'pj'
+            ? ClienteTiposAnexo::CONTRATO_SOCIAL
+            : ClienteTiposAnexo::CNH;
         $n += $this->anexoService->armazenarVarios(
             $cliente,
             $request->file('anexo_cnh') ?? [],
-            ClienteTiposAnexo::CNH,
+            $tipoSlotPrincipal,
         );
         $n += $this->anexoService->armazenarVarios(
             $cliente,

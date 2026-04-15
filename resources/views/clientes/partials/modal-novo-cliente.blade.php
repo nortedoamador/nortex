@@ -49,7 +49,7 @@
                 data-msg-selecione-municipio="{{ __('Selecione o município') }}"
             >
                 @csrf
-                @include('clientes.partials.form-ficha-campos', ['cliente' => null, 'ufs' => $ufs])
+                @include('clientes.partials.form-ficha-campos', ['cliente' => null, 'ufs' => $ufs, 'layout' => 'stacked_sections'])
                 @include('clientes.partials.form-ficha-uploads')
 
                 <div class="sticky bottom-0 border-t border-slate-200 bg-white pt-4 dark:border-slate-700 dark:bg-slate-900">

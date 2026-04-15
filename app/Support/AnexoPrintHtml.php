@@ -7,8 +7,12 @@ use Illuminate\Http\Response;
 final class AnexoPrintHtml
 {
     /**
-     * Página HTML que embute o anexo em iframe e abre a impressão após o carregamento
-     * (evita folha em branco quando window.print() dispara antes do PDF/imagem).
+     * Página HTML que embute o anexo em iframe e abre a impressão após o carregamento.
+     *
+     * Em Chromium, imprimir a janela pai com um PDF no iframe costuma gerar pré-visualização
+     * partida (faixa escura, recorte). Por isso tentamos primeiro `print()` no documento do
+     * iframe; se falhar (PDF bloqueado, cross-origin), voltamos ao print da página,
+     * com CSS de impressão que esconde a barra e força o iframe a ocupar a folha inteira.
      */
     public static function response(string $publicUrl, string $nomeOriginal): Response
     {
@@ -23,11 +27,53 @@ final class AnexoPrintHtml
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{$nome}</title>
     <style>
-      html, body { height: 100%; margin: 0; }
+      html, body { height: 100%; margin: 0; background: #fff; }
       .wrap { height: 100%; display: flex; flex-direction: column; }
-      .bar { padding: 10px 12px; font: 14px system-ui, -apple-system, Segoe UI, Roboto, Arial; border-bottom: 1px solid #e5e7eb; }
-      .frame { flex: 1; min-height: 0; }
-      iframe { width: 100%; height: 100%; border: 0; display: block; }
+      .bar {
+        flex-shrink: 0;
+        padding: 10px 12px;
+        font: 14px system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        border-bottom: 1px solid #e5e7eb;
+        color: #111827;
+        background: #fff;
+      }
+      .frame { flex: 1; min-height: 0; position: relative; }
+      iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+
+      @media print {
+        .bar { display: none !important; }
+        html, body {
+          height: auto !important;
+          min-height: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .wrap {
+          height: auto !important;
+          min-height: 100% !important;
+          display: block !important;
+        }
+        .frame {
+          position: relative !important;
+          height: 100vh !important;
+          min-height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        iframe {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          border: 0 !important;
+        }
+      }
     </style>
   </head>
   <body>
@@ -41,13 +87,25 @@ final class AnexoPrintHtml
       (function () {
         var frame = document.getElementById('anexo-print-frame');
         if (!frame) return;
+
+        function runPrint() {
+          try {
+            var cw = frame.contentWindow;
+            if (cw && typeof cw.print === 'function') {
+              cw.focus();
+              cw.print();
+              return;
+            }
+          } catch (e) {}
+
+          try {
+            window.focus();
+            window.print();
+          } catch (e2) {}
+        }
+
         frame.addEventListener('load', function () {
-          setTimeout(function () {
-            try {
-              window.focus();
-              window.print();
-            } catch (e) {}
-          }, 300);
+          setTimeout(runPrint, 450);
         });
       })();
     </script>

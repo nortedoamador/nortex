@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 
 class StoreClienteAnexosRequest extends FormRequest
@@ -10,6 +11,19 @@ class StoreClienteAnexosRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    private function hasArquivos(): bool
+    {
+        $f = $this->file('arquivos');
+        if ($f === null) {
+            return false;
+        }
+        if (is_array($f)) {
+            return count(array_filter($f, fn ($file) => $file instanceof UploadedFile)) > 0;
+        }
+
+        return $f instanceof UploadedFile;
     }
 
     protected function prepareForValidation(): void
@@ -36,7 +50,12 @@ class StoreClienteAnexosRequest extends FormRequest
         return [
             'arquivos' => ['nullable', 'array', 'max:20'],
             'arquivos.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx'],
-            'tipo_codigo' => ['nullable', 'string', 'max:64'],
+            'tipo_codigo' => [
+                Rule::requiredIf(fn (): bool => $this->hasArquivos()),
+                'nullable',
+                'string',
+                'max:64',
+            ],
             'platform_anexo_tipo_id' => ['nullable', 'integer', Rule::exists('platform_anexo_tipos', 'id')->where('ativo', true)],
         ];
     }
@@ -46,6 +65,7 @@ class StoreClienteAnexosRequest extends FormRequest
         return [
             'arquivos.*.max' => 'Cada arquivo deve ter no máximo 10 MB.',
             'arquivos.*.mimes' => 'Formatos permitidos: PDF, imagens, DOC/DOCX.',
+            'tipo_codigo.required' => __('Selecione o tipo do documento (ex.: CNH) antes de enviar os arquivos.'),
         ];
     }
 }

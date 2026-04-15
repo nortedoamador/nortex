@@ -17,10 +17,3 @@
 
 DROP DATABASE IF EXISTS `nortex`;
 CREATE DATABASE `nortex` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-
-
-CNH_ZBARIMG_PATH	Ler o QR da CNH (melhor cenário)
-CNH_TESSERACT_PATH	OCR quando não há QR ou o QR não é legível
-Imagick no PHP	Converter PDF em imagem (aqui o php -m mostra imagick carregado)
-Ghostscript (CNH_GHOSTSCRIPT_PATH ou no PATH)	Necessário para o Imagick tratar PDFs

@@ -42,21 +42,10 @@
                             <span class="text-slate-300 dark:text-slate-600">·</span>
                             {{ $tamanhoFmt }}
                         </p>
-                        <div class="mt-1 flex flex-wrap items-center gap-1">
-                            @if (filled($anexo->tipo_codigo))
+                        @if (filled($anexo->tipo_codigo))
+                            <div class="mt-1 flex flex-wrap items-center gap-1">
                                 <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $anexo->tipoLabel() }}</span>
-                            @endif
-                            @php $vs = $anexo->extra_validation_status ?? \App\Enums\AnexoValidacaoStatus::Pendente; @endphp
-                            <span class="inline-flex text-[11px] uppercase px-2 py-0.5 rounded-full
-                                @if($vs->value === 'ok') bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200
-                                @elseif($vs->value === 'pendente') bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200
-                                @elseif($vs->value === 'falhou') bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-200
-                                @else bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 @endif">
-                                {{ $vs->label() }}
-                            </span>
-                        </div>
-                        @if ($anexo->extra_validation_notes)
-                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ $anexo->extra_validation_notes }}</p>
+                            </div>
                         @endif
                         <div class="mt-2 flex flex-wrap items-center gap-2">
                             <button

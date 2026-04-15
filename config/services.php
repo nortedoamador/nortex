@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        /** Price ID mensal "completo" (ex.: 497) — desbloqueia financeiro quando a subscrição está ativa. */
+        'price_full' => env('STRIPE_PRICE_FULL'),
+        /** Opcional: Price ID do plano básico (ex.: 297), para referência em Checkout. */
+        'price_basic' => env('STRIPE_PRICE_BASIC'),
+    ],
+
 ];

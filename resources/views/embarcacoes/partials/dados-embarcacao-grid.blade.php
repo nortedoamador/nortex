@@ -42,11 +42,20 @@
     $pass = $tx($e->passageiros);
     $lotaStr = $pass !== null ? (is_numeric($pass) ? $pass.' '.__('pessoas') : $pass) : null;
 
+    $alienacaoTxt = match ((string) ($e->alienacao_fiduciaria ?? '')) {
+        'sim' => __('Sim'),
+        'nao' => __('Não'),
+        default => null,
+    };
+
     $cells = [
         ['label' => __('Nº inscrição'), 'value' => $d($e->inscricao), 'icon' => 'hash'],
         ['label' => __('Porto / base'), 'value' => $d($porto), 'icon' => 'map'],
         ['label' => __('Data emissão (inscrição)'), 'value' => $e->inscricao_data_emissao?->format('d/m/Y') ?? '—', 'icon' => 'calendar'],
         ['label' => __('Data vencimento'), 'value' => $e->inscricao_data_vencimento?->format('d/m/Y') ?? '—', 'icon' => 'calendar'],
+        ['label' => __('Jurisdição (inscrição)'), 'value' => $d($e->inscricao_jurisdicao), 'icon' => 'map'],
+        ['label' => __('Alienação fiduciária'), 'value' => $alienacaoTxt ?? '—', 'icon' => 'flag'],
+        ['label' => __('Credor hipotecário'), 'value' => $e->alienacao_fiduciaria === 'sim' ? $d($e->credor_hipotecario) : '—', 'icon' => 'building'],
         ['label' => __('Tipo'), 'value' => $d($e->tipo), 'icon' => 'boat'],
         ['label' => __('Atividade'), 'value' => $d($e->atividade), 'icon' => 'flag'],
         ['label' => __('Tipo de navegação'), 'value' => $e->tipo_navegacao?->label() ?? '—', 'icon' => 'boat'],

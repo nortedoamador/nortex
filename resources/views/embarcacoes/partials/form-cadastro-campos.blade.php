@@ -153,7 +153,7 @@
                     {{ __('Inscrição na Marinha') }}
                 </p>
                 <p class="mt-1 text-xs text-indigo-900/80 dark:text-indigo-200/80">
-                    {{ __('Marque para habilitar o número de inscrição, a data de emissão e a data de vencimento.') }}
+                    {{ __('Marque para habilitar o número de inscrição, as datas, a jurisdição e a alienação fiduciária.') }}
                 </p>
             </div>
 
@@ -214,6 +214,53 @@
         class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
     />
     <x-input-error :messages="$errors->get('inscricao_data_vencimento')" class="mt-2" />
+</div>
+
+<div>
+    <x-input-label for="{{ $pid('inscricao_jurisdicao') }}" :value="__('Jurisdição')" />
+    <select
+        id="{{ $pid('inscricao_jurisdicao') }}"
+        name="inscricao_jurisdicao"
+        class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+    >
+        <option value="">{{ __('Selecione') }}</option>
+        @foreach (\App\Models\Habilitacao::JURISDICOES as $jurOpt)
+            <option value="{{ $jurOpt }}" @selected((string) $nxOld('inscricao_jurisdicao') === $jurOpt)>{{ $jurOpt }}</option>
+        @endforeach
+    </select>
+    <x-input-error :messages="$errors->get('inscricao_jurisdicao')" class="mt-2" />
+</div>
+<div>
+    <x-input-label for="{{ $pid('alienacao_fiduciaria') }}" :value="__('Alienação fiduciária')" />
+    <select
+        id="{{ $pid('alienacao_fiduciaria') }}"
+        name="alienacao_fiduciaria"
+        class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+    >
+        <option value="">{{ __('Selecione') }}</option>
+        <option value="sim" @selected((string) $nxOld('alienacao_fiduciaria') === 'sim')>{{ __('Sim') }}</option>
+        <option value="nao" @selected((string) $nxOld('alienacao_fiduciaria') === 'nao')>{{ __('Não') }}</option>
+    </select>
+    <x-input-error :messages="$errors->get('alienacao_fiduciaria')" class="mt-2" />
+</div>
+
+@php
+    $nxMostrarCredorHip = (string) $nxOld('alienacao_fiduciaria') === 'sim';
+@endphp
+<div
+    id="{{ $pid('credor-hipotecario-wrap') }}"
+    class="md:col-span-2 {{ $nxMostrarCredorHip ? '' : 'hidden' }}"
+>
+    <x-input-label for="{{ $pid('credor_hipotecario') }}" :value="__('Credor hipotecário')" />
+    <x-text-input
+        id="{{ $pid('credor_hipotecario') }}"
+        name="credor_hipotecario"
+        class="mt-1 block w-full"
+        :disabled="!$nxMostrarCredorHip"
+        value="{{ $nxOld('credor_hipotecario') }}"
+        placeholder="{{ __('Nome do credor hipotecário') }}"
+    />
+    <x-input-error :messages="$errors->get('credor_hipotecario')" class="mt-2" />
 </div>
 
 <div>
@@ -772,6 +819,10 @@
         const inscInput = byId('inscricao');
         const emissaoInput = byId('inscricao_data_emissao');
         const vencInput = byId('inscricao_data_vencimento');
+        const jurSelect = byId('inscricao_jurisdicao');
+        const alienSelect = byId('alienacao_fiduciaria');
+        const credorWrap = byId('credor-hipotecario-wrap');
+        const credorInput = byId('credor_hipotecario');
 
         const addYearsIso = (isoDateStr, years) => {
             if (!isoDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(isoDateStr)) return '';
@@ -806,10 +857,24 @@
         };
 
         if (chkInsc && inscInput) {
+            const syncCredorHip = () => {
+                if (!credorWrap || !alienSelect) return;
+                const sim = alienSelect.value === 'sim';
+                credorWrap.classList.toggle('hidden', !sim);
+                if (credorInput) {
+                    credorInput.disabled = !sim;
+                    setWrapDisabled(credorInput, !sim);
+                    if (!sim) credorInput.value = '';
+                }
+            };
+
             const hasInscricaoFlow =
                 inscInput.value.trim() !== '' ||
                 (emissaoInput && emissaoInput.value !== '') ||
-                (vencInput && vencInput.value !== '');
+                (vencInput && vencInput.value !== '') ||
+                (jurSelect && jurSelect.value !== '') ||
+                (alienSelect && alienSelect.value !== '') ||
+                (credorInput && credorInput.value.trim() !== '');
             if (hasInscricaoFlow) {
                 chkInsc.checked = true;
             }
@@ -825,18 +890,31 @@
                     vencInput.disabled = !enabled;
                     setWrapDisabled(vencInput, !enabled);
                 }
+                if (jurSelect) {
+                    jurSelect.disabled = !enabled;
+                    setWrapDisabled(jurSelect, !enabled);
+                }
+                if (alienSelect) {
+                    alienSelect.disabled = !enabled;
+                    setWrapDisabled(alienSelect, !enabled);
+                }
                 if (!enabled) {
                     inscInput.value = '';
                     if (emissaoInput) emissaoInput.value = '';
                     if (vencInput) vencInput.value = '';
+                    if (jurSelect) jurSelect.value = '';
+                    if (alienSelect) alienSelect.value = '';
+                    if (credorInput) credorInput.value = '';
                 } else {
                     syncVencimento();
                 }
+                syncCredorHip();
             };
             sync();
             chkInsc.addEventListener('change', sync);
             emissaoInput?.addEventListener('change', syncVencimento);
             emissaoInput?.addEventListener('input', syncVencimento);
+            alienSelect?.addEventListener('change', syncCredorHip);
         }
     })();
 </script>

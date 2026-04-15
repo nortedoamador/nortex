@@ -23,6 +23,7 @@
                             <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $emb->nome }}</span>
                             @php
                                 $nxInscrita = filled($emb->inscricao);
+                                $nxAlienada = ($emb->alienacao_fiduciaria ?? '') === 'sim';
                                 $nxDataVenc = $emb->inscricao_data_vencimento;
                                 $nxVencida = $nxDataVenc && $nxDataVenc->lt(\Carbon\Carbon::today());
                             @endphp
@@ -30,6 +31,12 @@
                                 <span class="h-2 w-2 shrink-0 rounded-full {{ $nxInscrita ? 'bg-emerald-500' : 'bg-amber-400' }}" aria-hidden="true"></span>
                                 {{ $nxInscrita ? __('Inscrita') : __('Sem inscrição') }}
                             </span>
+                            @if ($nxAlienada)
+                                <span class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+                                    <span class="h-2 w-2 shrink-0 rounded-full bg-amber-400" aria-hidden="true"></span>
+                                    {{ __('Alienada') }}
+                                </span>
+                            @endif
                             @if ($nxDataVenc)
                                 <span class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide {{ $nxVencida ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200' : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200' }}">
                                     <span class="h-2 w-2 shrink-0 rounded-full {{ $nxVencida ? 'bg-red-500' : 'bg-emerald-500' }}" aria-hidden="true"></span>

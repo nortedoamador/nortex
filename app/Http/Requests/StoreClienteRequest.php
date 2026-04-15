@@ -53,13 +53,17 @@ class StoreClienteRequest extends FormRequest
             $this->merge(['documento_identidade_numero' => (string) $this->input('rg')]);
         }
 
-        // PJ: não exige RG/CNH; zera campos para evitar validação/armazenamento indevido.
+        // PJ: não exige RG/CNH nem dados só de pessoa física.
         if ($this->input('tipo_documento') === 'pj') {
             $this->merge([
                 'documento_identidade_tipo' => null,
                 'documento_identidade_numero' => null,
                 'orgao_emissor' => null,
                 'data_emissao_rg' => null,
+                'data_nascimento' => null,
+                'validade_cnh' => null,
+                'nacionalidade' => null,
+                'naturalidade' => null,
             ]);
         }
 
@@ -224,8 +228,19 @@ class StoreClienteRequest extends FormRequest
             'categoria_cnh' => ['nullable', 'string', 'max:16'],
             'validade_cnh' => ['nullable', 'date'],
             'primeira_habilitacao' => ['nullable', 'date'],
-            'nacionalidade' => ['required', 'string', 'max:100', Rule::in(NacionalidadesComuns::valoresPermitidos())],
-            'naturalidade' => ['required', 'string', 'max:100'],
+            'nacionalidade' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::requiredIf(fn () => (string) $this->input('tipo_documento') === 'pf'),
+                Rule::in(NacionalidadesComuns::valoresPermitidos()),
+            ],
+            'naturalidade' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::requiredIf(fn () => (string) $this->input('tipo_documento') === 'pf'),
+            ],
             'cep' => ['required', 'string', 'max:12'],
             'endereco' => ['required', 'string', 'max:255'],
             'bairro' => ['required', 'string', 'max:120'],

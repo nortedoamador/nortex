@@ -60,6 +60,7 @@
                     }
                     $nomeUpper = \Illuminate\Support\Str::upper((string) ($embarcacao->nome ?? ''));
                     $temInscricao = filled($embarcacao->inscricao);
+                    $embarcacaoAlienada = ($embarcacao->alienacao_fiduciaria ?? '') === 'sim';
                 @endphp
 
                 {{-- Card: Perfil --}}
@@ -68,11 +69,19 @@
                         <div class="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md" aria-hidden="true">
                             @include('embarcacoes.partials.icon-tipo-embarcacao', ['tipo' => $embarcacao->tipo, 'svgClass' => 'h-12 w-12'])
                         </div>
-                        <span class="mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide
-                            {{ $temInscricao ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200' : 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200' }}">
-                            <span class="h-2 w-2 rounded-full {{ $temInscricao ? 'bg-emerald-500' : 'bg-amber-400' }}"></span>
-                            {{ $temInscricao ? __('Inscrita') : __('Sem inscrição') }}
-                        </span>
+                        <div class="mt-2 flex flex-wrap items-center justify-center gap-2">
+                            <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wide
+                                {{ $temInscricao ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200' : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200' }}">
+                                <span class="h-2 w-2 shrink-0 rounded-full {{ $temInscricao ? 'bg-emerald-500' : 'bg-amber-400' }}" aria-hidden="true"></span>
+                                {{ $temInscricao ? __('Inscrita') : __('Sem inscrição') }}
+                            </span>
+                            @if ($embarcacaoAlienada)
+                                <span class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+                                    <span class="h-2 w-2 shrink-0 rounded-full bg-amber-400" aria-hidden="true"></span>
+                                    {{ __('Alienada') }}
+                                </span>
+                            @endif
+                        </div>
                         <p class="mt-4 text-sm font-extrabold tracking-wide text-slate-900 dark:text-white">
                             {{ $nomeUpper ?: '—' }}
                         </p>
@@ -297,6 +306,17 @@
                                                 }
                                                 this.files = [];
                                             },
+                                            tipoDocumentoSelecionado() {
+                                                const p = (this.preset || '').trim();
+                                                if (! p) {
+                                                    return false;
+                                                }
+                                                if (p === '__outro') {
+                                                    return (this.custom || '').trim() !== '';
+                                                }
+
+                                                return true;
+                                            },
                                         }"
                                         x-init="updateFiles()"
                                     >
@@ -388,7 +408,8 @@
                                             </div>
                                             <button
                                                 type="submit"
-                                                class="inline-flex w-full items-center justify-center rounded-lg bg-violet-600 px-4 py-2.5 text-base font-semibold text-white shadow-sm hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 dark:focus:ring-violet-400/30"
+                                                class="inline-flex w-full items-center justify-center rounded-lg bg-violet-600 px-4 py-2.5 text-base font-semibold text-white shadow-sm hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-violet-400/30"
+                                                x-bind:disabled="files.length === 0 || ! tipoDocumentoSelecionado()"
                                             >
                                                 {{ __('Enviar arquivos') }}
                                             </button>

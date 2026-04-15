@@ -153,19 +153,51 @@ class ClienteCrudTest extends TestCase
         $empresa = Empresa::factory()->create();
         $admin = User::factory()->create(['empresa_id' => $empresa->id]);
 
+        $payload = $this->payloadFichaCliente([
+            'tipo_documento' => 'pj',
+            'nome' => 'Empresa LTDA',
+            'cpf' => '11222333000181',
+            'email' => 'contato@empresa.test',
+        ]);
+        unset($payload['nacionalidade'], $payload['naturalidade']);
+
         $this->actingAs($admin)
-            ->post(route('clientes.store'), $this->payloadFichaCliente([
-                'tipo_documento' => 'pj',
-                'nome' => 'Empresa LTDA',
-                'cpf' => '11222333000181',
-                'email' => 'contato@empresa.test',
-            ]))
+            ->post(route('clientes.store'), $payload)
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('clientes.index'));
 
         $cliente = Cliente::query()->where('email', 'contato@empresa.test')->firstOrFail();
         $this->assertSame('pj', $cliente->tipo_documento);
         $this->assertStringContainsString('11.222.333', $cliente->cpf ?? '');
+    }
+
+    public function test_cadastro_pj_com_anexo_no_primeiro_slot_grava_contrato_social(): void
+    {
+        Storage::fake('s3');
+
+        $empresa = Empresa::factory()->create();
+        $admin = User::factory()->create(['empresa_id' => $empresa->id]);
+
+        $file = UploadedFile::fake()->create('contrato.pdf', 120, 'application/pdf');
+
+        $payload = $this->payloadFichaCliente([
+            'tipo_documento' => 'pj',
+            'nome' => 'Empresa Com Anexo SA',
+            'cpf' => '11222333000181',
+            'email' => 'pj.anexo@test.com',
+        ]);
+        unset($payload['nacionalidade'], $payload['naturalidade']);
+
+        $this->actingAs($admin)
+            ->post(route('clientes.store'), array_merge($payload, [
+                'anexo_cnh' => [$file],
+            ]))
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('clientes.index'));
+
+        $cliente = Cliente::query()->where('email', 'pj.anexo@test.com')->firstOrFail();
+        $this->assertCount(1, $cliente->anexos);
+        $this->assertSame(ClienteTiposAnexo::CONTRATO_SOCIAL, $cliente->anexos->first()->tipo_codigo);
     }
 
     public function test_cadastro_ficha_com_anexo_cnh(): void

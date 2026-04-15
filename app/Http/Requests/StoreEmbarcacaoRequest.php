@@ -6,6 +6,7 @@ use App\Enums\EmbarcacaoAreaNavegacao;
 use App\Enums\EmbarcacaoTipoNavegacao;
 use App\Enums\EmbarcacaoTipoPropulsao;
 use App\Http\Requests\Concerns\ValidatesEmbarcacaoFotosOutrasRotulo;
+use App\Models\Habilitacao;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -70,9 +71,16 @@ class StoreEmbarcacaoRequest extends FormRequest
                 'inscricao' => null,
                 'inscricao_data_emissao' => null,
                 'inscricao_data_vencimento' => null,
+                'inscricao_jurisdicao' => null,
+                'alienacao_fiduciaria' => null,
+                'credor_hipotecario' => null,
             ]);
         } else {
             $this->merge(['inscricao' => $inscTrim]);
+            $alien = trim((string) $this->input('alienacao_fiduciaria', ''));
+            if ($alien !== 'sim') {
+                $this->merge(['credor_hipotecario' => null]);
+            }
         }
 
         foreach (['inscricao_data_emissao', 'inscricao_data_vencimento'] as $key) {
@@ -164,6 +172,25 @@ class StoreEmbarcacaoRequest extends FormRequest
                 'nullable',
                 'date',
                 Rule::requiredIf(fn () => filled($this->input('inscricao'))),
+            ],
+            'inscricao_jurisdicao' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(fn () => filled($this->input('inscricao'))),
+                Rule::in(Habilitacao::JURISDICOES),
+            ],
+            'alienacao_fiduciaria' => [
+                'nullable',
+                'string',
+                Rule::requiredIf(fn () => filled($this->input('inscricao'))),
+                Rule::in(['sim', 'nao']),
+            ],
+            'credor_hipotecario' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(fn () => filled($this->input('inscricao')) && $this->input('alienacao_fiduciaria') === 'sim'),
             ],
             'cpi' => ['nullable', 'string', 'max:64'],
             'status' => ['nullable', 'string', 'max:32'],

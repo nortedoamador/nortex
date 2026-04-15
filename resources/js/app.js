@@ -1,6 +1,5 @@
 import './bootstrap';
 
-import { initClienteCnhExtract } from './cliente-cnh-extract';
 import { initClienteFichaMasks } from './cliente-ficha-masks';
 import { initClienteFichaDoc } from './cliente-ficha-doc';
 import { initClienteFichaGeo } from './cliente-ficha-geo';
@@ -74,7 +73,6 @@ function bindClienteFichaForm(form) {
     initClienteFichaMasks(form);
     initClienteFichaDoc(form);
     initClienteFichaGeo(form);
-    initClienteCnhExtract(form);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

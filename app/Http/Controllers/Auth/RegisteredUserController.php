@@ -8,12 +8,15 @@ use App\Models\Empresa;
 use App\Models\User;
 use App\Services\EmpresaProcessosDefaultsService;
 use App\Services\EmpresaRbacService;
+use App\Services\SubscriptionCheckoutService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +25,10 @@ use Illuminate\View\View;
 class RegisteredUserController extends Controller
 {
     use RespondsForNorteXAuthSpa;
+
+    public function __construct(
+        private SubscriptionCheckoutService $checkout,
+    ) {}
 
     /**
      * Display the registration view.
@@ -49,6 +56,14 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        if (! $this->checkout->planConfigured('completa')) {
+            throw ValidationException::withMessages([
+                'empresa_nome' => __('O pagamento do plano Completo não está disponível no momento. Configure o Stripe (STRIPE_PRICE_FULL) ou contacte o suporte.'),
+            ]);
+        }
+
+        $email = Str::lower(trim((string) $request->email));
+
         $base = Str::slug($request->empresa_nome);
         $base = $base !== '' ? $base : 'empresa';
         $candidate = $base;
@@ -59,22 +74,54 @@ class RegisteredUserController extends Controller
         }
         $slug = $candidate;
 
-        $empresa = Empresa::create([
-            'nome' => $request->empresa_nome,
-            'slug' => $slug,
-            'ativo' => true,
-        ]);
+        try {
+            [$empresa, $user, $checkoutUrl] = DB::transaction(function () use ($request, $slug, $email): array {
+                $empresa = Empresa::query()->create([
+                    'nome' => $request->empresa_nome,
+                    'slug' => $slug,
+                    'ativo' => true,
+                    'email_contato' => $email,
+                    'pagamento_inicial_pendente' => true,
+                ]);
 
-        $user = User::create([
-            'empresa_id' => $empresa->id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+                $user = User::query()->create([
+                    'empresa_id' => $empresa->id,
+                    'name' => $request->name,
+                    'email' => $email,
+                    'password' => Hash::make($request->password),
+                ]);
 
-        $rbac = app(EmpresaRbacService::class);
-        $rbac->bootstrapEmpresa($empresa);
-        $rbac->assignRole($user, 'administrador');
+                $rbac = app(EmpresaRbacService::class);
+                $rbac->bootstrapEmpresa($empresa);
+                $rbac->assignRole($user, 'administrador');
+
+                $session = $this->checkout->createSubscriptionCheckoutSession(
+                    $empresa,
+                    $user,
+                    'completa',
+                    $email,
+                );
+
+                $url = is_string($session->url ?? null) ? $session->url : '';
+
+                return [$empresa, $user, $url];
+            });
+        } catch (\Throwable $e) {
+            Log::error('Registo: falha ao criar empresa ou sessão Stripe.', [
+                'email' => $email,
+                'message' => $e->getMessage(),
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['empresa_nome' => __('Não foi possível iniciar o registo. Tente novamente ou contacte o suporte.')]);
+        }
+
+        if ($checkoutUrl === '') {
+            return back()
+                ->withInput()
+                ->withErrors(['empresa_nome' => __('Resposta inválida do serviço de pagamento.')]);
+        }
 
         event(new Registered($user));
 
@@ -84,10 +131,10 @@ class RegisteredUserController extends Controller
 
         if ($this->nxAuthSpa($request)) {
             return response()->json([
-                'redirect' => url()->to(route('dashboard', absolute: false)),
+                'redirect' => $checkoutUrl,
             ]);
         }
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect()->away($checkoutUrl);
     }
 }

@@ -55,6 +55,12 @@
                         {{ __('Empresa ativa') }}
                     </label>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{{ __('Acesso à plataforma até') }}</label>
+                    <input type="date" name="acesso_plataforma_ate" value="{{ old('acesso_plataforma_ate', $empresa->acesso_plataforma_ate?->format('Y-m-d')) }}" class="mt-1 w-full max-w-xs rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-white" />
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ __('Vazio = sem limite. Inclui o dia indicado; no dia seguinte o acesso tenant é encerrado.') }}</p>
+                    @error('acesso_plataforma_ate')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
             </div>
             <div class="flex gap-2">
                 <button type="submit" class="rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-500">{{ __('Guardar') }}</button>

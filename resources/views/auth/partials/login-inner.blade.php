@@ -10,6 +10,16 @@
     $loginAvatarSource = $loginDisplayName ?: old('email');
 @endphp
 
+@if (session('status'))
+    <div class="nx-auth-alert nx-auth-alert--ok nx-auth-alert--animate" role="status" data-nx-alert>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+            <path d="M8 12l3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>{{ session('status') }}</span>
+    </div>
+@endif
+
 @if ($serverMessage)
     <div class="nx-auth-alert nx-auth-alert--animate" role="alert" data-nx-alert>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -78,6 +88,7 @@
             </label>
 
             <a class="nx-auth-link nx-auth-link-center nx-auth-interactive" href="{{ route('register') }}" data-nx-spa-link>Criar conta</a>
+            <a class="nx-auth-link nx-auth-link-center nx-auth-interactive" href="{{ route('assinatura.index') }}" data-nx-spa-link>Assinar plano (pagamento)</a>
         </div>
 
         <div class="nx-auth-step nx-auth-step--2" id="nx-login-step2" @if(!$showPasswordStep) hidden @endif>

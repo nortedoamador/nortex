@@ -7,31 +7,63 @@ use App\Http\Controllers\Admin\EmpresaSettingsController;
 use App\Http\Controllers\Admin\RelatorioController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TipoProcessoAdminController;
-use App\Http\Controllers\Api\CnhExtractController;
 use App\Http\Controllers\ClienteAnexoFileController;
 use App\Http\Controllers\ClienteController;
-use App\Http\Controllers\EmbarcacaoAnexoFileController;
-use App\Http\Controllers\HabilitacaoAnexoFileController;
 use App\Http\Controllers\DocumentoModeloController;
 use App\Http\Controllers\DocumentoModeloRenderController;
+use App\Http\Controllers\EmbarcacaoAnexoFileController;
 use App\Http\Controllers\EmbarcacaoController;
-use App\Http\Controllers\HabilitacaoController;
 use App\Http\Controllers\EquipeController;
-use App\Http\Controllers\Platform\EmpresaController as PlatformEmpresaController;
-use App\Http\Controllers\Platform\TipoProcessoController as PlatformTipoProcessoController;
-use App\Http\Controllers\Platform\TipoServicoController as PlatformTipoServicoController;
+use App\Http\Controllers\HabilitacaoAnexoFileController;
+use App\Http\Controllers\HabilitacaoController;
 use App\Http\Controllers\Platform\AnexoTipoController as PlatformAnexoTipoController;
 use App\Http\Controllers\Platform\AuditoriaController as PlatformAuditoriaController;
-use App\Http\Controllers\Platform\ImpersonateController as PlatformImpersonateController;
-use App\Http\Controllers\Platform\UsuarioController as PlatformUsuarioController;
 use App\Http\Controllers\Platform\DashboardController as PlatformDashboardController;
 use App\Http\Controllers\Platform\EmpresaAdminUserController as PlatformEmpresaAdminUserController;
+use App\Http\Controllers\Platform\EmpresaController as PlatformEmpresaController;
+use App\Http\Controllers\Platform\ImpersonateController as PlatformImpersonateController;
+use App\Http\Controllers\Platform\SubscriptionAdminController;
+use App\Http\Controllers\Platform\TipoProcessoController as PlatformTipoProcessoController;
+use App\Http\Controllers\Platform\TipoServicoController as PlatformTipoServicoController;
+use App\Http\Controllers\Platform\UsuarioController as PlatformUsuarioController;
 use App\Http\Controllers\ProcessoController;
 use App\Http\Controllers\ProcessoDocumentoAnexoFileController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PendingSubscriptionCheckoutController;
+use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\SubscriptionSignupController;
+use App\Models\Empresa;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])
+    ->withoutMiddleware([ValidateCsrfToken::class])
+    ->name('stripe.webhook');
+
+Route::prefix('assinatura')->name('assinatura.')->group(function () {
+    Route::get('/sucesso', [SubscriptionSignupController::class, 'success'])->name('sucesso');
+    Route::get('/cancelado', [SubscriptionSignupController::class, 'canceled'])->name('cancelado');
+    Route::middleware('guest')->group(function () {
+        Route::get('/', [SubscriptionSignupController::class, 'index'])->name('index');
+        Route::get('/{plan}', [SubscriptionSignupController::class, 'create'])
+            ->whereIn('plan', ['basica', 'completa'])
+            ->name('create');
+        Route::post('/{plan}', [SubscriptionSignupController::class, 'store'])
+            ->whereIn('plan', ['basica', 'completa'])
+            ->middleware('throttle:6,1')
+            ->name('store');
+    });
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/assinatura/pagamento-pendente', [PendingSubscriptionCheckoutController::class, 'show'])
+        ->name('assinatura.pagamento-pendente');
+    Route::post('/assinatura/pagamento-pendente/checkout', [PendingSubscriptionCheckoutController::class, 'startCheckout'])
+        ->middleware('throttle:6,1')
+        ->name('assinatura.pagamento-pendente.checkout');
+});
 
 Route::bind('usuario', function (string $value) {
     $auth = auth()->user();
@@ -50,7 +82,7 @@ Route::bind('papel', function (string $value) {
     if ($auth->is_platform_admin) {
         $empresa = request()->route('empresa');
         $empresaId = null;
-        if ($empresa instanceof \App\Models\Empresa) {
+        if ($empresa instanceof Empresa) {
             $empresaId = (int) $empresa->id;
         } elseif (is_numeric($empresa)) {
             $empresaId = (int) $empresa;
@@ -78,6 +110,13 @@ Route::get('/', function () {
             return redirect()->route('platform.dashboard');
         }
 
+        if ($user->empresa_id) {
+            $user->loadMissing('empresa');
+            if ($user->empresa && $user->empresa->pagamento_inicial_pendente) {
+                return redirect()->route('assinatura.pagamento-pendente');
+            }
+        }
+
         return redirect()->route('dashboard');
     }
 
@@ -103,6 +142,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('platform')->name('platform.')->middleware('platform.admin')->group(function () {
         Route::get('/', PlatformDashboardController::class)->name('dashboard');
+        Route::get('/assinaturas/cadastro-manual', [SubscriptionAdminController::class, 'manualCreate'])->name('assinaturas.manual');
+        Route::post('/assinaturas/cadastro-manual', [SubscriptionAdminController::class, 'manualStore'])
+            ->middleware('throttle:20,1')
+            ->name('assinaturas.manual.store');
+
+        Route::get('/assinaturas/adicionar', [SubscriptionAdminController::class, 'adicionarCreate'])->name('assinaturas.adicionar');
+        Route::post('/assinaturas/adicionar', [SubscriptionAdminController::class, 'adicionarStore'])
+            ->middleware('throttle:12,1')
+            ->name('assinaturas.adicionar.store');
+
+        Route::get('/assinaturas', [SubscriptionAdminController::class, 'index'])->name('assinaturas.index');
+        Route::post('/assinaturas/{empresa}/sync', [SubscriptionAdminController::class, 'sync'])
+            ->middleware('throttle:30,1')
+            ->name('assinaturas.sync');
+        Route::post('/assinaturas/{empresa}/cancelar-fim-periodo', [SubscriptionAdminController::class, 'cancelarNoFimDoPeriodo'])
+            ->middleware('throttle:12,1')
+            ->name('assinaturas.cancelar-fim-periodo');
+        Route::post('/assinaturas/{empresa}/manter-renovacao', [SubscriptionAdminController::class, 'manterRenovacao'])
+            ->middleware('throttle:12,1')
+            ->name('assinaturas.manter-renovacao');
+        Route::post('/assinaturas/{empresa}/reenviar-senha', [SubscriptionAdminController::class, 'reenviarSenhaAdmin'])
+            ->middleware('throttle:12,1')
+            ->name('assinaturas.reenviar-senha');
+
         Route::get('/empresas', [PlatformEmpresaController::class, 'index'])->name('empresas.index');
         Route::get('/empresas/criar', [PlatformEmpresaController::class, 'create'])->name('empresas.create');
         Route::post('/empresas', [PlatformEmpresaController::class, 'store'])->name('empresas.store');
@@ -217,8 +280,6 @@ Route::middleware(['auth', 'tenant.empresa', 'permission:usuarios.manage'])->gro
 });
 
 Route::middleware(['auth', 'tenant.empresa'])->group(function () {
-    Route::post('/api/cnh/extract', CnhExtractController::class)->name('api.cnh.extract');
-
     Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes.index');
     Route::get('/clientes/criar', [ClienteController::class, 'create'])->name('clientes.create');
     Route::post('/clientes', [ClienteController::class, 'store'])->name('clientes.store');

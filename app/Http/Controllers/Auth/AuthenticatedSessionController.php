@@ -68,6 +68,13 @@ class AuthenticatedSessionController extends Controller
             return route('platform.dashboard', absolute: false);
         }
 
+        if ($user && $user->empresa_id) {
+            $user->loadMissing('empresa');
+            if ($user->empresa && $user->empresa->pagamento_inicial_pendente) {
+                return route('assinatura.pagamento-pendente', absolute: false);
+            }
+        }
+
         return route('dashboard', absolute: false);
     }
 }

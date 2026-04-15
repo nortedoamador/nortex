@@ -108,7 +108,13 @@ class EmpresaController extends Controller
             'cnpj' => ['nullable', 'string', 'max:18'],
             'uf' => ['nullable', 'string', Rule::in(BrazilStates::codes())],
             'ativo' => ['nullable', 'boolean'],
+            'acesso_plataforma_ate' => ['nullable', 'date'],
         ]);
+
+        $acessoAte = $data['acesso_plataforma_ate'] ?? null;
+        if (is_string($acessoAte) && trim($acessoAte) === '') {
+            $acessoAte = null;
+        }
 
         $empresa->update([
             'nome' => $data['nome'],
@@ -116,6 +122,7 @@ class EmpresaController extends Controller
             'cnpj' => $data['cnpj'] ?? null,
             'uf' => $data['uf'] ?? null,
             'ativo' => $request->boolean('ativo', true),
+            'acesso_plataforma_ate' => $acessoAte,
         ]);
 
         return redirect()

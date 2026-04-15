@@ -18,6 +18,10 @@
         <h1 class="nx-auth-page-title">Criar Conta</h1>
     </div>
 
+    <p class="nx-auth-muted" style="margin:0 0 1rem;font-size:0.85rem;line-height:1.45;text-align:center;">
+        Após criar a conta, será direcionado ao pagamento do plano <strong>Completo (R$ 497 / mês)</strong> no Stripe. O acesso ao sistema só fica disponível após o pagamento ser confirmado.
+    </p>
+
     <form method="POST" action="{{ route('register') }}" class="nx-auth-form-stack" data-nx-auth-form="register">
         @csrf
 

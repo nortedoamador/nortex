@@ -38,6 +38,12 @@ class EmbarcacaoController extends Controller
         $construtor = trim((string) $request->query('construtor', ''));
         $anoConstrucao = trim((string) $request->query('ano_construcao', ''));
         $numeroMotor = trim((string) $request->query('numero_motor', ''));
+        $embInsc = $request->boolean('emb_insc');
+        $embSin = $request->boolean('emb_sin');
+        $embAli = $request->boolean('emb_ali');
+        $embSal = $request->boolean('emb_sal');
+        $embVig = $request->boolean('emb_vig');
+        $embVen = $request->boolean('emb_ven');
         $perPage = (int) $request->query('per_page', 5);
         $allowedPerPage = [5, 10, 20, 50];
         if (! in_array($perPage, $allowedPerPage, true)) {
@@ -90,6 +96,37 @@ class EmbarcacaoController extends Controller
         if ($numeroMotor !== '') {
             $t = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $numeroMotor).'%';
             $query->where('numero_motor', 'like', $t);
+        }
+
+        if ($embInsc !== $embSin) {
+            if ($embInsc) {
+                $query->whereNotNull('inscricao')->where('inscricao', '!=', '');
+            } else {
+                $query->where(function ($q) {
+                    $q->whereNull('inscricao')->orWhere('inscricao', '=', '');
+                });
+            }
+        }
+
+        if ($embAli !== $embSal) {
+            if ($embAli) {
+                $query->where('alienacao_fiduciaria', 'sim');
+            } else {
+                $query->where(function ($q) {
+                    $q->whereNull('alienacao_fiduciaria')->orWhere('alienacao_fiduciaria', '!=', 'sim');
+                });
+            }
+        }
+
+        if ($embVig !== $embVen) {
+            $today = now()->startOfDay();
+            if ($embVig) {
+                $query->whereNotNull('inscricao_data_vencimento')
+                    ->whereDate('inscricao_data_vencimento', '>=', $today);
+            } else {
+                $query->whereNotNull('inscricao_data_vencimento')
+                    ->whereDate('inscricao_data_vencimento', '<', $today);
+            }
         }
 
         $embarcacoes = $query->paginate($perPage)->withQueryString();
@@ -147,8 +184,10 @@ class EmbarcacaoController extends Controller
             ->values()
             ->all();
 
+        $temFiltroEmb = $embInsc !== $embSin || $embAli !== $embSal || $embVig !== $embVen;
+
         if ($request->wantsJson()) {
-            $countText = $busca !== '' || $tipo !== '' || $atividade !== '' || $construtor !== '' || $anoConstrucao !== '' || $numeroMotor !== ''
+            $countText = $busca !== '' || $tipo !== '' || $atividade !== '' || $construtor !== '' || $anoConstrucao !== '' || $numeroMotor !== '' || $temFiltroEmb
                 ? trans_choice('{0} Nenhum resultado|{1} :count resultado encontrado|[2,*] :count resultados encontrados', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()])
                 : trans_choice('{0} Nenhuma embarcação cadastrada|{1} :count cadastrada|[2,*] :count cadastradas', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()]);
 
@@ -162,6 +201,12 @@ class EmbarcacaoController extends Controller
                     'construtor',
                     'anoConstrucao',
                     'numeroMotor',
+                    'embInsc',
+                    'embSin',
+                    'embAli',
+                    'embSal',
+                    'embVig',
+                    'embVen',
                 ))->render(),
                 'list_html' => view('embarcacoes.partials.index-list', compact(
                     'embarcacoes',
@@ -185,6 +230,12 @@ class EmbarcacaoController extends Controller
             'construtor',
             'anoConstrucao',
             'numeroMotor',
+            'embInsc',
+            'embSin',
+            'embAli',
+            'embSal',
+            'embVig',
+            'embVen',
             'perPage',
             'tipos',
             'atividades',

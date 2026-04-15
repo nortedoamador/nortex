@@ -67,6 +67,47 @@ function defaultOrgao(docTipo, uf) {
 }
 
 /**
+ * Textos do bloco de anexos (primeiro slot + “Outros”) conforme PF/PJ.
+ *
+ * @param {HTMLFormElement} root
+ * @param {boolean} isPj
+ */
+function syncAnexosFichaUi(root, isPj) {
+    root.querySelectorAll('[data-anexo-slot1-pf]').forEach((el) => {
+        el.classList.toggle('hidden', !!isPj);
+    });
+    root.querySelectorAll('[data-anexo-slot1-pj]').forEach((el) => {
+        el.classList.toggle('hidden', !isPj);
+    });
+    root.querySelectorAll('[data-anexo-intro-pf]').forEach((el) => {
+        el.classList.toggle('hidden', !!isPj);
+    });
+    root.querySelectorAll('[data-anexo-intro-pj]').forEach((el) => {
+        el.classList.toggle('hidden', !isPj);
+    });
+
+    const sel = root.querySelector('select[data-anexo-outro-preset="1"]');
+    if (!(sel instanceof HTMLSelectElement)) {
+        return;
+    }
+
+    for (const opt of sel.options) {
+        const scope = (opt.getAttribute('data-scope') || 'pf').trim();
+        const show = scope === 'both' || (scope === 'pf' && !isPj) || (scope === 'pj' && isPj);
+        opt.hidden = !show;
+        opt.disabled = !show;
+    }
+
+    const val = sel.value;
+    const ok = Array.from(sel.options).some((o) => o.value === val && !o.disabled);
+    if (!ok) {
+        sel.value = '';
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        sel.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}
+
+/**
  * @param {HTMLFormElement} root
  */
 export function initClienteFichaDoc(root) {
@@ -77,10 +118,62 @@ export function initClienteFichaDoc(root) {
     const orgaoSel = root.querySelector('#orgao_emissor');
     const dataEmissao = root.querySelector('#data_emissao_rg');
     const validadeCnh = root.querySelector('#validade_cnh');
+    const validadeWrap = root.querySelector('[data-validade-cnh-wrap="1"]');
+    const emissaoWrap = root.querySelector('[data-emissao-doc-wrap="1"]');
     if (!orgaoSel) return;
+
+    /** Coluna validade: classes Tailwind adicionadas só em JS podem não existir no CSS compilado; display/grid inline garante o efeito. */
+    const setValidadeColumnVisible = (visible) => {
+        if (validadeWrap) {
+            if (visible) {
+                validadeWrap.removeAttribute('hidden');
+                validadeWrap.classList.remove('hidden');
+                validadeWrap.style.removeProperty('display');
+            } else {
+                validadeWrap.setAttribute('hidden', 'hidden');
+                validadeWrap.classList.add('hidden');
+                validadeWrap.style.display = 'none';
+            }
+        }
+        if (emissaoWrap) {
+            if (visible) {
+                emissaoWrap.style.removeProperty('grid-column');
+                emissaoWrap.classList.remove('md:col-span-2');
+            } else {
+                emissaoWrap.style.removeProperty('grid-column');
+                emissaoWrap.classList.add('md:col-span-2');
+            }
+        }
+    };
 
     const { rg: optsRg, cnh: optsCnh } = readOpts(root);
     const blocos = Array.from(root.querySelectorAll('[data-doc-identidade-bloco="1"]'));
+    const pfOnlyWraps = Array.from(root.querySelectorAll('[data-pf-only="1"]'));
+
+    const syncPfOnlyVisibility = (isPj) => {
+        pfOnlyWraps.forEach((wrap) => {
+            if (isPj) {
+                wrap.classList.add('hidden');
+                wrap.querySelectorAll('input, select').forEach((el) => {
+                    el.disabled = true;
+                    el.removeAttribute('required');
+                    if (el instanceof HTMLInputElement) {
+                        el.value = '';
+                    }
+                    if (el instanceof HTMLSelectElement) {
+                        el.value = '';
+                    }
+                });
+            } else {
+                wrap.classList.remove('hidden');
+                wrap.querySelectorAll('input, select').forEach((el) => {
+                    el.disabled = false;
+                });
+                wrap.querySelector('#nacionalidade')?.setAttribute('required', '');
+                wrap.querySelector('#naturalidade')?.setAttribute('required', '');
+            }
+        });
+    };
 
     const apply = (preferDefault) => {
         const docTipo = selectedDocTipo(root);
@@ -91,40 +184,27 @@ export function initClienteFichaDoc(root) {
         // PJ: esconde todo o bloco de identidade; PF: mostra.
         const tipoPrincipal = root.querySelector('input[name="tipo_documento"]:checked')?.value || 'pf';
         const hideAll = tipoPrincipal === 'pj';
+        syncAnexosFichaUi(root, hideAll);
         blocos.forEach((el) => el.classList.toggle('hidden', hideAll));
+        const docOrgRow = root.querySelector('[data-cliente-doc-org-row]');
+        if (docOrgRow) {
+            docOrgRow.classList.toggle('md:grid-cols-3', !hideAll);
+        }
+        syncPfOnlyVisibility(hideAll);
         if (hideAll) {
             // garante que nada fica “travado” ao voltar para PF
             if (docNumeroInput) docNumeroInput.disabled = false;
             if (orgaoSel) orgaoSel.disabled = false;
             if (dataEmissao) dataEmissao.disabled = false;
+            if (validadeCnh instanceof HTMLInputElement) {
+                validadeCnh.disabled = true;
+                validadeCnh.readOnly = false;
+                validadeCnh.value = '';
+                validadeCnh.removeAttribute('placeholder');
+            }
+            setValidadeColumnVisible(false);
             return;
         }
-
-        const setDisabled = (disabled) => {
-            const toggleEl = (el) => {
-                if (!el) return;
-                el.disabled = disabled;
-                el.toggleAttribute('aria-disabled', disabled);
-                el.classList.toggle('opacity-60', disabled);
-                el.classList.toggle('cursor-not-allowed', disabled);
-                // efeito “cinza/desabilitado” (sem depender do :disabled do componente)
-                el.classList.toggle('bg-slate-100', disabled);
-                el.classList.toggle('text-slate-500', disabled);
-                el.classList.toggle('border-slate-200', disabled);
-                el.classList.toggle('dark:bg-slate-800', disabled);
-                el.classList.toggle('dark:text-slate-400', disabled);
-                el.classList.toggle('dark:border-slate-700', disabled);
-            };
-            toggleEl(docNumeroInput);
-            toggleEl(orgaoSel);
-            toggleEl(dataEmissao);
-
-            if (disabled) {
-                if (document.activeElement === docNumeroInput || document.activeElement === orgaoSel || document.activeElement === dataEmissao) {
-                    root.querySelector('#cpf')?.focus();
-                }
-            }
-        };
 
         const setNumeroDisabled = (disabled) => {
             const toggleEl = (el) => {
@@ -189,6 +269,8 @@ export function initClienteFichaDoc(root) {
             orgaoSel.value = def;
         }
         orgaoSel.dispatchEvent(new Event('change', { bubbles: true }));
+
+        syncValidadeFromRules();
     };
 
     root.querySelectorAll('input[name="documento_identidade_tipo"]').forEach((r) => {
@@ -278,29 +360,34 @@ export function initClienteFichaDoc(root) {
         const nascBr = nascEl && nascEl instanceof HTMLInputElement ? String(nascEl.value || '').trim() : '';
         const nasc = brToIso(nascBr);
 
-        // RG não tem validade (desabilita e não envia)
+        // RG não tem validade: oculta coluna e não envia o campo
         if (docTipo === 'rg') {
+            setValidadeColumnVisible(false);
             setValidadeState({ disabled: true, readOnly: false, value: '', placeholder: '' });
             return;
         }
 
-        // Para CNH/CIN precisamos de data de emissão e nascimento para calcular corretamente.
+        setValidadeColumnVisible(true);
+
+        // Para CNH/CIN precisamos de data de emissão e nascimento completas (dd/mm/aaaa) para calcular.
         if (!em || !nasc) {
-            // mantém habilitado, mas não força valor
-            setValidadeState({ disabled: false, readOnly: true, placeholder: '' });
+            setValidadeState({ disabled: false, readOnly: true, value: '', placeholder: '' });
             return;
         }
 
         const age = calcAgeAt(nasc, em);
         if (age === null) {
-            setValidadeState({ disabled: false, readOnly: true, placeholder: '' });
+            setValidadeState({ disabled: false, readOnly: true, value: '', placeholder: '' });
             return;
         }
 
         if (docTipo === 'cnh') {
             const years = age <= 49 ? 10 : age <= 69 ? 5 : 3;
             const next = addYearsIso(em, years);
-            if (!next) return;
+            if (!next) {
+                setValidadeState({ disabled: false, readOnly: true, value: '', placeholder: '' });
+                return;
+            }
             setValidadeState({ disabled: false, readOnly: true, value: isoToBr(next), placeholder: '' });
             return;
         }
@@ -313,20 +400,27 @@ export function initClienteFichaDoc(root) {
             }
             const years = age < 12 ? 5 : 10;
             const next = addYearsIso(em, years);
-            if (!next) return;
+            if (!next) {
+                setValidadeState({ disabled: false, readOnly: true, value: '', placeholder: '' });
+                return;
+            }
             setValidadeState({ disabled: false, readOnly: true, value: isoToBr(next), placeholder: '' });
             return;
         }
 
-        // fallback (CNH default)
-        setValidadeState({ disabled: false, readOnly: true, placeholder: '' });
+        // fallback: sem cálculo automático
+        setValidadeState({ disabled: false, readOnly: true, value: '', placeholder: '' });
     };
 
     if (dataEmissao instanceof HTMLInputElement) {
         dataEmissao.addEventListener('change', syncValidadeFromRules);
         dataEmissao.addEventListener('input', syncValidadeFromRules);
     }
-    root.querySelector('#data_nascimento')?.addEventListener('change', syncValidadeFromRules);
+    const nascEl = root.querySelector('#data_nascimento');
+    if (nascEl instanceof HTMLInputElement) {
+        nascEl.addEventListener('change', syncValidadeFromRules);
+        nascEl.addEventListener('input', syncValidadeFromRules);
+    }
     root.querySelectorAll('input[name="documento_identidade_tipo"]').forEach((r) => {
         r.addEventListener('change', () => {
             syncValidadeFromRules();

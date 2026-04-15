@@ -2,9 +2,7 @@
  * Máscaras para o formulário de ficha de cadastro do cliente (Brasil).
  */
 
-function onlyDigits(str) {
-    return (str || '').replace(/\D/g, '');
-}
+import { onlyDigits, cpfValido, cnpjValido } from './documento-brasil-client';
 
 function formatCpf(digits) {
     const d = digits.slice(0, 11);
@@ -82,10 +80,59 @@ function bindRgCnh(input) {
     apply();
 }
 
+/**
+ * @param {HTMLInputElement} input
+ * @param {string} tipo
+ * @param {boolean} strict incompleto conta como inválido (blur / submit)
+ */
+function getClientDocPrincipalErrorMessage(input, tipo, strict) {
+    const d = onlyDigits(input.value);
+    const msgCpf = input.dataset.msgCpfInvalid || 'CPF inválido.';
+    const msgCnpj = input.dataset.msgCnpjInvalid || 'CNPJ inválido.';
+    if (!d.length) {
+        return '';
+    }
+    if (tipo === 'pj') {
+        if (strict) {
+            return d.length !== 14 || !cnpjValido(d) ? msgCnpj : '';
+        }
+
+        return d.length === 14 && !cnpjValido(d) ? msgCnpj : '';
+    }
+    if (strict) {
+        return d.length !== 11 || !cpfValido(d) ? msgCpf : '';
+    }
+
+    return d.length === 11 && !cpfValido(d) ? msgCpf : '';
+}
+
+/**
+ * @param {HTMLInputElement} input
+ * @param {HTMLElement|null} errorEl
+ * @param {string} message
+ */
+function renderDocPrincipalClientError(input, errorEl, message) {
+    if (!errorEl) {
+        return;
+    }
+    if (!message) {
+        errorEl.classList.add('hidden');
+        errorEl.replaceChildren();
+        input.removeAttribute('aria-invalid');
+        return;
+    }
+    const li = document.createElement('li');
+    li.textContent = message;
+    errorEl.replaceChildren(li);
+    errorEl.classList.remove('hidden');
+    input.setAttribute('aria-invalid', 'true');
+}
+
 function bindCpfOuCnpj(root) {
     const input = root.querySelector('#cpf');
     if (!input) return;
 
+    const errorEl = root.querySelector('[data-cliente-doc-principal-inline]');
     const tipo = () => root.querySelector('input[name="tipo_documento"]:checked')?.value || 'pf';
     const labelEl = root.querySelector('[data-doc-principal-label]');
     const nomeLabel = root.querySelector('[data-nome-label]');
@@ -118,7 +165,7 @@ function bindCpfOuCnpj(root) {
         }
     };
 
-    const apply = () => {
+    const applyMask = () => {
         const d = onlyDigits(input.value);
         const formatted = tipo() === 'pj' ? formatCnpj(d) : formatCpf(d);
         if (formatted !== input.value) {
@@ -128,12 +175,35 @@ function bindCpfOuCnpj(root) {
         setLabelAndPlaceholder();
     };
 
-    input.addEventListener('input', apply);
-    input.addEventListener('blur', apply);
+    const applyInput = () => {
+        applyMask();
+        const msg = getClientDocPrincipalErrorMessage(input, tipo(), false);
+        renderDocPrincipalClientError(input, errorEl, msg);
+    };
+
+    const applyBlurOrTipoChange = () => {
+        applyMask();
+        const msg = getClientDocPrincipalErrorMessage(input, tipo(), true);
+        renderDocPrincipalClientError(input, errorEl, msg);
+    };
+
+    input.addEventListener('input', applyInput);
+    input.addEventListener('blur', applyBlurOrTipoChange);
     root.querySelectorAll('input[name="tipo_documento"]').forEach((r) => {
-        r.addEventListener('change', apply);
+        r.addEventListener('change', applyBlurOrTipoChange);
     });
-    apply();
+    applyInput();
+
+    root.addEventListener('submit', (e) => {
+        const msg = getClientDocPrincipalErrorMessage(input, tipo(), true);
+        if (!msg) {
+            return;
+        }
+        e.preventDefault();
+        renderDocPrincipalClientError(input, errorEl, msg);
+        input.focus();
+        input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
 }
 
 function titleCasePtBr(value) {

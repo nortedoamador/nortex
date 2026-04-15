@@ -1,6 +1,6 @@
 # Windows: Ghostscript, Imagick (PHP 8.2 ZTS x64) e policy.xml (PDF)
 
-Necessário para rasterizar PDF da CNH com `Imagick::readImage()` no NorteX.
+Necessário para o PHP conseguir rasterizar PDF com `Imagick::readImage()` (quando alguma funcionalidade do projeto ler páginas de PDF via Imagick).
 
 ## 1. Ghostscript + PATH
 
@@ -58,14 +58,9 @@ O PHP em uso é **8.2.x, Thread Safe (ZTS), x64** (`php -i` → `Thread Safety =
 - Confirme que **`php_imagick.dll`** existe mesmo em `C:\xampp\php\ext\` (sem este ficheiro, o `extension=imagick` no `php.ini` não funciona).
 - Se o `.dll` **está** na pasta `ext` e o erro continua, faltam **dependências** (outras `.dll` do zip PECL ou as `CORE_RL_*.dll` do ImageMagick): copie-as para **`C:\xampp\php\`** (junto ao `php.exe`) **ou** adicione o `bin` do ImageMagick ao **PATH** e reinicie o Apache.
 
-### Verificação no projeto NorteX
+### Verificação rápida
 
-Na raiz do projeto (com PHP do XAMPP no PATH ou caminho completo):
-
-```bat
-cd c:\xampp\htdocs\NorteX
-php artisan nx:verify-cn-deps
-```
+Use `php -m` (deve listar `imagick`) e, se aplicável, o snippet PHP no fim deste documento.
 
 ---
 
@@ -94,7 +89,7 @@ Por defeito o ImageMagick **bloqueia** o codificador PDF (`rights="none"`).
 
    Ou comentar/remover essa entrada **PDF** (menos explícito; preferível a linha acima).
 
-5. Guardar, reiniciar Apache e testar rasterização de PDF na aplicação.
+5. Guardar, reiniciar Apache e testar rasterização de PDF (ex.: snippet abaixo ou o fluxo da aplicação que use Imagick).
 
 **Atalho:** execute como administrador (recomendado) ou utilizador com permissão de escrita na pasta do ImageMagick:
 

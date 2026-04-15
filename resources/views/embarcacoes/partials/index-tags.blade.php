@@ -4,6 +4,15 @@
     $construtorAtivo = is_string($construtor ?? null) ? trim((string) $construtor) : '';
     $anoAtivo = is_string($anoConstrucao ?? null) ? trim((string) $anoConstrucao) : '';
     $motorAtivo = is_string($numeroMotor ?? null) ? trim((string) $numeroMotor) : '';
+    $eInsc = (bool) ($embInsc ?? false);
+    $eSin = (bool) ($embSin ?? false);
+    $eAli = (bool) ($embAli ?? false);
+    $eSal = (bool) ($embSal ?? false);
+    $eVig = (bool) ($embVig ?? false);
+    $eVen = (bool) ($embVen ?? false);
+    $filtroInscAtivo = $eInsc !== $eSin;
+    $filtroAliAtivo = $eAli !== $eSal;
+    $filtroVigAtivo = $eVig !== $eVen;
     $nFiltros = 0;
     if ($tipoAtivo !== '') {
         $nFiltros++;
@@ -18,6 +27,15 @@
         $nFiltros++;
     }
     if ($motorAtivo !== '') {
+        $nFiltros++;
+    }
+    if ($filtroInscAtivo) {
+        $nFiltros++;
+    }
+    if ($filtroAliAtivo) {
+        $nFiltros++;
+    }
+    if ($filtroVigAtivo) {
         $nFiltros++;
     }
 @endphp
@@ -77,6 +95,39 @@
                     title="{{ __('Remover filtro') }}"
                 >
                     {{ __('Nº do motor') }}: {{ $motorAtivo }}
+                    <span class="text-slate-400 dark:text-slate-500">×</span>
+                </button>
+            @endif
+            @if ($filtroInscAtivo)
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-200 dark:ring-slate-800"
+                    @click="$dispatch('nx-embarcacoes-remove-filter', { key: 'emb_inscricao' })"
+                    title="{{ __('Remover filtro') }}"
+                >
+                    {{ __('Inscrição') }}: {{ $eInsc ? __('Inscrita') : __('Sem inscrição') }}
+                    <span class="text-slate-400 dark:text-slate-500">×</span>
+                </button>
+            @endif
+            @if ($filtroAliAtivo)
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-200 dark:ring-slate-800"
+                    @click="$dispatch('nx-embarcacoes-remove-filter', { key: 'emb_alienacao' })"
+                    title="{{ __('Remover filtro') }}"
+                >
+                    {{ __('Alienação') }}: {{ $eAli ? __('Com alienação') : __('Sem alienação') }}
+                    <span class="text-slate-400 dark:text-slate-500">×</span>
+                </button>
+            @endif
+            @if ($filtroVigAtivo)
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-200 dark:ring-slate-800"
+                    @click="$dispatch('nx-embarcacoes-remove-filter', { key: 'emb_vigencia' })"
+                    title="{{ __('Remover filtro') }}"
+                >
+                    {{ __('Validade da inscrição') }}: {{ $eVig ? __('Em vigor') : __('Vencida') }}
                     <span class="text-slate-400 dark:text-slate-500">×</span>
                 </button>
             @endif

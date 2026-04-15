@@ -74,7 +74,18 @@ class User extends Authenticatable
 
     public function hasPermission(string $slug): bool
     {
-        return isset($this->resolvedPermissionSlugs()[$slug]);
+        if (! isset($this->resolvedPermissionSlugs()[$slug])) {
+            return false;
+        }
+
+        if ($this->empresa_id && str_starts_with($slug, 'financeiro.')) {
+            $empresa = $this->relationLoaded('empresa') ? $this->empresa : $this->empresa()->first();
+            if ($empresa && ! $empresa->billingIncludesFinanceiro()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -82,9 +93,8 @@ class User extends Authenticatable
      */
     public function hasAnyPermission(array $slugs): bool
     {
-        $resolved = $this->resolvedPermissionSlugs();
         foreach ($slugs as $slug) {
-            if (isset($resolved[$slug])) {
+            if ($this->hasPermission($slug)) {
                 return true;
             }
         }

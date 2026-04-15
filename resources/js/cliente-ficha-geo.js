@@ -2,26 +2,7 @@
  * IBGE (municípios), ViaCEP e sugestões a partir do CPF na ficha do cliente.
  */
 
-function onlyDigits(str) {
-    return (str || '').replace(/\D/g, '');
-}
-
-function cpfValido(d) {
-    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) {
-        return false;
-    }
-    for (let t = 9; t < 11; t += 1) {
-        let s = 0;
-        for (let c = 0; c < t; c += 1) {
-            s += parseInt(d[c], 10) * (t + 1 - c);
-        }
-        const v = ((10 * s) % 11) % 10;
-        if (parseInt(d[t], 10) !== v) {
-            return false;
-        }
-    }
-    return true;
-}
+import { onlyDigits, cpfValido } from './documento-brasil-client';
 
 /** Nono dígito do CPF → UF representativa (regra histórica RF). */
 function ufDoNonoDigitoCpf(d) {

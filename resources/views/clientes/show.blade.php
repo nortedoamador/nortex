@@ -178,8 +178,8 @@
                                 <dd class="font-medium text-slate-900 dark:text-slate-100">{{ $cliente->documento_identidade_numero ?? $cliente->rg ?? '—' }}</dd>
                             </div>
                             <div class="flex items-center justify-between gap-4 py-3">
-                                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Órgão emissor') }}</dt>
-                                <dd class="font-medium text-slate-900 dark:text-slate-100">{{ $cliente->orgao_emissor ?? '—' }}</dd>
+                                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Data de nascimento') }}</dt>
+                                <dd class="font-medium text-slate-900 dark:text-slate-100">{{ $cliente->data_nascimento?->format('d/m/Y') ?? '—' }}</dd>
                             </div>
                             <div class="flex items-center justify-between gap-4 py-3">
                                 <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Data de emissão') }}</dt>
@@ -188,6 +188,10 @@
                             <div class="flex items-center justify-between gap-4 py-3">
                                 <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Nacionalidade') }}</dt>
                                 <dd class="font-medium text-slate-900 dark:text-slate-100">{{ $cliente->nacionalidade ?? '—' }}</dd>
+                            </div>
+                            <div class="flex items-center justify-between gap-4 py-3">
+                                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Órgão emissor') }}</dt>
+                                <dd class="font-medium text-slate-900 dark:text-slate-100">{{ $cliente->orgao_emissor ?? '—' }}</dd>
                             </div>
                             <div class="flex items-center justify-between gap-4 py-3">
                                 <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Naturalidade') }}</dt>
@@ -334,14 +338,6 @@
                                     @if (filled($anexo->tipo_codigo))
                                         <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $anexo->tipoLabel() }}</span>
                                     @endif
-                                    @php $vs = $anexo->extra_validation_status; @endphp
-                                    <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase
-                                        @if($vs->value === 'ok') bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200
-                                        @elseif($vs->value === 'pendente') bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200
-                                        @elseif($vs->value === 'falhou') bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-200
-                                        @else bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 @endif">
-                                        {{ $vs->label() }}
-                                    </span>
                                 </div>
                                 <div class="flex flex-wrap items-center justify-end gap-2">
                                     <button type="button" class="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400" @click="previewId = previewId === {{ $anexo->id }} ? null : {{ $anexo->id }}">
@@ -355,9 +351,6 @@
                                     />
                                 </div>
                             </div>
-                            @if ($anexo->extra_validation_notes)
-                                <p class="text-xs text-slate-600 dark:text-slate-400">{{ $anexo->extra_validation_notes }}</p>
-                            @endif
                             <div x-show="previewId === {{ $anexo->id }}" class="pt-2" x-cloak>
                                 <x-anexo-preview :url="$anexo->signedInlineUrl()" :mime="$anexo->mime" :nome="$anexo->nome_original" />
                             </div>
@@ -380,13 +373,25 @@
                         <svg class="h-5 w-5 shrink-0 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
                         {{ __('Documentos para envio') }}
                     </h3>
-                    <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('O envio de arquivos é opcional. Indique o tipo do documento, se quiser (ex.: RG, passaporte), e envie um ou mais arquivos.') }}</p>
+                    @php
+                        $isPjCliente = ($cliente->tipo_documento ?? '') === 'pj';
+                    @endphp
+                    @if ($isPjCliente)
+                        <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('O envio de arquivos é opcional. Ao enviar, selecione o tipo (ex.: documento do representante legal, cartão CNPJ) — obrigatório para concluir o envio.') }}</p>
+                    @else
+                        <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('O envio de arquivos é opcional. Ao enviar, selecione o tipo (ex.: CNH, comprovante de endereço) — obrigatório para concluir o envio.') }}</p>
+                    @endif
                     <x-input-error :messages="$errors->get('arquivos')" class="mt-3" />
+                    <x-input-error :messages="$errors->get('tipo_codigo')" class="mt-3" />
                     @php
                         $tipoEnvioOld = (string) old('tipo_codigo', '');
                         $tipoEnvioPreset = match ($tipoEnvioOld) {
                             \App\Support\ClienteTiposAnexo::CNH => \App\Support\ClienteTiposAnexo::CNH,
                             \App\Support\ClienteTiposAnexo::COMPROVANTE_ENDERECO => \App\Support\ClienteTiposAnexo::COMPROVANTE_ENDERECO,
+                            \App\Support\ClienteTiposAnexo::DOC_REPRESENTANTE_LEGAL => \App\Support\ClienteTiposAnexo::DOC_REPRESENTANTE_LEGAL,
+                            \App\Support\ClienteTiposAnexo::CARTAO_CNPJ => \App\Support\ClienteTiposAnexo::CARTAO_CNPJ,
+                            \App\Support\ClienteTiposAnexo::COMPROVANTE_INSCRICAO_ESTADUAL => \App\Support\ClienteTiposAnexo::COMPROVANTE_INSCRICAO_ESTADUAL,
+                            \App\Support\ClienteTiposAnexo::COMPROVANTE_INSCRICAO_MUNICIPAL => \App\Support\ClienteTiposAnexo::COMPROVANTE_INSCRICAO_MUNICIPAL,
                             'RG' => 'RG',
                             default => ($tipoEnvioOld !== '' ? '__outro' : ''),
                         };
@@ -411,6 +416,9 @@
                                 this.files = input?.files ? Array.from(input.files) : [];
                             },
                             setFilesFromDrop(e) {
+                                if (! this.tipoDocumentoSelecionado()) {
+                                    return;
+                                }
                                 const input = this.$refs.fileInputOutro;
                                 const dt = new DataTransfer();
                                 for (const f of e.dataTransfer.files) dt.items.add(f);
@@ -424,6 +432,17 @@
                                 input.files = dt.files;
                                 this.updateFiles();
                             },
+                            tipoDocumentoSelecionado() {
+                                const p = (this.preset || '').trim();
+                                if (! p) {
+                                    return false;
+                                }
+                                if (p === '__outro') {
+                                    return (this.custom || '').trim() !== '';
+                                }
+
+                                return true;
+                            },
                         }"
                         x-init="updateFiles()"
                     >
@@ -432,7 +451,7 @@
                             <div>
                                 <label class="mb-1 flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400">
                                     <svg class="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
-                                    {{ __('Tipo (opcional)') }}
+                                    {{ __('Tipo do documento') }} <span class="text-red-600 dark:text-red-400" title="{{ __('Obrigatório ao enviar arquivos') }}">*</span>
                                 </label>
                                 <select
                                     name="tipo_codigo_preset"
@@ -440,9 +459,16 @@
                                     x-model="preset"
                                 >
                                     <option value="" @selected($tipoEnvioPreset === '')>{{ __('Selecione…') }}</option>
-                                    <option value="RG">{{ __('RG') }}</option>
-                                    <option value="{{ \App\Support\ClienteTiposAnexo::CNH }}">{{ __('CNH') }}</option>
-                                    <option value="{{ \App\Support\ClienteTiposAnexo::COMPROVANTE_ENDERECO }}">{{ __('Comprovante de endereço') }}</option>
+                                    @if ($isPjCliente)
+                                        <option value="{{ \App\Support\ClienteTiposAnexo::DOC_REPRESENTANTE_LEGAL }}">{{ __('Documento do representante legal (RG/CNH)') }}</option>
+                                        <option value="{{ \App\Support\ClienteTiposAnexo::CARTAO_CNPJ }}">{{ __('Cartão CNPJ') }}</option>
+                                        <option value="{{ \App\Support\ClienteTiposAnexo::COMPROVANTE_INSCRICAO_ESTADUAL }}">{{ __('Comprovante de Inscrição Estadual') }}</option>
+                                        <option value="{{ \App\Support\ClienteTiposAnexo::COMPROVANTE_INSCRICAO_MUNICIPAL }}">{{ __('Comprovante de Inscrição Municipal') }}</option>
+                                    @else
+                                        <option value="RG">{{ __('RG') }}</option>
+                                        <option value="{{ \App\Support\ClienteTiposAnexo::CNH }}">{{ __('CNH') }}</option>
+                                        <option value="{{ \App\Support\ClienteTiposAnexo::COMPROVANTE_ENDERECO }}">{{ __('Comprovante de endereço') }}</option>
+                                    @endif
                                     <option value="__outro">{{ __('Outro anexo (digite)') }}</option>
                                 </select>
                             </div>
@@ -471,12 +497,17 @@
                             @change="updateFiles()"
                         />
                         <div
-                            @dragover.prevent="drag = true"
+                            @dragover.prevent="drag = tipoDocumentoSelecionado()"
                             @dragleave.prevent="drag = false"
                             @drop.prevent="drag = false; setFilesFromDrop($event)"
-                            :class="drag ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' : 'border-slate-200 dark:border-slate-700'"
-                            class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-3 py-6 text-center text-xs text-slate-600 dark:text-slate-400"
-                            @click="$refs.fileInputOutro.click()"
+                            :class="{
+                                'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40': drag && tipoDocumentoSelecionado(),
+                                'border-slate-200 dark:border-slate-700': ! (drag && tipoDocumentoSelecionado()),
+                                'pointer-events-none cursor-not-allowed opacity-50': ! tipoDocumentoSelecionado(),
+                                'cursor-pointer': tipoDocumentoSelecionado(),
+                            }"
+                            class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-3 py-6 text-center text-xs text-slate-600 dark:text-slate-400"
+                            @click="tipoDocumentoSelecionado() && $refs.fileInputOutro.click()"
                         >
                             <svg class="h-8 w-8 shrink-0 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.02-2.28 4.5 4.5 0 0 1 4.34 4.476 4.5 4.5 0 0 1-6.335 4.46" /></svg>
                             <span class="block font-semibold text-slate-700 dark:text-slate-200">{{ __('Arraste e solte aqui') }}</span>
@@ -515,7 +546,11 @@
                                 </template>
                             </ul>
                         </div>
-                        <x-primary-button type="submit" class="w-full justify-center !py-2.5 text-xs">{{ __('Enviar') }}</x-primary-button>
+                        <x-primary-button
+                            type="submit"
+                            class="w-full justify-center !py-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                            x-bind:disabled="! tipoDocumentoSelecionado() || files.length === 0"
+                        >{{ __('Enviar') }}</x-primary-button>
                     </form>
                 </section>
             @endcan

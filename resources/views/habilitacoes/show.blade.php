@@ -173,14 +173,6 @@
                                                 {{ \App\Support\HabilitacaoAnexoTiposCha::label($anexo->tipo_codigo) }}
                                             </span>
                                         @endif
-                                        @php $vs = $anexo->extra_validation_status; @endphp
-                                        <span class="rounded-full px-2 py-0.5 text-[10px] uppercase
-                                            @if($vs->value === 'ok') bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200
-                                            @elseif($vs->value === 'pendente') bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200
-                                            @elseif($vs->value === 'falhou') bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-200
-                                            @else bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 @endif">
-                                            {{ $vs->label() }}
-                                        </span>
                                     </div>
                                     <div class="flex flex-wrap items-center justify-end gap-2">
                                         <button type="button" class="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400" @click="previewId = previewId === {{ $anexo->id }} ? null : {{ $anexo->id }}">
@@ -194,9 +186,6 @@
                                         />
                                     </div>
                                 </div>
-                                @if ($anexo->extra_validation_notes)
-                                    <p class="text-xs text-slate-600 dark:text-slate-400">{{ $anexo->extra_validation_notes }}</p>
-                                @endif
                                 <div x-show="previewId === {{ $anexo->id }}" class="pt-2" x-cloak>
                                     <x-anexo-preview :url="$anexo->signedInlineUrl()" :mime="$anexo->mime" :nome="$anexo->nome_original" />
                                 </div>
@@ -236,6 +225,9 @@
                                     this.files = input?.files ? Array.from(input.files) : [];
                                 },
                                 setFilesFromDrop(e) {
+                                    if (! this.tipoDocumentoSelecionado()) {
+                                        return;
+                                    }
                                     const input = this.$refs.fileInputOutro;
                                     const dt = new DataTransfer();
                                     for (const f of e.dataTransfer.files) dt.items.add(f);
@@ -248,6 +240,9 @@
                                     this.files.forEach((f, idx) => { if (idx !== i) dt.items.add(f); });
                                     input.files = dt.files;
                                     this.updateFiles();
+                                },
+                                tipoDocumentoSelecionado() {
+                                    return (this.tipoCodigo || '').trim() !== '';
                                 },
                             }"
                             x-init="updateFiles()"
@@ -282,12 +277,17 @@
                                 @change="updateFiles()"
                             />
                             <div
-                                @dragover.prevent="drag = true"
+                                @dragover.prevent="drag = tipoDocumentoSelecionado()"
                                 @dragleave.prevent="drag = false"
                                 @drop.prevent="drag = false; setFilesFromDrop($event)"
-                                :class="drag ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' : 'border-slate-200 dark:border-slate-700'"
-                                class="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-3 py-6 text-center text-xs text-slate-600 dark:text-slate-400"
-                                @click="$refs.fileInputOutro.click()"
+                                :class="{
+                                    'border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40': drag && tipoDocumentoSelecionado(),
+                                    'border-slate-200 dark:border-slate-700': ! (drag && tipoDocumentoSelecionado()),
+                                    'pointer-events-none cursor-not-allowed opacity-50': ! tipoDocumentoSelecionado(),
+                                    'cursor-pointer': tipoDocumentoSelecionado(),
+                                }"
+                                class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-3 py-6 text-center text-xs text-slate-600 dark:text-slate-400"
+                                @click="tipoDocumentoSelecionado() && $refs.fileInputOutro.click()"
                             >
                                 <svg class="h-8 w-8 shrink-0 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.02-2.28 4.5 4.5 0 0 1 4.34 4.476 4.5 4.5 0 0 1-6.335 4.46" /></svg>
                                 <span class="block font-semibold text-slate-700 dark:text-slate-200">{{ __('Arraste e solte aqui') }}</span>
@@ -326,7 +326,11 @@
                                     </template>
                                 </ul>
                             </div>
-                            <x-primary-button type="submit" class="w-full justify-center !py-2.5 text-xs">{{ __('Enviar') }}</x-primary-button>
+                            <x-primary-button
+                                type="submit"
+                                class="w-full justify-center !py-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                                x-bind:disabled="! tipoDocumentoSelecionado() || files.length === 0"
+                            >{{ __('Enviar') }}</x-primary-button>
                         </form>
                     </section>
                 @endcan
