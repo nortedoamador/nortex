@@ -5,6 +5,7 @@ use App\Support\EmbarcacaoTipoServicoCatalogo;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 return new class extends Migration
 {
@@ -165,6 +166,8 @@ return new class extends Migration
 
         // documento_processo
         if (Schema::hasTable('documento_processo') && Schema::hasColumn('documento_processo', 'platform_tipo_processo_id')) {
+            $this->deduplicarTodosDocumentoProcessoAntesDaMigracaoPhp($map, $fallback, $newSlugToId);
+
             $rows = DB::table('documento_processo')->select(['id', 'platform_tipo_processo_id'])->get();
             foreach ($rows as $r) {
                 $oldId = $r->platform_tipo_processo_id;
@@ -230,6 +233,8 @@ return new class extends Migration
                 continue;
             }
 
+            $this->mesclarDocumentoProcessoDuplicadosAntesDoUpdate($oldSlug, (int) $newId);
+
             $collisionCount = 0;
             $sample = [];
             try {
@@ -271,6 +276,63 @@ return new class extends Migration
                  WHERE ptp_old.slug = ?",
                 [(int) $newId, $oldSlug],
             );
+        }
+    }
+
+    /**
+     * Quando já existe linha em `documento_processo` com o platform tipo destino e outra ainda no slug antigo
+     * (mesmo empresa_id + documento_tipo_id), o UPDATE violaria doc_proc_emp_plat_doc_unique.
+     * Mantém o registo já no tipo destino, funde obrigatoriedade/ordem e apaga o duplicado no tipo antigo.
+     */
+    private function mesclarDocumentoProcessoDuplicadosAntesDoUpdate(string $oldSlug, int $newId): void
+    {
+        $pairs = DB::select(
+            'SELECT dp_src.id AS src_id, dp_dst.id AS dst_id
+             FROM documento_processo dp_src
+             INNER JOIN platform_tipo_processos ptp_old
+               ON ptp_old.id = dp_src.platform_tipo_processo_id AND ptp_old.slug = ?
+             INNER JOIN documento_processo dp_dst
+               ON dp_dst.empresa_id = dp_src.empresa_id
+              AND dp_dst.documento_tipo_id = dp_src.documento_tipo_id
+              AND dp_dst.platform_tipo_processo_id = ?
+              AND dp_dst.id <> dp_src.id',
+            [$oldSlug, $newId],
+        );
+
+        foreach ($pairs as $pair) {
+            $srcId = (int) $pair->src_id;
+            $dstId = (int) $pair->dst_id;
+            $src = DB::table('documento_processo')->where('id', $srcId)->first();
+            $dst = DB::table('documento_processo')->where('id', $dstId)->first();
+            if (! $src || ! $dst) {
+                continue;
+            }
+
+            DB::table('documento_processo')->where('id', $dstId)->update([
+                'obrigatorio' => (bool) $dst->obrigatorio || (bool) $src->obrigatorio,
+                'ordem' => min((int) $dst->ordem, (int) $src->ordem),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('documento_processo')->where('id', $srcId)->delete();
+        }
+    }
+
+    private function deduplicarTodosDocumentoProcessoAntesDaMigracaoPhp(array $map, string $fallback, array $newSlugToId): void
+    {
+        $oldSlugs = DB::table('platform_tipo_processos')
+            ->where('categoria', TipoProcessoCategoria::Embarcacao->value)
+            ->pluck('slug')
+            ->all();
+
+        foreach ($oldSlugs as $oldSlug) {
+            $oldSlug = (string) $oldSlug;
+            $newSlug = $map[$oldSlug] ?? $fallback;
+            $newId = $newSlugToId[$newSlug] ?? null;
+            if (! $newId) {
+                continue;
+            }
+            $this->mesclarDocumentoProcessoDuplicadosAntesDoUpdate($oldSlug, (int) $newId);
         }
     }
 
