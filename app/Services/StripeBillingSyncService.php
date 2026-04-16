@@ -233,4 +233,57 @@ class StripeBillingSyncService
 
         $this->syncFromSubscriptionId($subId);
     }
+
+    /**
+     * Altera o price da subscrição Stripe (upgrade/downgrade) ou apenas o campo local se não houver API/subscrição.
+     *
+     * @return array{ok: bool, message: ?string}
+     */
+    public function alterarPrecoSubscricaoSePossivel(Empresa $empresa, string $newPriceId): array
+    {
+        $newPriceId = trim($newPriceId);
+        if ($newPriceId === '') {
+            return ['ok' => false, 'message' => __('Preço Stripe inválido.')];
+        }
+
+        if (! config('services.stripe.secret')) {
+            $empresa->forceFill(['stripe_current_price_id' => $newPriceId])->save();
+
+            return ['ok' => true, 'message' => __('Stripe não está configurado: apenas o identificador de preço foi guardado na empresa.')];
+        }
+
+        $subId = $empresa->stripe_subscription_id;
+        if (! is_string($subId) || $subId === '') {
+            $empresa->forceFill(['stripe_current_price_id' => $newPriceId])->save();
+
+            return ['ok' => true, 'message' => __('Esta empresa não tem subscrição Stripe ligada: o preço foi guardado apenas localmente. Use «Sincronizar» nas assinaturas quando existir subscrição.')];
+        }
+
+        try {
+            $subscription = Subscription::retrieve($subId, ['expand' => ['items.data.price']]);
+            $items = $subscription->items->data ?? [];
+            if ($items === [] || ! isset($items[0]->id)) {
+                return ['ok' => false, 'message' => __('Subscrição Stripe sem itens de preço.')];
+            }
+
+            $itemId = $items[0]->id;
+            Subscription::update($subId, [
+                'items' => [
+                    ['id' => $itemId, 'price' => $newPriceId],
+                ],
+                'proration_behavior' => 'create_prorations',
+            ]);
+
+            $this->syncFromSubscriptionId($subId);
+
+            return ['ok' => true, 'message' => null];
+        } catch (\Throwable $e) {
+            Log::warning('StripeBillingSyncService: falha ao alterar price da subscrição.', [
+                'empresa_id' => $empresa->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return ['ok' => false, 'message' => __('Não foi possível alterar o plano no Stripe: :m', ['m' => $e->getMessage()])];
+        }
+    }
 }

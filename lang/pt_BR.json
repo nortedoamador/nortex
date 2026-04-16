@@ -212,5 +212,17 @@
     "Pagination Navigation": "Navegação por páginas",
     "results": "resultados",
     "Showing": "Mostrando",
-    "to": "até"
+    "to": "até",
+    "activity_log.actions.created": "Criado",
+    "activity_log.actions.updated": "Atualizado",
+    "activity_log.actions.deleted": "Removido",
+    "activity_log.actions.role_created": "Papel criado",
+    "activity_log.actions.role_updated": "Papel atualizado",
+    "activity_log.actions.role_deleted": "Papel removido",
+    "activity_log.actions.tipo_processo_created": "Tipo de processo",
+    "activity_log.actions.tipo_processo_regras": "Checklist",
+    "activity_log.actions.tipo_processo_deleted": "Tipo removido",
+    "activity_log.actions.documento_tipo_created": "Tipo de documento",
+    "activity_log.actions.documento_tipo_deleted": "Tipo removido",
+    "activity_log.actions.empresa_updated": "Dados da empresa"
 }

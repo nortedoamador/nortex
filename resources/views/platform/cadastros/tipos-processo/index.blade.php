@@ -1,3 +1,38 @@
+@php
+    $sort = $sort ?? 'ordem';
+    $dir = $dir ?? 'asc';
+
+    $nxSortUrl = function (string $col) use ($q, $sort, $dir) {
+        if ($sort !== $col) {
+            $ns = $col;
+            $nd = 'asc';
+        } else {
+            $ns = $col;
+            $nd = $dir === 'asc' ? 'desc' : 'asc';
+        }
+        $p = [];
+        if ($q !== '') {
+            $p['q'] = $q;
+        }
+        if ($ns !== 'ordem' || $nd !== 'asc') {
+            $p['sort'] = $ns;
+            $p['dir'] = $nd;
+        }
+
+        return route('platform.cadastros.tipos-processo.index', $p);
+    };
+
+    $nxSortIconAttrs = function (string $col) use ($sort, $dir) {
+        $active = $sort === $col;
+
+        return [
+            'active' => $active,
+            'asc' => $active && $dir === 'asc',
+            'desc' => $active && $dir === 'desc',
+        ];
+    };
+@endphp
+
 <x-platform-layout :title="__('Tipos de processo (global)')">
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -24,9 +59,11 @@
         @endif
 
         <form method="GET" action="{{ route('platform.cadastros.tipos-processo.index') }}" class="flex flex-wrap items-end gap-2">
+            <input type="hidden" name="sort" value="{{ $sort }}" />
+            <input type="hidden" name="dir" value="{{ $dir }}" />
             <div>
                 <label class="block text-xs font-medium text-slate-600 dark:text-slate-400">{{ __('Busca') }}</label>
-                <input type="search" name="q" value="{{ $q }}" placeholder="{{ __('Nome, slug ou categoria…') }}" class="mt-1 min-w-[240px] rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
+                <input type="search" name="q" value="{{ $q }}" placeholder="{{ __('Nome, slug ou serviço…') }}" class="mt-1 min-w-[240px] rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
             </div>
             <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-white">{{ __('Filtrar') }}</button>
         </form>
@@ -51,6 +88,8 @@
         >
             @csrf
             <input type="hidden" name="q" value="{{ $q }}" />
+            <input type="hidden" name="sort" value="{{ $sort }}" />
+            <input type="hidden" name="dir" value="{{ $dir }}" />
 
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex flex-wrap items-center gap-2">
@@ -82,10 +121,32 @@
                                     <span class="sr-only">{{ __('Selecionar todos') }}</span>
                                 </label>
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Nome') }}</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Slug') }}</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Categoria') }}</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Estado') }}</th>
+                            @foreach (['nome' => __('Nome'), 'slug' => __('Slug'), 'ordem' => __('Ordem'), 'categoria' => __('Serviço'), 'ativo' => __('Estado')] as $colKey => $colLabel)
+                                @php $a = $nxSortIconAttrs($colKey); @endphp
+                                <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">
+                                    <a
+                                        href="{{ $nxSortUrl($colKey) }}"
+                                        class="inline-flex items-center gap-1.5 text-slate-600 hover:text-violet-600 dark:text-slate-400 dark:hover:text-violet-400"
+                                    >
+                                        <span>{{ $colLabel }}</span>
+                                        <span class="inline-flex shrink-0 flex-col leading-none" aria-hidden="true">
+                                            @if (! $a['active'])
+                                                <svg class="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 10l4-4 4 4M8 14l4 4 4-4" />
+                                                </svg>
+                                            @elseif ($a['asc'])
+                                                <svg class="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75 12 8.25l7.5 7.5" />
+                                                </svg>
+                                            @else
+                                                <svg class="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25 12 15.75l-7.5-7.5" />
+                                                </svg>
+                                            @endif
+                                        </span>
+                                    </a>
+                                </th>
+                            @endforeach
                             <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400"></th>
                         </tr>
                     </thead>
@@ -102,6 +163,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">{{ $t->nome }}</td>
                                 <td class="px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-300">{{ $t->slug }}</td>
+                                <td class="px-4 py-3 tabular-nums text-sm text-slate-700 dark:text-slate-300">{{ $t->ordem }}</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                                     @php
                                         $cat = $t->categoria instanceof \App\Enums\TipoProcessoCategoria
@@ -123,7 +185,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-4 py-10 text-center text-sm text-slate-500">{{ __('Nenhum tipo encontrado.') }}</td>
+                                <td colspan="7" class="px-4 py-10 text-center text-sm text-slate-500">{{ __('Nenhum tipo encontrado.') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -160,4 +222,3 @@
 
     </div>
 </x-platform-layout>
-

@@ -8,29 +8,32 @@ use App\Http\Controllers\Admin\EmpresaSettingsController;
 use App\Http\Controllers\Admin\RelatorioController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TipoProcessoAdminController;
-use App\Http\Controllers\ClienteAnexoFileController;
-use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\AlunoAjaxController;
 use App\Http\Controllers\AulaAtestadoController;
 use App\Http\Controllers\AulaComunicadoController;
 use App\Http\Controllers\AulaEscolaController;
 use App\Http\Controllers\AulaNauticaController;
 use App\Http\Controllers\AulaNauticaPdfController;
-use App\Http\Controllers\EscolaInstrutorController;
+use App\Http\Controllers\ClienteAnexoFileController;
+use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DocumentoModeloController;
 use App\Http\Controllers\DocumentoModeloRenderController;
 use App\Http\Controllers\EmbarcacaoAnexoFileController;
 use App\Http\Controllers\EmbarcacaoController;
 use App\Http\Controllers\EquipeController;
+use App\Http\Controllers\EscolaInstrutorController;
 use App\Http\Controllers\FinanceiroController;
 use App\Http\Controllers\HabilitacaoAnexoFileController;
 use App\Http\Controllers\HabilitacaoController;
+use App\Http\Controllers\PendingSubscriptionCheckoutController;
+use App\Http\Controllers\PlanosController;
 use App\Http\Controllers\Platform\AnexoTipoController as PlatformAnexoTipoController;
+use App\Http\Controllers\Platform\AuditoriaController as PlatformAuditoriaController;
+use App\Http\Controllers\Platform\ChecklistDocumentosController;
+use App\Http\Controllers\Platform\DashboardController as PlatformDashboardController;
 use App\Http\Controllers\Platform\DocumentoModeloGlobalController as PlatformDocumentoModeloGlobalController;
 use App\Http\Controllers\Platform\DocumentoModeloGlobalLaboratorioController as PlatformDocumentoModeloGlobalLaboratorioController;
 use App\Http\Controllers\Platform\DocumentoModeloGlobalPreviewController;
-use App\Http\Controllers\Platform\AuditoriaController as PlatformAuditoriaController;
-use App\Http\Controllers\Platform\DashboardController as PlatformDashboardController;
 use App\Http\Controllers\Platform\EmpresaAdminUserController as PlatformEmpresaAdminUserController;
 use App\Http\Controllers\Platform\EmpresaController as PlatformEmpresaController;
 use App\Http\Controllers\Platform\ImpersonateController as PlatformImpersonateController;
@@ -42,14 +45,14 @@ use App\Http\Controllers\Platform\UsuarioController as PlatformUsuarioController
 use App\Http\Controllers\ProcessoController;
 use App\Http\Controllers\ProcessoDocumentoAnexoFileController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PendingSubscriptionCheckoutController;
-use App\Http\Controllers\PlanosController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SubscriptionSignupController;
+use App\Http\Controllers\TourController;
 use App\Models\Empresa;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])
@@ -141,38 +144,6 @@ Route::middleware(['auth', 'verified', 'tenant.empresa'])->group(function () {
         ->name('planos.checkout');
 });
 
-// Debug temporário Kanban (sessão 33fe27)
-Route::middleware('auth')->get('/__nx_dbg', function (\Illuminate\Http\Request $request) {
-    $payload = [
-        'sessionId' => '33fe27',
-        'runId' => (string) $request->query('runId', 'pre-fix'),
-        'hypothesisId' => (string) $request->query('hid', 'X'),
-        'location' => (string) $request->query('loc', 'web.php:/__nx_dbg'),
-        'message' => (string) $request->query('msg', ''),
-        'data' => null,
-        'timestamp' => (int) $request->query('ts', (int) round(microtime(true) * 1000)),
-    ];
-    $dataRaw = $request->query('data');
-    if (is_string($dataRaw) && $dataRaw !== '') {
-        try {
-            $decoded = json_decode($dataRaw, true, 512, JSON_THROW_ON_ERROR);
-            if (is_array($decoded)) {
-                // Remove valores muito grandes acidentalmente.
-                $payload['data'] = array_slice($decoded, 0, 50, true);
-            }
-        } catch (\Throwable) {
-            $payload['data'] = ['_parse' => 'failed'];
-        }
-    }
-    @file_put_contents(
-        base_path('debug-33fe27.log'),
-        json_encode($payload, JSON_UNESCAPED_UNICODE).PHP_EOL,
-        FILE_APPEND
-    );
-
-    return response()->json(['ok' => true]);
-})->name('nx.dbg');
-
 Route::get('/clientes/{cliente}/embarcacoes-options', [ClienteController::class, 'embarcacoesOptions'])
     ->middleware(['auth', 'verified', 'tenant.empresa', 'tenant.subscription'])
     ->name('clientes.embarcacoes.options');
@@ -186,7 +157,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::prefix('platform')->name('platform.')->middleware('platform.admin')->group(function () {
+    Route::prefix('platform')->name('platform.')->middleware(['platform.admin', 'platform.audit'])->group(function () {
         Route::get('/', PlatformDashboardController::class)->name('dashboard');
         Route::post('/manutencao', [PlatformMaintenanceController::class, 'update'])
             ->middleware('throttle:6,1')
@@ -295,13 +266,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/tipos-processo', [PlatformTipoProcessoController::class, 'store'])->name('tipos-processo.store');
             Route::get('/tipos-processo/{tipo_processo}/editar', [PlatformTipoProcessoController::class, 'edit'])->name('tipos-processo.edit');
             Route::patch('/tipos-processo/{tipo_processo}', [PlatformTipoProcessoController::class, 'update'])->name('tipos-processo.update');
-                Route::post('/tipos-processo/bulk', [PlatformTipoProcessoController::class, 'bulk'])->name('tipos-processo.bulk');
+            Route::put('/tipos-processo/{tipo_processo}/regras', [PlatformTipoProcessoController::class, 'updateRegras'])->name('tipos-processo.update-regras');
+            Route::post('/tipos-processo/bulk', [PlatformTipoProcessoController::class, 'bulk'])->name('tipos-processo.bulk');
 
             Route::get('/tipos-servico', [PlatformTipoServicoController::class, 'index'])->name('tipos-servico.index');
             Route::get('/tipos-servico/criar', [PlatformTipoServicoController::class, 'create'])->name('tipos-servico.create');
             Route::post('/tipos-servico', [PlatformTipoServicoController::class, 'store'])->name('tipos-servico.store');
             Route::get('/tipos-servico/{tipo_servico}/editar', [PlatformTipoServicoController::class, 'edit'])->name('tipos-servico.edit');
             Route::patch('/tipos-servico/{tipo_servico}', [PlatformTipoServicoController::class, 'update'])->name('tipos-servico.update');
+
+            Route::get('/checklist-documentos', [ChecklistDocumentosController::class, 'index'])->name('checklist-documentos.index');
+            Route::get('/checklist-documentos/criar', [ChecklistDocumentosController::class, 'create'])->name('checklist-documentos.create');
+            Route::post('/checklist-documentos', [ChecklistDocumentosController::class, 'store'])->name('checklist-documentos.store');
+            Route::get('/checklist-documentos/{documento_tipo}/editar', [ChecklistDocumentosController::class, 'edit'])->whereNumber('documento_tipo')->name('checklist-documentos.edit');
+            Route::patch('/checklist-documentos/{documento_tipo}', [ChecklistDocumentosController::class, 'update'])->whereNumber('documento_tipo')->name('checklist-documentos.update');
+            Route::delete('/checklist-documentos/{documento_tipo}', [ChecklistDocumentosController::class, 'destroy'])->whereNumber('documento_tipo')->name('checklist-documentos.destroy');
 
             Route::get('/anexo-tipos', [PlatformAnexoTipoController::class, 'index'])->name('anexo-tipos.index');
             Route::get('/anexo-tipos/criar', [PlatformAnexoTipoController::class, 'create'])->name('anexo-tipos.create');
@@ -344,7 +323,9 @@ Route::middleware(['auth', 'tenant.empresa', 'tenant.subscription', 'permission:
 });
 
 Route::middleware(['auth', 'tenant.empresa', 'tenant.subscription'])->group(function () {
-    Route::middleware(['permission:financeiro.view'])->group(function () {
+    Route::get('/tour', [TourController::class, 'index'])->name('tour.index');
+
+    Route::middleware(['permission:financeiro.view', 'tenant.financeiro.billing'])->group(function () {
         Route::prefix('financeiro')->name('financeiro.')->group(function () {
             Route::get('/', [FinanceiroController::class, 'index'])->name('index');
 
@@ -518,6 +499,9 @@ Route::middleware(['auth', 'tenant.empresa', 'tenant.subscription'])->group(func
         Route::get('/aulas/{aula}/pdf/comunicado', [AulaNauticaPdfController::class, 'comunicado'])->name('aulas.pdf.comunicado');
         Route::get('/aulas/{aula}/pdf/ara/{aluno}', [AulaNauticaPdfController::class, 'ara'])->name('aulas.pdf.ara');
         Route::get('/aulas/{aula}/pdf/mtm', [AulaNauticaPdfController::class, 'mta'])->name('aulas.pdf.mta');
+        Route::get('/aulas/{aula}/documento-automatico/{indice}', [AulaNauticaController::class, 'downloadDocumentoAutomatico'])
+            ->whereNumber('indice')
+            ->name('aulas.documento-automatico.download');
     });
     Route::middleware(['permission:aulas.manage'])->group(function () {
         Route::get('/aulas/nova', [AulaNauticaController::class, 'create'])->name('aulas.create');

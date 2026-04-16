@@ -36,7 +36,7 @@ enum ProcessoStatus: string
     }
 
     /**
-     * Opções de etapa ao alterar um processo (exclui «Aguardando prova» quando o tipo de serviço não prevê prova prática).
+     * Opções de etapa ao alterar um processo (exclui «Aguardando prova» quando o tipo de processo não prevê prova prática).
      *
      * @return list<self>
      */
@@ -242,7 +242,7 @@ enum ProcessoStatus: string
             self::Concluido => 'border-l-[#6FCF97]',
         };
 
-        return 'relative inline-flex w-full max-w-full items-center rounded-xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.04] transition-colors hover:border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:ring-white/[0.06] dark:hover:border-slate-500 border-l-[3px] '.$accent;
+        return 'relative inline-flex min-w-0 max-w-full items-center rounded-xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.04] transition-colors hover:border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:ring-white/[0.06] dark:hover:border-slate-500 border-l-[3px] '.$accent;
     }
 
     /** Interior do trigger / select: tipografia alinhada ao resto da app (sem fundo por status). */

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Equipe') }}</h2>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Usuários') }}</h2>
             <div class="flex flex-wrap items-center gap-2">
                 <a href="{{ route('equipe.logs.export', request()->only('acao')) }}" class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                     {{ __('Exportar CSV') }}

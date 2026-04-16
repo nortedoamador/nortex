@@ -9,8 +9,8 @@
     $buscaEfetiva = is_string($busca ?? null) ? trim((string) $busca) : '';
     $statusEfetivo = is_string($statusFiltro ?? null) ? trim((string) $statusFiltro) : '';
 
-    $tipoProcEfetivo = is_string($fa['cat'] ?? null) ? (string) ($fa['cat'] ?? '') : '';
-    $tipoServicoId = (int) ($fa['tipo'] ?? 0);
+    $categoriaFiltro = is_string($fa['cat'] ?? null) ? (string) ($fa['cat'] ?? '') : '';
+    $tipoProcessoIdFiltro = (int) ($fa['tipo'] ?? 0);
     $jurisdicao = is_string($fa['jurisdicao'] ?? null) ? (string) ($fa['jurisdicao'] ?? '') : '';
     $clienteId = (int) ($fa['cliente'] ?? 0);
     $processoId = (int) ($fa['processo'] ?? 0);
@@ -24,12 +24,12 @@
         $ate = \Carbon\Carbon::parse($ate)->format('d/m/Y');
     }
 
-    $tipoProcLabel = '';
-    if ($tipoProcEfetivo !== '') {
+    $categoriaLabel = '';
+    if ($categoriaFiltro !== '') {
         try {
-            $tipoProcLabel = TipoProcessoCategoria::from($tipoProcEfetivo)->label();
+            $categoriaLabel = TipoProcessoCategoria::from($categoriaFiltro)->label();
         } catch (\ValueError) {
-            $tipoProcLabel = '';
+            $categoriaLabel = '';
         }
     }
 
@@ -42,10 +42,10 @@
         }
     }
 
-    $tipoServicoLabel = '';
-    if ($tipoServicoId > 0) {
-        $tp = ($tiposProcessoModal ?? collect())->firstWhere('id', $tipoServicoId);
-        $tipoServicoLabel = $tp?->nome ?? '';
+    $tipoProcessoLabel = '';
+    if ($tipoProcessoIdFiltro > 0) {
+        $tp = ($tiposProcessoModal ?? collect())->firstWhere('id', $tipoProcessoIdFiltro);
+        $tipoProcessoLabel = $tp?->nome ?? '';
     }
 
     $clienteLabel = '';
@@ -59,8 +59,8 @@
     foreach ([
         $buscaEfetiva !== '',
         $statusLabel !== '',
-        $tipoProcLabel !== '',
-        $tipoServicoLabel !== '',
+        $categoriaLabel !== '',
+        $tipoProcessoLabel !== '',
         ($jurisdicao !== '' && in_array($jurisdicao, Habilitacao::JURISDICOES, true)),
         $clienteLabel !== '',
         $processoId > 0,
@@ -99,26 +99,26 @@
                 </button>
             @endif
 
-            @if ($tipoProcLabel !== '')
+            @if ($categoriaLabel !== '')
                 <button
                     type="button"
                     class="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-200 dark:ring-indigo-900/60"
                     @click="$dispatch('nx-processos-remove-filter', { key: 'cat' })"
                     title="{{ __('Remover filtro') }}"
                 >
-                    {{ __('Tipo de processo') }}: {{ $tipoProcLabel }}
+                    {{ __('Tipo de serviço') }}: {{ $categoriaLabel }}
                     <span class="text-indigo-500 dark:text-indigo-300">×</span>
                 </button>
             @endif
 
-            @if ($tipoServicoLabel !== '')
+            @if ($tipoProcessoLabel !== '')
                 <button
                     type="button"
                     class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-200 dark:ring-slate-800"
                     @click="$dispatch('nx-processos-remove-filter', { key: 'tipo' })"
                     title="{{ __('Remover filtro') }}"
                 >
-                    {{ __('Tipo de serviço') }}: {{ $tipoServicoLabel }}
+                    {{ __('Tipo de processo') }}: {{ $tipoProcessoLabel }}
                     <span class="text-slate-400 dark:text-slate-500">×</span>
                 </button>
             @endif

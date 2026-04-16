@@ -170,7 +170,14 @@ const BrMap = (() => {
  svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
  svg.setAttribute('id', 'brmap');
  svg.setAttribute('style', 'display: block; position: absolute; top: 0; left: 0;');
- content.innerHTML = svg.outerHTML;
+ // Não usar innerHTML com outerHTML do SVG: o re-parse HTML pode corromper o SVG e
+ // mostrar apenas o texto dos estados (BA, SP, …) em sequência.
+ if (typeof content.replaceChildren === 'function') {
+ content.replaceChildren(svg);
+ } else {
+ content.innerHTML = '';
+ content.appendChild(svg);
+ }
 
  _events(g);
 

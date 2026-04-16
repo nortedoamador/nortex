@@ -30,7 +30,7 @@ class EnsureTenantEmpresa
                 $request->session()->regenerateToken();
 
                 return redirect()
-                    ->route('login')
+                    ->route('login', ['nx_rev' => 1])
                     ->with(
                         'status',
                         __('O acesso da sua organização terminou em :data. Contacte o suporte se precisar de renovar.', [
@@ -53,4 +53,3 @@ class EnsureTenantEmpresa
         abort(403, 'Usuário sem empresa vinculada.');
     }
 }
-

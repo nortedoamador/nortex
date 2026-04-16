@@ -120,7 +120,7 @@ class DocumentoModeloGlobalLaboratorioController extends Controller
 
         $request->validate([
             'slug' => ['required', 'string', 'max:80'],
-            'arquivo' => ['required', 'file', 'max:15360'],
+            'arquivo' => ['required', 'file', 'max:'.upload_max_kb()],
             'empresa_id' => ['nullable', 'string'],
             'cliente_id' => ['nullable', 'string'],
             'embarcacao_id' => ['nullable', 'string'],
@@ -172,7 +172,7 @@ class DocumentoModeloGlobalLaboratorioController extends Controller
             'titulo' => ['required', 'string', 'max:160'],
             'referencia' => ['nullable', 'string', 'max:160'],
             'slug' => ['nullable', 'string', 'max:80'],
-            'arquivo' => ['required', 'file', 'max:15360'],
+            'arquivo' => ['required', 'file', 'max:'.upload_max_kb()],
             'empresa_id' => ['nullable', 'string'],
             'cliente_id' => ['nullable', 'string'],
             'embarcacao_id' => ['nullable', 'string'],

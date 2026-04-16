@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -18,13 +19,16 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(Request $request): View|JsonResponse
+    public function create(Request $request): Response|JsonResponse
     {
         if ($this->nxAuthSpa($request)) {
             return $this->nxAuthSpaFragment('auth.partials.login-inner', [], 'Entrar');
         }
 
-        return view('auth.login');
+        return response()
+            ->view('auth.login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 
     /**
@@ -58,7 +62,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()
+            ->route('login')
+            ->withHeaders([
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+            ]);
     }
 
     private function defaultAfterLoginUrl(): string

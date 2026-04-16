@@ -87,6 +87,19 @@ class DashboardController extends Controller
         $selectedUfName = $selectedUf ? BrazilStates::label($selectedUf) : 'Brasil';
         $platformMaintenanceEnabled = PlatformMaintenance::enabled();
 
+        $empresasLista = $filteredEmpresas->map(function (Empresa $empresa) use ($resolvedUfs, $userCountsByEmpresa) {
+            $uf = $resolvedUfs[$empresa->id] ?? null;
+
+            return [
+                'id' => (int) $empresa->id,
+                'nome' => (string) $empresa->nome,
+                'uf' => $uf,
+                'uf_label' => $uf ? (BrazilStates::label($uf) ?? $uf) : '—',
+                'ativa' => (bool) $empresa->ativo,
+                'usuarios' => (int) ($userCountsByEmpresa[$empresa->id] ?? 0),
+            ];
+        })->sortBy('nome')->values();
+
         return view('platform.dashboard', compact(
             'totEmpresas',
             'totEmpresasAtivas',
@@ -98,6 +111,7 @@ class DashboardController extends Controller
             'selectedUf',
             'selectedUfName',
             'platformMaintenanceEnabled',
+            'empresasLista',
         ));
     }
 

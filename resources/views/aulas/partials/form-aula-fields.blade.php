@@ -118,6 +118,7 @@
 
 <div class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
     <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ __('Instrutores vinculados') }}</h3>
+    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ __('Para cada instrutor, indique se os dados entram no atestado ARA, MTA ou em ambos; o mesmo critério vale para o comunicado de aula.') }}</p>
 
     <div class="mt-4 grid gap-3 md:grid-cols-2">
         <div class="md:col-span-2">
@@ -167,19 +168,45 @@
         </div>
     </div>
 
-    <div class="mt-4 space-y-2">
-        <template x-for="ins in instrutores" :key="ins.id">
-            <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-900/40">
-                <div class="min-w-0">
+    <div class="mt-4 space-y-3">
+        <template x-for="(ins, idx) in instrutores" :key="ins.id">
+            <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 text-sm dark:border-slate-800 dark:bg-slate-900/40 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <div class="min-w-0 flex-1">
                     <p class="truncate font-semibold text-slate-900 dark:text-white" x-text="ins.nome"></p>
                     <p class="truncate text-xs text-slate-600 dark:text-slate-300" x-text="ins.cpf"></p>
                     <p class="truncate text-xs text-slate-500 dark:text-slate-400" x-show="ins.cha" x-text="ins.cha ? ('CHA ' + ins.cha) : ''"></p>
                 </div>
-                <button type="button" class="shrink-0 text-red-600 hover:text-red-700 dark:text-red-400" @click="removeInstrutor(ins.id)">{{ __('Remover') }}</button>
-                <input type="hidden" name="escola_instrutores_ids[]" :value="ins.id" />
+                <div class="w-full shrink-0 sm:max-w-md sm:flex-1">
+                    <label class="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400" :for="'escola_ins_prog_' + ins.id">{{ __('Ministrará:') }}</label>
+                    <div class="flex items-end gap-2">
+                        <select
+                            :id="'escola_ins_prog_' + ins.id"
+                            :name="'escola_instrutores[' + idx + '][programa_atestado]'"
+                            x-model="ins.programa_atestado"
+                            class="min-w-0 flex-1 rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                        >
+                            <option value="arrais">{{ __('Arrais-Amador (ARA)') }}</option>
+                            <option value="motonauta">{{ __('Motonauta (MTA)') }}</option>
+                            <option value="ambos">{{ __('Ambos (ARA e MTA)') }}</option>
+                        </select>
+                        <button
+                            type="button"
+                            class="inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent p-2 text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500/40 dark:text-red-400 dark:hover:bg-red-950/40"
+                            @click="removeInstrutor(ins.id)"
+                            title="{{ __('Remover instrutor') }}"
+                            aria-label="{{ __('Remover instrutor') }}"
+                        >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" :name="'escola_instrutores[' + idx + '][id]'" :value="ins.id" />
             </div>
         </template>
         <div x-show="instrutores.length === 0" class="text-sm text-slate-500 dark:text-slate-400">{{ __('Nenhum instrutor vinculado ainda.') }}</div>
     </div>
-    <x-input-error :messages="$errors->get('escola_instrutores_ids')" class="mt-2" />
+    <x-input-error :messages="$errors->get('escola_instrutores')" class="mt-2" />
+    <x-input-error :messages="$errors->get('escola_instrutores.*')" class="mt-2" />
 </div>

@@ -64,6 +64,47 @@
                         <span class="inline-flex items-center gap-2"><span class="nx-platform-legend" style="background:#a38cf9"></span>4-6</span>
                         <span class="inline-flex items-center gap-2"><span class="nx-platform-legend" style="background:#5b3df5"></span>7+</span>
                     </div>
+
+                    <div class="mt-6 border-t border-slate-200/80 pt-5 dark:border-slate-800">
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">{{ __('Empresas (dados reais)') }}</p>
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-500">{{ __('UF pela empresa ou, se vazio, inferida pelo maior volume de clientes no estado.') }}</p>
+                        @if ($empresasLista->isEmpty())
+                            <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">{{ __('Nenhuma empresa neste filtro.') }}</p>
+                        @else
+                            <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800">
+                                <table class="min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-800">
+                                    <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-900/60 dark:text-slate-400">
+                                        <tr>
+                                            <th class="px-3 py-2.5">{{ __('Empresa') }}</th>
+                                            <th class="px-3 py-2.5">{{ __('UF') }}</th>
+                                            <th class="px-3 py-2.5">{{ __('Estado') }}</th>
+                                            <th class="px-3 py-2.5">{{ __('Utilizadores') }}</th>
+                                            <th class="px-3 py-2.5">{{ __('Situação') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                        @foreach ($empresasLista as $row)
+                                            <tr class="bg-white dark:bg-slate-900/40">
+                                                <td class="px-3 py-2.5 font-medium text-slate-900 dark:text-white">
+                                                    <a href="{{ route('platform.empresas.show', $row['id']) }}" class="text-violet-700 hover:underline dark:text-violet-300">{{ $row['nome'] }}</a>
+                                                </td>
+                                                <td class="px-3 py-2.5 font-mono text-slate-700 dark:text-slate-200">{{ $row['uf'] ?? '—' }}</td>
+                                                <td class="px-3 py-2.5 text-slate-600 dark:text-slate-300">{{ $row['uf_label'] }}</td>
+                                                <td class="px-3 py-2.5 text-slate-700 dark:text-slate-200">{{ $row['usuarios'] }}</td>
+                                                <td class="px-3 py-2.5">
+                                                    @if ($row['ativa'])
+                                                        <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200">{{ __('Ativa') }}</span>
+                                                    @else
+                                                        <span class="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">{{ __('Inativa') }}</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </section>
 

@@ -35,11 +35,17 @@ trait UsesHashidsRouteKey
             return parent::resolveRouteBinding($value, $field);
         }
 
-        $pair = app(TenantHashids::class)->decodePair((string) $value);
-        if ($pair === null || $pair[0] !== static::routeHashidType()) {
-            return null;
+        $raw = (string) $value;
+        $pair = app(TenantHashids::class)->decodePair($raw);
+        if ($pair !== null && $pair[0] === static::routeHashidType()) {
+            return $this->whereKey($pair[1])->first();
         }
 
-        return $this->whereKey($pair[1])->first();
+        // Compatibilidade: URLs antigas ou integrações que ainda usam o id numérico.
+        if ($raw !== '' && ctype_digit($raw)) {
+            return $this->whereKey((int) $raw)->first();
+        }
+
+        return null;
     }
 }

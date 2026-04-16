@@ -14,6 +14,16 @@
     <h1>Atestado MTA (lote) — Placeholder</h1>
     <p class="muted">Um atestado por aluno. Modelo oficial será aplicado quando fornecido.</p>
 
+    @if (isset($instrutorEscolaMta) && $instrutorEscolaMta)
+        @php $ic = $instrutorEscolaMta->cliente; @endphp
+        <div class="card">
+            <h2>Instrutor (MTA)</h2>
+            <p><strong>Nome:</strong> {{ $ic?->nome ?? '—' }}</p>
+            <p><strong>CPF:</strong> {{ $ic?->cpf ?? '—' }}</p>
+            <p><strong>CHA:</strong> {{ $instrutorEscolaMta->cha_numero ?? '—' }}</p>
+        </div>
+    @endif
+
     @foreach ($aula->alunos as $aluno)
         <div class="card">
             <h2>Aluno: {{ $aluno->nome }}</h2>

@@ -112,14 +112,14 @@
 
                 <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5 sm:px-5">
                     <div>
-                        <label for="nx_f_cat" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Tipo de processo') }}</label>
+                        <label for="nx_f_cat" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Tipo de serviço') }}</label>
                         <select
                             id="nx_f_cat"
                             name="cat"
                             x-model="categoriaSel"
                             class="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
                         >
-                            <option value="">{{ __('Selecione…') }}</option>
+                            <option value="">{{ __('Selecione o tipo de serviço…') }}</option>
                             @foreach (TipoProcessoCategoria::cases() as $c)
                                 <option value="{{ $c->value }}">{{ $c->label() }}</option>
                             @endforeach
@@ -127,7 +127,7 @@
                     </div>
 
                     <div>
-                        <label for="nx_f_tipo" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Tipo de serviço') }}</label>
+                        <label for="nx_f_tipo" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ __('Tipo de processo') }}</label>
                         <select
                             id="nx_f_tipo"
                             name="tipo"
@@ -135,7 +135,7 @@
                             class="block w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
                             :disabled="categoriaSel === ''"
                         >
-                            <option value="">{{ __('Selecione o tipo de serviço…') }}</option>
+                            <option value="">{{ __('Selecione o tipo de processo…') }}</option>
                             <template x-for="s in servicosFiltrados()" :key="s.id">
                                 <option :value="String(s.id)" x-text="s.nome"></option>
                             </template>
@@ -284,7 +284,7 @@
                             />
                             <span class="text-sm leading-snug text-slate-700 dark:text-slate-200">
                                 <span class="font-semibold text-slate-900 dark:text-white">{{ __('Só com documento obrigatório pendente') }}</span>
-                                <span class="mt-0.5 block text-xs font-normal text-slate-500 dark:text-slate-400">{{ __('Itens do checklist obrigatórios ainda em «Pendente» (conforme regras do tipo de serviço).') }}</span>
+                                <span class="mt-0.5 block text-xs font-normal text-slate-500 dark:text-slate-400">{{ __('Itens do checklist obrigatórios ainda em «Pendente» (conforme regras do tipo de processo).') }}</span>
                             </span>
                         </label>
                     </div>

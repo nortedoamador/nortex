@@ -49,7 +49,7 @@ class StoreClienteAnexosRequest extends FormRequest
     {
         return [
             'arquivos' => ['nullable', 'array', 'max:20'],
-            'arquivos.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx'],
+            'arquivos.*' => ['file', 'max:'.upload_max_kb(), 'mimes:pdf,jpg,jpeg,png,webp,doc,docx'],
             'tipo_codigo' => [
                 Rule::requiredIf(fn (): bool => $this->hasArquivos()),
                 'nullable',
@@ -63,7 +63,7 @@ class StoreClienteAnexosRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'arquivos.*.max' => 'Cada arquivo deve ter no máximo 10 MB.',
+            'arquivos.*.max' => __('Cada arquivo deve ter no máximo :max.', ['max' => upload_max_file_help()]),
             'arquivos.*.mimes' => 'Formatos permitidos: PDF, imagens, DOC/DOCX.',
             'tipo_codigo.required' => __('Selecione o tipo do documento (ex.: CNH) antes de enviar os arquivos.'),
         ];

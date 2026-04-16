@@ -5,17 +5,25 @@ namespace App\Http\Controllers;
 use App\Models\AulaNautica;
 use App\Models\Cliente;
 use App\Models\EscolaInstrutor;
+use App\Services\AulaNauticaDocumentosAutomaticosService;
+use App\Support\AulaEscolaInstrutorProgramaAtestado;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AulaNauticaController extends Controller
 {
+    public function __construct(
+        private readonly AulaNauticaDocumentosAutomaticosService $aulaDocumentosAutomaticos,
+    ) {}
+
     /**
      * @return Collection<int, array{value:string,label:string}>
      */
@@ -180,14 +188,22 @@ class AulaNauticaController extends Controller
 
         $data = $this->validated($request, $user->empresa_id);
         $alunosIds = Arr::pull($data, 'alunos_ids', []);
-        $escolaInstrutoresIds = Arr::pull($data, 'escola_instrutores_ids', []);
+        $escolaInstrutoresSync = Arr::pull($data, 'escola_instrutores_sync', []);
 
         $aula = AulaNautica::query()->create(array_merge($data, [
             'empresa_id' => $user->empresa_id,
         ]));
 
         $aula->alunos()->sync($alunosIds);
-        $aula->escolaInstrutores()->sync($escolaInstrutoresIds);
+        $aula->escolaInstrutores()->sync($escolaInstrutoresSync);
+
+        try {
+            $aula->refresh();
+            $aula->load(['alunos', 'instrutores', 'escolaInstrutores.cliente', 'empresa']);
+            $this->aulaDocumentosAutomaticos->gerar($aula);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return redirect()->route('aulas.show', $aula)->with('status', __('Aula criada.'));
     }
@@ -199,6 +215,36 @@ class AulaNauticaController extends Controller
         $aula->load(['alunos', 'instrutores', 'escolaInstrutores.cliente']);
 
         return view('aulas.show', compact('aula'));
+    }
+
+    public function downloadDocumentoAutomatico(Request $request, AulaNautica $aula, int $indice): StreamedResponse
+    {
+        $this->assertEmpresa($request, $aula);
+
+        $docs = $aula->documentos_automaticos;
+        if (! is_array($docs) || ! array_key_exists($indice, $docs)) {
+            abort(404);
+        }
+
+        $row = $docs[$indice];
+        if (! is_array($row)) {
+            abort(404);
+        }
+
+        $path = $row['path'] ?? null;
+        if (! is_string($path) || $path === '') {
+            abort(404);
+        }
+
+        if (! Storage::disk('local')->exists($path)) {
+            abort(404);
+        }
+
+        $filename = isset($row['filename']) && is_string($row['filename']) && $row['filename'] !== ''
+            ? $row['filename']
+            : basename($path);
+
+        return Storage::disk('local')->download($path, $filename);
     }
 
     public function edit(Request $request, AulaNautica $aula): View
@@ -218,11 +264,11 @@ class AulaNauticaController extends Controller
 
         $data = $this->validated($request, $request->user()->empresa_id, $aula->id);
         $alunosIds = Arr::pull($data, 'alunos_ids', []);
-        $escolaInstrutoresIds = Arr::pull($data, 'escola_instrutores_ids', []);
+        $escolaInstrutoresSync = Arr::pull($data, 'escola_instrutores_sync', []);
 
         $aula->update($data);
         $aula->alunos()->sync($alunosIds);
-        $aula->escolaInstrutores()->sync($escolaInstrutoresIds);
+        $aula->escolaInstrutores()->sync($escolaInstrutoresSync);
 
         return redirect()->route('aulas.show', $aula)->with('status', __('Aula atualizada.'));
     }
@@ -239,7 +285,7 @@ class AulaNauticaController extends Controller
     {
         $tiposAulaAllowed = $this->tiposAulaOptions()->pluck('value')->all();
 
-        return $request->validate([
+        $validated = $request->validate([
             'numero_oficio' => [
                 'required',
                 'string',
@@ -261,12 +307,42 @@ class AulaNauticaController extends Controller
                 Rule::exists(Cliente::class, 'id')->where('empresa_id', $empresaId),
             ],
 
-            'escola_instrutores_ids' => ['nullable', 'array', 'max:50'],
-            'escola_instrutores_ids.*' => [
+            'escola_instrutores' => ['nullable', 'array', 'max:50'],
+            'escola_instrutores.*.id' => [
+                'required',
                 'integer',
                 Rule::exists(EscolaInstrutor::class, 'id')->where('empresa_id', $empresaId),
             ],
+            'escola_instrutores.*.programa_atestado' => [
+                'required',
+                'string',
+                Rule::in(AulaEscolaInstrutorProgramaAtestado::values()),
+            ],
         ]);
+
+        $validated['escola_instrutores_sync'] = self::buildEscolaInstrutoresSync(
+            $validated['escola_instrutores'] ?? []
+        );
+        unset($validated['escola_instrutores']);
+
+        return $validated;
+    }
+
+    /**
+     * @param  list<array{id: int, programa_atestado: string}>  $rows
+     * @return array<int, array{programa_atestado: string}>
+     */
+    private static function buildEscolaInstrutoresSync(array $rows): array
+    {
+        $sync = [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! isset($row['id'], $row['programa_atestado'])) {
+                continue;
+            }
+            $sync[(int) $row['id']] = ['programa_atestado' => (string) $row['programa_atestado']];
+        }
+
+        return $sync;
     }
 
     /**

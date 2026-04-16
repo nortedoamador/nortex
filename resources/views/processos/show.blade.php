@@ -225,7 +225,7 @@
                                             <svg class="h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                                             {{ __('Alterar etapa') }}
                                         </span>
-                                        <x-processo-status-custom-select :processo="$processo" :chrome-wrap-class="$nxStFicha->uiListSelectChromeWrapClass()" />
+                                        <x-processo-status-custom-select :processo="$processo" :chrome-wrap-class="$nxStFicha->uiListSelectChromeWrapClass()" :fit-longest-label="false" />
                                     </div>
                                 </form>
                                 <a
@@ -496,6 +496,9 @@
                         <svg class="h-6 w-6 shrink-0 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 4.5h12M3.75 6.75h.008v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.008v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 4.5h.008v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
                         {{ __('Checklist, orientação CNH/atestado e anexos') }}
                     </h2>
+                    <p class="px-5 pb-2 text-xs text-slate-500 sm:px-7 dark:text-slate-400">
+                        {{ __('Cada anexo: tamanho máximo de :max. Imagens são comprimidas no servidor quando possível.', ['max' => upload_max_file_help()]) }}
+                    </p>
                     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
                         @foreach ($documentosOrdenados as $doc)
                             @php

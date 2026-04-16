@@ -5,16 +5,18 @@ namespace App\Http\Controllers;
 use App\Enums\ProcessoDocumentoStatus;
 use App\Enums\ProcessoStatus;
 use App\Enums\TipoProcessoCategoria;
-use App\Http\Requests\StoreProcessoRequest;
 use App\Http\Requests\StoreMultiplosAnexosRequest;
+use App\Http\Requests\StoreProcessoRequest;
 use App\Http\Requests\UpdateProcessoDocumentoRequest;
 use App\Http\Requests\UpdateProcessoProtocoloMarinhaRequest;
 use App\Http\Requests\UpdateProcessoProvaMarinhaRequest;
 use App\Http\Requests\UpdateProcessoStatusRequest;
+use App\Models\ActivityLog;
 use App\Models\Cliente;
+use App\Models\Embarcacao;
 use App\Models\Habilitacao;
-use App\Models\Processo;
 use App\Models\PlatformTipoProcesso;
+use App\Models\Processo;
 use App\Models\ProcessoDocumento;
 use App\Models\ProcessoDocumentoAnexo;
 use App\Models\ProcessoPostIt;
@@ -38,6 +40,7 @@ use App\Support\Normam211DocumentoCodigos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Js;
@@ -627,7 +630,7 @@ class ProcessoController extends Controller
                 $atualizadoDe = $deRaw;
             } elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $deRaw)) {
                 try {
-                    $atualizadoDe = \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $deRaw)->format('Y-m-d');
+                    $atualizadoDe = Carbon::createFromFormat('d/m/Y', $deRaw)->format('Y-m-d');
                 } catch (\Throwable) {
                     $atualizadoDe = null;
                 }
@@ -639,7 +642,7 @@ class ProcessoController extends Controller
                 $atualizadoAte = $ateRaw;
             } elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $ateRaw)) {
                 try {
-                    $atualizadoAte = \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $ateRaw)->format('Y-m-d');
+                    $atualizadoAte = Carbon::createFromFormat('d/m/Y', $ateRaw)->format('Y-m-d');
                 } catch (\Throwable) {
                     $atualizadoAte = null;
                 }
@@ -1051,7 +1054,19 @@ class ProcessoController extends Controller
         $agendaItens = $this->dashboardAgenda->proximosItens($request->user());
         $provasMarinhaItens = $this->dashboardProvasMarinha->itens($request->user());
 
-        return view('dashboard', compact('kanban', 'metricasDashboard', 'alertasResumo', 'agendaItens', 'provasMarinhaItens', 'planoAtivo'));
+        $atividadeRecente = collect();
+        $empresaIdDashboard = (int) ($request->user()->empresa_id ?? 0);
+        if ($empresaIdDashboard > 0) {
+            $atividadeRecente = ActivityLog::query()
+                ->where('empresa_id', $empresaIdDashboard)
+                ->with('user:id,name')
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(3)
+                ->get();
+        }
+
+        return view('dashboard', compact('kanban', 'metricasDashboard', 'alertasResumo', 'agendaItens', 'provasMarinhaItens', 'planoAtivo', 'atividadeRecente'));
     }
 
     /**
@@ -1061,15 +1076,15 @@ class ProcessoController extends Controller
      *     protocolado: int,
      *     em_andamento: int,
      *     em_exigencia: int,
-      *     aguardando_prova: int,
-      *     indeferido: int,
-      *     a_disposicao: int,
-      *     concluido: int,
-      *     processos_ativos: int,
-      *     processos_ativos_semana: int
-      *     clientes_total: int,
-      *     clientes_mes: int
-      *     embarcacoes_total: int
+     *     aguardando_prova: int,
+     *     indeferido: int,
+     *     a_disposicao: int,
+     *     concluido: int,
+     *     processos_ativos: int,
+     *     processos_ativos_semana: int
+     *     clientes_total: int,
+     *     clientes_mes: int
+     *     embarcacoes_total: int
      * }
      */
     private function metricasResumoProcessos(Request $request): array
@@ -1096,7 +1111,7 @@ class ProcessoController extends Controller
             ->where('created_at', '>=', now()->startOfMonth())
             ->count();
 
-        $embarcacoesTotal = \App\Models\Embarcacao::query()->count();
+        $embarcacoesTotal = Embarcacao::query()->count();
 
         $out = [
             'em_montagem' => $n(ProcessoStatus::EmMontagem),
@@ -1310,7 +1325,7 @@ class ProcessoController extends Controller
         return view('processos.kanban', $data);
     }
 
-    /** @return array{colunas: array, processos: \Illuminate\Support\Collection, podeMoverKanban: bool} */
+    /** @return array{colunas: array, processos: Collection, podeMoverKanban: bool} */
     private function kanbanBoardData(Request $request): array
     {
         $this->authorize('viewAny', Processo::class);
@@ -1410,40 +1425,6 @@ class ProcessoController extends Controller
 
     public function updateStatus(UpdateProcessoStatusRequest $request, Processo $processo): RedirectResponse|JsonResponse
     {
-        // #region agent log (kanban updateStatus)
-        $nxKanbanLog = static function (string $hypothesisId, string $message, array $data = []): void {
-            try {
-                $payload = [
-                    'sessionId' => '33fe27',
-                    'runId' => 'pre-fix',
-                    'hypothesisId' => $hypothesisId,
-                    'location' => 'app/Http/Controllers/ProcessoController.php:updateStatus',
-                    'message' => $message,
-                    'data' => $data,
-                    'timestamp' => (int) round(microtime(true) * 1000),
-                ];
-                @file_put_contents(
-                    base_path('debug-33fe27.log'),
-                    json_encode($payload, JSON_UNESCAPED_UNICODE).PHP_EOL,
-                    FILE_APPEND
-                );
-            } catch (\Throwable) {
-                // no-op
-            }
-        };
-        // #endregion
-
-        $nxKanbanLog('S', 'updateStatus entry', [
-            'processo_id' => (int) $processo->id,
-            'user_id' => (int) ($request->user()?->id ?? 0),
-            'wants_json' => (bool) $request->wantsJson(),
-            'expects_json' => (bool) $request->expectsJson(),
-            'accept' => (string) $request->header('Accept', ''),
-            'content_type' => (string) $request->header('Content-Type', ''),
-            'method' => (string) $request->method(),
-            'has_confirmar' => $request->has('confirmar_ciencia_pendencias_documentais'),
-        ]);
-
         $this->authorize('updateStatus', $processo);
 
         $processo->loadMissing('tipoProcesso');
@@ -1452,15 +1433,8 @@ class ProcessoController extends Controller
 
         $confirmarCiencia = $request->boolean('confirmar_ciencia_pendencias_documentais');
 
-        $nxKanbanLog('S', 'validated status', [
-            'from' => (string) ($processo->status?->value ?? ''),
-            'to' => (string) $novo->value,
-            'confirmar_ciencia' => (bool) $confirmarCiencia,
-        ]);
-
         if (! $processo->aceitaDestinoStatus($novo)) {
             $msg = ProcessoStatus::mensagemTipoNaoAceitaAguardandoProva();
-            $nxKanbanLog('S', 'aceitaDestinoStatus=false', ['message' => $msg]);
 
             if ($request->wantsJson()) {
                 return response()->json(['message' => $msg], 422);
@@ -1471,7 +1445,6 @@ class ProcessoController extends Controller
 
         if (! $this->statusService->podeAlterarStatus($processo, $novo, $confirmarCiencia)) {
             $msg = $this->statusService->motivoBloqueio($processo) ?? 'Não é possível alterar o status.';
-            $nxKanbanLog('S', 'podeAlterarStatus=false', ['message' => $msg]);
 
             if ($request->wantsJson()) {
                 return response()->json(['message' => $msg], 422);
@@ -1481,7 +1454,6 @@ class ProcessoController extends Controller
         }
 
         $processo->update(['status' => $novo]);
-        $nxKanbanLog('S', 'status updated', ['status' => (string) $novo->value]);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -1568,7 +1540,7 @@ class ProcessoController extends Controller
     /**
      * @param  Collection<int, PlatformTipoProcesso>  $tipos
      * @return array{
-     *     servicosPorCategoriaJson: \Illuminate\Support\Js,
+     *     servicosPorCategoriaJson: Js,
      *     categoriasProcesso: list<TipoProcessoCategoria>,
      *     categoriaProcessoOld: ?string
      * }

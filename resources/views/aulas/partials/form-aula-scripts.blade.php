@@ -15,7 +15,12 @@
 
             return {
                 alunos: Array.isArray(cfg.initialAlunos) ? cfg.initialAlunos : [],
-                instrutores: Array.isArray(cfg.initialInstrutores) ? cfg.initialInstrutores : [],
+                instrutores: Array.isArray(cfg.initialInstrutores)
+                    ? cfg.initialInstrutores.map((x) => ({
+                        ...x,
+                        programa_atestado: x.programa_atestado != null && x.programa_atestado !== '' ? String(x.programa_atestado) : 'ambos',
+                    }))
+                    : [],
 
                 cpfQ: '',
                 sugestões: [],
@@ -131,6 +136,7 @@
                             nome: it.nome,
                             cpf: it.cpf,
                             cha: it.cha != null ? String(it.cha) : '',
+                            programa_atestado: 'ambos',
                         });
                     }
                     this.cpfInstrutorQ = '';
@@ -215,6 +221,7 @@
                                 nome: row.nome || '',
                                 cpf: row.cpf || '',
                                 cha: row.cha != null && row.cha !== '' ? String(row.cha) : '',
+                                programa_atestado: row.programa_atestado != null && row.programa_atestado !== '' ? String(row.programa_atestado) : 'ambos',
                             });
                         }
                     });
@@ -474,6 +481,15 @@
         }
 
         function nxNovoClienteInstrutorEscolaForm() {
+            const nxChaDateToIsoParaApi = (raw) => {
+                const s = String(raw ?? '').trim();
+                if (!s) return '';
+                const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+                return '';
+            };
+
             const readInstrutorCha = (form) => {
                 const v = (sel) => {
                     const el = form.querySelector(sel);
@@ -483,8 +499,8 @@
                 return {
                     cha_numero: v('[data-instrutor-cha="numero"]'),
                     cha_categoria: v('[data-instrutor-cha="categoria"]'),
-                    cha_data_emissao: v('[data-instrutor-cha="data_emissao"]'),
-                    cha_data_validade: v('[data-instrutor-cha="data_validade"]'),
+                    cha_data_emissao: nxChaDateToIsoParaApi(v('[data-instrutor-cha="data_emissao"]')),
+                    cha_data_validade: nxChaDateToIsoParaApi(v('[data-instrutor-cha="data_validade"]')),
                     cha_jurisdicao: v('[data-instrutor-cha="jurisdicao"]'),
                 };
             };
@@ -493,6 +509,10 @@
                 form.querySelectorAll('[data-instrutor-cha]').forEach((el) => {
                     el.value = '';
                 });
+                const dv = form.querySelector('[data-instrutor-cha="data_validade"]');
+                if (dv && dv.dataset) {
+                    delete dv.dataset.nxManual;
+                }
             };
 
             return {

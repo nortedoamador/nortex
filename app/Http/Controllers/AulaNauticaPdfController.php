@@ -6,6 +6,7 @@ use App\Models\AulaNautica;
 use App\Models\Cliente;
 use App\Models\EmpresaAtestadoNormamDuracao;
 use App\Support\AulaCurriculoNormam;
+use App\Support\AulaEscolaInstrutorProgramaAtestado;
 use App\Support\AulaNauticaAraPdfData;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -18,7 +19,7 @@ class AulaNauticaPdfController extends Controller
     public function comunicado(Request $request, AulaNautica $aula): Response
     {
         $this->assertEmpresa($request, $aula);
-        $aula->load(['alunos', 'instrutores']);
+        $aula->load(['alunos', 'instrutores', 'escolaInstrutores.cliente']);
 
         return $this->renderPdf('aulas.pdf.comunicado', $aula, 'comunicado_de_aula');
     }
@@ -59,9 +60,15 @@ class AulaNauticaPdfController extends Controller
     public function mta(Request $request, AulaNautica $aula): Response
     {
         $this->assertEmpresa($request, $aula);
-        $aula->load(['alunos', 'instrutores']);
+        $aula->load(['alunos', 'instrutores', 'escolaInstrutores.cliente']);
 
-        return $this->renderPdf('aulas.pdf.mta', $aula, 'atestado_mta');
+        $instrutorEscolaMta = $aula->escolaInstrutores->first(
+            fn ($row) => AulaEscolaInstrutorProgramaAtestado::apareceNoMta($row->pivot->programa_atestado ?? null)
+        );
+
+        return $this->renderPdf('aulas.pdf.mta', $aula, 'atestado_mta', [
+            'instrutorEscolaMta' => $instrutorEscolaMta,
+        ]);
     }
 
     private function assertEmpresa(Request $request, AulaNautica $aula): void

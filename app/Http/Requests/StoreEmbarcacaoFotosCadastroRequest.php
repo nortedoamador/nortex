@@ -20,10 +20,10 @@ class StoreEmbarcacaoFotosCadastroRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'foto_traves' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp'],
-            'foto_popa' => ['nullable', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp'],
+            'foto_traves' => ['nullable', 'file', 'max:'.upload_max_kb(), 'mimes:jpg,jpeg,png,webp'],
+            'foto_popa' => ['nullable', 'file', 'max:'.upload_max_kb(), 'mimes:jpg,jpeg,png,webp'],
             'fotos_outras' => ['nullable', 'array', 'max:30'],
-            'fotos_outras.*' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp'],
+            'fotos_outras.*' => ['file', 'max:'.upload_max_kb(), 'mimes:jpg,jpeg,png,webp'],
             'fotos_outras_rotulo' => ['nullable', 'string', 'max:255'],
         ];
     }
@@ -31,7 +31,7 @@ class StoreEmbarcacaoFotosCadastroRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'fotos_outras.*.max' => __('Cada imagem deve ter no máximo 10 MB.'),
+            'fotos_outras.*.max' => __('Cada imagem deve ter no máximo :max.', ['max' => upload_max_file_help()]),
             'fotos_outras.*.mimes' => __('Use apenas JPG, PNG ou WebP.'),
         ];
     }

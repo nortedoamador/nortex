@@ -50,6 +50,36 @@
         </tr>
     </table>
 
+    <h2>Instrutores</h2>
+    @php
+        $progLabels = \App\Support\AulaEscolaInstrutorProgramaAtestado::labels();
+    @endphp
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>CPF</th>
+                <th>CHA</th>
+                <th>Programa (atestado)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse ($aula->escolaInstrutores as $ei)
+                @php $c = $ei->cliente; $p = $ei->pivot->programa_atestado ?? 'ambos'; @endphp
+                <tr>
+                    <td>{{ $c?->nome ?? '—' }}</td>
+                    <td>{{ $c?->cpf ?? '—' }}</td>
+                    <td>{{ $ei->cha_numero ?? '—' }}</td>
+                    <td>{{ $progLabels[$p] ?? $p }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="4" class="muted">—</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
     <h2>Alunos</h2>
     <table>
         <thead>

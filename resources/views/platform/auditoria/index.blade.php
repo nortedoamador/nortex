@@ -12,8 +12,13 @@
                 <input type="search" name="q" value="{{ $q }}" placeholder="{{ __('Resumo, ação ou subject…') }}" class="mt-1 min-w-[240px] rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400">{{ __('Ação') }}</label>
-                <input type="text" name="action" value="{{ $action }}" placeholder="platform_*" class="mt-1 min-w-[180px] rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
+                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400">{{ __('Tipo de ação') }}</label>
+                <select name="action" class="mt-1 min-w-[min(100%,280px)] rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                    <option value="">{{ __('Todas as ações') }}</option>
+                    @foreach ($acoes as $act)
+                        <option value="{{ $act }}" @selected($action === $act)>{{ $act }}</option>
+                    @endforeach
+                </select>
             </div>
             <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-white">{{ __('Filtrar') }}</button>
         </form>

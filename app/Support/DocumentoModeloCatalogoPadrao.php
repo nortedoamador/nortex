@@ -115,6 +115,21 @@ final class DocumentoModeloCatalogoPadrao
                 'relativePath' => 'views/documento-modelos/defaults/anexo-2p-normam202.blade.php',
                 'referencia' => 'NORMAM-202/DPC',
             ],
+            'comunicado-de-aula' => [
+                'titulo' => 'Comunicado de aula',
+                'relativePath' => 'views/documento-modelos/defaults/comunicado-de-aula.blade.php',
+                'referencia' => 'Escola náutica',
+            ],
+            'atestado-de-treinamento-nautico-de-motonauta-anexo-5-e-da-normam-211' => [
+                'titulo' => 'Atestado de treinamento náutico de motonauta — Anexo 5-E (NORMAM 211)',
+                'relativePath' => 'views/documento-modelos/defaults/atestado-de-treinamento-nautico-de-motonauta-anexo-5-e-da-normam-211.blade.php',
+                'referencia' => 'NORMAM-211/DPC',
+            ],
+            'atestado-de-treinamento-nautico-de-motonauta-anexo-3-b-da-normam-212' => [
+                'titulo' => 'Atestado de treinamento náutico de motonauta — Anexo 3-B (NORMAM 212)',
+                'relativePath' => 'views/documento-modelos/defaults/atestado-de-treinamento-nautico-de-motonauta-anexo-3-b-da-normam-212.blade.php',
+                'referencia' => 'NORMAM-212/DPC',
+            ],
         ];
     }
 

@@ -64,14 +64,14 @@
                     >
                         @csrf
                         <div>
-                            <x-input-label for="categoria_processo" value="{{ __('Tipo de processo') }}" />
+                            <x-input-label for="categoria_processo" value="{{ __('Tipo de serviço') }}" />
                             <select
                                 id="categoria_processo"
                                 x-model="categoriaSel"
                                 class="mt-1 block w-full rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
                                 required
                             >
-                                <option value="">{{ __('Selecione…') }}</option>
+                                <option value="">{{ __('Selecione o tipo de serviço…') }}</option>
                                 @foreach ($categoriasProcesso as $cat)
                                     <option value="{{ $cat->value }}" @selected($categoriaProcessoOld === $cat->value)>{{ $cat->label() }}</option>
                                 @endforeach
@@ -79,7 +79,7 @@
                         </div>
 
                         <div>
-                            <x-input-label for="tipo_processo_id" value="{{ __('Tipo de serviço') }}" />
+                            <x-input-label for="tipo_processo_id" value="{{ __('Tipo de processo') }}" />
                             <select
                                 id="tipo_processo_id"
                                 name="platform_tipo_processo_id"
@@ -88,14 +88,14 @@
                                 :required="categoriaSel !== ''"
                                 :disabled="categoriaSel === ''"
                             >
-                                <option value="">{{ __('Selecione o tipo de serviço…') }}</option>
+                                <option value="">{{ __('Selecione o tipo de processo…') }}</option>
                                 <template x-for="s in servicosFiltrados()" :key="s.id">
                                     <option :value="String(s.id)" x-text="s.nome"></option>
                                 </template>
                             </select>
                             <x-input-error :messages="$errors->get('platform_tipo_processo_id')" class="mt-2" />
                             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="categoriaSel !== '' && servicosFiltrados().length === 0" x-cloak>
-                                {{ __('Nenhum tipo de serviço cadastrado nesta categoria.') }}
+                                {{ __('Nenhum tipo de processo cadastrado nesta categoria.') }}
                             </p>
                         </div>
 
@@ -273,7 +273,7 @@
                         </div>
 
                         <p class="text-xs text-slate-500 dark:text-slate-400">
-                            {{ __('O processo inicia em «Em montagem». O checklist é gerado automaticamente conforme o tipo de serviço escolhido.') }}
+                            {{ __('O processo inicia em «Em montagem». O checklist é gerado automaticamente conforme o tipo de processo escolhido.') }}
                         </p>
 
                         <div class="flex flex-wrap gap-3">

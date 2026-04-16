@@ -139,6 +139,9 @@
                 @csrf
                 @method('PATCH')
 
+                @php
+                    $nxEmpNavUser = auth()->user();
+                @endphp
                 <nav class="flex flex-wrap gap-2" aria-label="{{ __('Secções do formulário') }}">
                     <a
                         href="{{ route('admin.empresa.edit', ['tab' => 'geral']) }}"
@@ -152,10 +155,18 @@
                         href="{{ route('admin.empresa.edit', ['tab' => 'agenda']) }}"
                         class="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold shadow-sm transition {{ $abaEmpresaInicial === 'agenda' ? 'border-slate-200 bg-indigo-600 text-white dark:border-slate-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' }}"
                     >{{ __('Agenda') }}</a>
-                    <a
-                        href="{{ route('equipe.index') }}"
-                        class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                    >{{ __('Equipe') }}</a>
+                    @if ($nxEmpNavUser?->hasPermission('usuarios.manage'))
+                        <a
+                            href="{{ route('equipe.index') }}"
+                            class="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold shadow-sm transition {{ request()->routeIs('equipe.*') ? 'border-slate-200 bg-indigo-600 text-white dark:border-slate-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' }}"
+                        >{{ __('Equipe') }}</a>
+                    @endif
+                    @if ($nxEmpNavUser?->hasPermission('auditoria.view'))
+                        <a
+                            href="{{ route('admin.auditoria.index') }}"
+                            class="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold shadow-sm transition {{ request()->routeIs('admin.auditoria.*') ? 'border-slate-200 bg-indigo-600 text-white dark:border-slate-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800' }}"
+                        >{{ __('Auditoria') }}</a>
+                    @endif
                 </nav>
 
                 <div id="nx-empresa-painel-geral" class="{{ $abaEmpresaInicial !== 'geral' ? 'hidden' : '' }} rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">

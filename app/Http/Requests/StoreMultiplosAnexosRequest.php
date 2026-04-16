@@ -26,9 +26,10 @@ class StoreMultiplosAnexosRequest extends FormRequest
             $codigo = (string) ($doc->documentoTipo?->codigo ?? '');
         }
 
-        $arquivoRules = ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx'];
+        $maxKb = upload_max_kb();
+        $arquivoRules = ['file', 'max:'.$maxKb, 'mimes:pdf,jpg,jpeg,png,webp,doc,docx'];
         if (ChecklistDocumentoMultiplosAnexos::permite($codigo)) {
-            $arquivoRules = ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp'];
+            $arquivoRules = ['file', 'max:'.$maxKb, 'mimes:jpg,jpeg,png,webp'];
         }
 
         return [
@@ -49,12 +50,12 @@ class StoreMultiplosAnexosRequest extends FormRequest
         }
 
         $mimesMsg = ChecklistDocumentoMultiplosAnexos::permite($codigo)
-            ? __('Use apenas imagens JPG, PNG ou WebP (até 10 MB por ficheiro).')
+            ? __('Use apenas imagens JPG, PNG ou WebP (máximo :max por ficheiro).', ['max' => upload_max_file_help()])
             : __('Formatos permitidos: PDF, imagens, DOC/DOCX.');
 
         return [
             'arquivos.required' => __('Selecione ao menos um arquivo.'),
-            'arquivos.*.max' => __('Cada arquivo deve ter no máximo 10 MB.'),
+            'arquivos.*.max' => __('Cada arquivo deve ter no máximo :max.', ['max' => upload_max_file_help()]),
             'arquivos.*.mimes' => $mimesMsg,
         ];
     }

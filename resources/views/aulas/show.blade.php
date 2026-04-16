@@ -61,6 +61,26 @@
                     @endif
                 </div>
                 <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">{{ __('O atestado ARA (Anexo 5-E) é gerado por aluno na lista abaixo.') }}</p>
+
+                @if (is_array($aula->documentos_automaticos) && count($aula->documentos_automaticos) > 0)
+                    <div class="mt-4 rounded-xl border border-emerald-200/90 bg-emerald-50/80 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                        <p class="text-xs font-bold uppercase tracking-wide text-emerald-900 dark:text-emerald-200">{{ __('Documentos automáticos (ao criar a aula)') }}</p>
+                        <ul class="mt-2 space-y-2 text-sm">
+                            @foreach ($aula->documentos_automaticos as $i => $doc)
+                                @if (is_array($doc))
+                                    <li class="flex flex-wrap items-center justify-between gap-2">
+                                        <span class="font-medium text-emerald-950 dark:text-emerald-100">{{ $doc['titulo'] ?? __('Documento') }}</span>
+                                        <a
+                                            class="inline-flex shrink-0 items-center rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                                            href="{{ route('aulas.documento-automatico.download', [$aula, $i]) }}"
+                                            data-turbo="false"
+                                        >{{ __('Descarregar PDF') }}</a>
+                                    </li>
+                                @endif
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
             </div>
 
             <div class="grid gap-4 md:grid-cols-2">

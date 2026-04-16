@@ -28,4 +28,15 @@ return [
         'signed_url_ttl_minutes' => env('NORTEX_ANEXOS_SIGNED_URL_TTL_MINUTES', 60),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Checklist global (plataforma) — empresa de referência
+    |--------------------------------------------------------------------------
+    |
+    | DocumentoTipo é por empresa. O checklist do tipo de processo global
+    | edita-se a partir desta empresa (espelho por slug com PlatformTipoProcesso).
+    |
+    */
+    'platform_checklist_empresa_id' => env('NORTEX_PLATFORM_CHECKLIST_EMPRESA_ID'),
+
 ];

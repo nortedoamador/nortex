@@ -121,7 +121,7 @@
                                 <form
                                     method="POST"
                                     action="{{ route('processos.status', $processo) }}"
-                                    class="mt-1 w-full min-w-0 sm:mt-0 sm:w-72 sm:max-w-[min(18rem,100%)]"
+                                    class="mt-1 w-full min-w-0 sm:mt-0 sm:w-max sm:max-w-full"
                                     data-nx-status-ciencia-form="1"
                                     data-nx-requer-ciencia="{{ $nxRequerCienciaList }}"
                                     data-nx-status-submit-on-change="1"
@@ -137,12 +137,12 @@
                                     <x-processo-status-custom-select :processo="$processo" :chrome-wrap-class="$st->uiListSelectChromeWrapClass()" />
                                 </form>
                             @else
-                                <div class="{{ $st->uiListSelectChromeWrapClass() }} mt-1 w-full min-w-0 sm:mt-0 sm:w-72 sm:max-w-[min(18rem,100%)]" title="{{ __('Status atual (sem permissão para alterar)') }}">
+                                <div class="{{ $st->uiListSelectChromeWrapClass() }} mt-1 w-full min-w-0 sm:mt-0 sm:w-max sm:max-w-full" title="{{ __('Status atual (sem permissão para alterar)') }}">
                                     <div class="{{ $st->uiListReadonlyPillClasses() }} nx-processo-list-status-select flex items-center gap-2 !py-2.5">
                                         <span class="shrink-0 {{ $st->uiStatusSelectIconClass() }}">
                                             @include('processos.partials.status-filter-icon', ['status' => $st, 'class' => 'h-5 w-5 shrink-0'])
                                         </span>
-                                        <span class="min-w-0 flex-1 truncate">{{ $st->label() }}</span>
+                                        <span class="min-w-0 whitespace-nowrap">{{ $st->label() }}</span>
                                     </div>
                                     <span class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 {{ $st->uiListSelectChevronClass() }}" aria-hidden="true">
                                         <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">

@@ -977,7 +977,7 @@ class FinanceiroController extends Controller
         abort_unless($empresaId > 0 && (int) $lancamento->empresa_id === $empresaId, 404);
 
         $validated = $request->validate([
-            'arquivo' => ['required', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'arquivo' => ['required', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $file = $validated['arquivo'];
@@ -993,7 +993,7 @@ class FinanceiroController extends Controller
         abort_unless($empresaId > 0 && (int) $lancamento->empresa_id === $empresaId, 404);
 
         $validated = $request->validate([
-            'arquivo' => ['required', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'arquivo' => ['required', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $file = $validated['arquivo'];
@@ -1009,7 +1009,7 @@ class FinanceiroController extends Controller
         abort_unless($empresaId > 0 && (int) $lote->empresa_id === $empresaId, 404);
 
         $validated = $request->validate([
-            'arquivo' => ['required', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'arquivo' => ['required', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $file = $validated['arquivo'];
@@ -1025,7 +1025,7 @@ class FinanceiroController extends Controller
         abort_unless($empresaId > 0 && (int) $lote->empresa_id === $empresaId, 404);
 
         $validated = $request->validate([
-            'arquivo' => ['required', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'arquivo' => ['required', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $file = $validated['arquivo'];
@@ -1178,7 +1178,7 @@ class FinanceiroController extends Controller
             'receita' => ['required', 'numeric', 'min:0'],
             'taxa_marinha' => ['nullable', 'numeric', 'min:0'],
             'custo_envio' => ['nullable', 'numeric', 'min:0'],
-            'comprovante' => ['nullable', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'comprovante' => ['nullable', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $taxa = (float) ($validated['taxa_marinha'] ?? 0);
@@ -1236,7 +1236,7 @@ class FinanceiroController extends Controller
             'receita' => ['required', 'numeric', 'min:0'],
             'taxa_marinha' => ['nullable', 'numeric', 'min:0'],
             'custo_envio' => ['nullable', 'numeric', 'min:0'],
-            'comprovante' => ['nullable', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'comprovante' => ['nullable', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $taxa = (float) ($validated['taxa_marinha'] ?? 0);
@@ -1280,7 +1280,7 @@ class FinanceiroController extends Controller
             'descricao' => ['required', 'string', 'max:255'],
             'valor' => ['required', 'numeric', 'min:0.01'],
             'fixa' => ['nullable', 'boolean'],
-            'nota' => ['nullable', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'nota' => ['nullable', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $isFixa = (bool) ($validated['fixa'] ?? false);
@@ -1346,7 +1346,7 @@ class FinanceiroController extends Controller
             'data_pagamento' => ['nullable', 'date'],
             'descricao' => ['required', 'string', 'max:255'],
             'valor' => ['required', 'numeric', 'min:0.01'],
-            'nota' => ['nullable', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'nota' => ['nullable', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $notaPath = $lancamento->nota_path;
@@ -1377,7 +1377,7 @@ class FinanceiroController extends Controller
             'mes_referencia' => ['required', 'date_format:Y-m'],
             'empresa_parceira' => ['required', 'string', 'max:255'],
             'status_pagamento' => ['nullable', 'string', 'in:Pago,Em aberto'],
-            'comprovante' => ['nullable', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'comprovante' => ['nullable', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $path = null;
@@ -1418,7 +1418,7 @@ class FinanceiroController extends Controller
             'mes_referencia' => ['required', 'date_format:Y-m'],
             'empresa_parceira' => ['required', 'string', 'max:255'],
             'status_pagamento' => ['nullable', 'string', 'in:Pago,Em aberto'],
-            'comprovante' => ['nullable', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'comprovante' => ['nullable', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $path = $lote->comprovante_path;
@@ -1531,7 +1531,7 @@ class FinanceiroController extends Controller
             'mes_referencia' => ['required', 'date_format:Y-m'],
             'empresa_parceira' => ['required', 'string', 'max:255'],
             'status_pagamento' => ['nullable', 'string', 'in:Pago,Em aberto'],
-            'comprovante' => ['nullable', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'comprovante' => ['nullable', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $path = null;
@@ -1572,7 +1572,7 @@ class FinanceiroController extends Controller
             'mes_referencia' => ['required', 'date_format:Y-m'],
             'empresa_parceira' => ['required', 'string', 'max:255'],
             'status_pagamento' => ['nullable', 'string', 'in:Pago,Em aberto'],
-            'comprovante' => ['nullable', 'file', 'max:2048', 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
+            'comprovante' => ['nullable', 'file', 'max:'.(int) config('uploads.max_kb', 3072), 'mimetypes:image/jpeg,image/png,image/webp,application/pdf'],
         ]);
 
         $path = $lote->comprovante_path;

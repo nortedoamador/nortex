@@ -27,6 +27,23 @@ function readXsrfToken() {
     return m ? decodeURIComponent(m[1]) : '';
 }
 
+/**
+ * Pós-logout: o primeiro GET pode reutilizar estado partido do SPA/bfcache.
+ * `nx_rev=1` força um reload com URL limpa (equivalente a hard refresh).
+ */
+function nxAuthReloadAfterLogoutParam() {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('nx_rev') !== '1') {
+        return false;
+    }
+    p.delete('nx_rev');
+    const qs = p.toString();
+    const clean = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
+    window.history.replaceState(null, '', clean);
+    window.location.reload();
+    return true;
+}
+
 function firstValidationError(errors) {
     if (!errors || typeof errors !== 'object') {
         return null;
@@ -508,6 +525,19 @@ function bindAuthFormSubmits() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (nxAuthReloadAfterLogoutParam()) {
+        return;
+    }
+
+    const surface = document.getElementById('nx-auth-surface');
+    if (surface) {
+        surface.classList.remove('nx-auth-surface--exit', 'nx-auth-surface--busy');
+        surface.querySelectorAll('form').forEach((f) => {
+            f.classList.remove('nx-auth-form--busy');
+        });
+        surface.classList.add('nx-auth-surface--visible');
+    }
+
     const root = document.getElementById('nx-auth-parallax');
     initParallax(root);
 

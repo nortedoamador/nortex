@@ -13,7 +13,10 @@
     $idleClasses = 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800';
 
     $badgeTones = [
-        'success' => 'bg-emerald-500/20 text-emerald-50 ring-1 ring-emerald-200/40',
+        // Verde visível no fundo claro da sidebar; no link ativo (índigo) usa variante em contraste
+        'success' => $active
+            ? 'bg-emerald-400/25 text-emerald-50 ring-1 ring-emerald-200/60'
+            : 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300/70 dark:bg-emerald-950/45 dark:text-emerald-300 dark:ring-emerald-500/45',
         'warning' => 'bg-amber-400/20 text-amber-900 ring-1 ring-amber-300/60 dark:text-amber-200',
     ];
     $badgeClasses = $badgeTones[$badgeTone] ?? $badgeTones['success'];

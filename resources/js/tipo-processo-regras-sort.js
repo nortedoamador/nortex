@@ -1,11 +1,20 @@
 /**
- * Checklist de documentos (admin): arrastar linhas incluídas para definir ordem; hidden `ordem` atualizado no submit.
+ * Checklist de documentos (admin / plataforma): arrastar linhas incluídas; hidden `ordem` no submit.
+ * Modo duplo: `data-nx-checklist-tbody-included` + `data-nx-checklist-tbody-excluded` — move linhas ao marcar «Incluir».
+ * Modo legado: um único `data-nx-checklist-tbody`.
  */
 export function initTipoProcessoRegrasSort(form) {
-    const tbody = form.querySelector('[data-nx-checklist-tbody]');
-    if (!tbody) {
+    const tbodyIncluded = form.querySelector('[data-nx-checklist-tbody-included]');
+    const tbodyExcluded = form.querySelector('[data-nx-checklist-tbody-excluded]');
+    const tbodyLegacy = form.querySelector('[data-nx-checklist-tbody]');
+    const dualMode = !!(tbodyIncluded && tbodyExcluded);
+    const tbody = dualMode ? null : tbodyLegacy;
+
+    if (!dualMode && !tbody) {
         return;
     }
+
+    const dragTarget = dualMode ? tbodyIncluded : tbody;
 
     let dragged = null;
 
@@ -18,9 +27,44 @@ export function initTipoProcessoRegrasSort(form) {
         return !!(cb && cb.checked);
     }
 
+    function dataRowsIn(tbodyEl) {
+        return tbodyEl ? [...tbodyEl.querySelectorAll('tr[data-doc-tipo-id]')] : [];
+    }
+
+    function allDataRows() {
+        if (dualMode) {
+            return [...dataRowsIn(tbodyIncluded), ...dataRowsIn(tbodyExcluded)];
+        }
+        return [...tbody.querySelectorAll('tr[data-doc-tipo-id]')];
+    }
+
+    function stripDataRows(tbodyEl) {
+        if (!tbodyEl) {
+            return;
+        }
+        tbodyEl.querySelectorAll('tr[data-doc-tipo-id]').forEach((tr) => tr.remove());
+    }
+
     function refreshOrdem() {
+        if (dualMode) {
+            let i = 0;
+            dataRowsIn(tbodyIncluded).forEach((tr) => {
+                const inp = tr.querySelector('input.nx-linha-ordem');
+                if (inp) {
+                    inp.value = String(i++);
+                }
+            });
+            dataRowsIn(tbodyExcluded).forEach((tr) => {
+                const inp = tr.querySelector('input.nx-linha-ordem');
+                if (inp) {
+                    inp.value = '0';
+                }
+            });
+            return;
+        }
+
         let i = 0;
-        tbody.querySelectorAll('tr').forEach((tr) => {
+        tbody.querySelectorAll('tr[data-doc-tipo-id]').forEach((tr) => {
             const inp = tr.querySelector('input.nx-linha-ordem');
             if (!inp) {
                 return;
@@ -42,9 +86,20 @@ export function initTipoProcessoRegrasSort(form) {
         }
     }
 
-    /** Incluídos primeiro (ordem atual), depois não incluídos por nome (ordem do DOM vinda do servidor). */
     function normalizeSections() {
-        const rows = [...tbody.querySelectorAll('tr')];
+        if (dualMode) {
+            const inc = allDataRows().filter(isIncluded);
+            const exc = allDataRows().filter((tr) => !isIncluded(tr));
+            stripDataRows(tbodyIncluded);
+            stripDataRows(tbodyExcluded);
+            inc.forEach((tr) => tbodyIncluded.appendChild(tr));
+            exc.forEach((tr) => tbodyExcluded.appendChild(tr));
+            allDataRows().forEach(setRowDraggableState);
+            refreshOrdem();
+            return;
+        }
+
+        const rows = [...tbody.querySelectorAll('tr[data-doc-tipo-id]')];
         const inc = rows.filter(isIncluded);
         const exc = rows.filter((tr) => !isIncluded(tr));
         inc.forEach((tr) => tbody.appendChild(tr));
@@ -53,13 +108,14 @@ export function initTipoProcessoRegrasSort(form) {
         refreshOrdem();
     }
 
-    tbody.querySelectorAll('tr').forEach(setRowDraggableState);
+    const rowsInit = dualMode ? allDataRows() : [...tbody.querySelectorAll('tr[data-doc-tipo-id]')];
+    rowsInit.forEach(setRowDraggableState);
     refreshOrdem();
 
-    tbody.addEventListener('change', (e) => {
+    form.addEventListener('change', (e) => {
         const t = e.target;
         if (t instanceof HTMLInputElement && t.matches('input[type="checkbox"][name*="[ativo]"]')) {
-            const tr = t.closest('tr');
+            const tr = t.closest('tr[data-doc-tipo-id]');
             if (tr) {
                 setRowDraggableState(tr);
                 normalizeSections();
@@ -67,13 +123,13 @@ export function initTipoProcessoRegrasSort(form) {
         }
     });
 
-    tbody.addEventListener('dragstart', (e) => {
+    dragTarget.addEventListener('dragstart', (e) => {
         const handle = e.target && e.target.closest ? e.target.closest('[data-nx-drag-handle]') : null;
         if (!handle || !handle.draggable) {
             e.preventDefault();
             return;
         }
-        const tr = handle.closest('tr');
+        const tr = handle.closest('tr[data-doc-tipo-id]');
         if (!tr) {
             e.preventDefault();
             return;
@@ -88,15 +144,15 @@ export function initTipoProcessoRegrasSort(form) {
         tr.classList.add('opacity-60', 'bg-slate-100', 'dark:bg-slate-800/80');
     });
 
-    tbody.addEventListener('dragend', (e) => {
-        const tr = e.target && e.target.closest ? e.target.closest('tr') : null;
+    dragTarget.addEventListener('dragend', (e) => {
+        const tr = e.target && e.target.closest ? e.target.closest('tr[data-doc-tipo-id]') : null;
         if (tr) {
             tr.classList.remove('opacity-60', 'bg-slate-100', 'dark:bg-slate-800/80');
         }
         dragged = null;
     });
 
-    tbody.addEventListener('dragover', (e) => {
+    dragTarget.addEventListener('dragover', (e) => {
         if (!dragged || !isIncluded(dragged)) {
             return;
         }
@@ -106,16 +162,16 @@ export function initTipoProcessoRegrasSort(form) {
         } catch (_) {
             /* noop */
         }
-        const tr = e.target && e.target.closest ? e.target.closest('tr') : null;
+        const tr = e.target && e.target.closest ? e.target.closest('tr[data-doc-tipo-id]') : null;
         if (!tr || tr === dragged || !isIncluded(tr)) {
             return;
         }
         const rect = tr.getBoundingClientRect();
         const mid = rect.top + rect.height / 2;
         if (e.clientY < mid) {
-            tbody.insertBefore(dragged, tr);
+            dragTarget.insertBefore(dragged, tr);
         } else {
-            tbody.insertBefore(dragged, tr.nextSibling);
+            dragTarget.insertBefore(dragged, tr.nextSibling);
         }
         refreshOrdem();
     });

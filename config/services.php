@@ -39,9 +39,9 @@ return [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-        /** Price ID mensal "completo" (ex.: 497) — desbloqueia financeiro quando a subscrição está ativa. */
+        /** Price ID mensal "Completo" (ex.: 497) — não inclui o módulo financeiro. */
         'price_full' => env('STRIPE_PRICE_FULL'),
-        /** Price ID do plano essencial/básico (ex.: 297) — módulos tenant sem financeiro. */
+        /** Price ID do plano Essencial (ex.: 297) — inclui o módulo financeiro com subscrição ativa. */
         'price_basic' => env('STRIPE_PRICE_BASIC'),
         /** Referência ao produto Stripe (ex. prod_xxx); o Checkout usa os Price IDs acima. */
         'product_full' => env('STRIPE_PRODUCT_FULL'),

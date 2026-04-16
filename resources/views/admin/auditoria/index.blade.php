@@ -28,7 +28,7 @@
                         @forelse ($logs as $log)
                             <tr class="align-top hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                                 <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-600 dark:text-slate-300">{{ $log->created_at?->format('Y-m-d H:i') }}</td>
-                                <td class="px-4 py-3 text-xs font-mono text-slate-700 dark:text-slate-300">{{ $log->action }}</td>
+                                <td class="px-4 py-3 text-xs text-slate-700 dark:text-slate-300">{{ activity_log_action_label($log->action) }}</td>
                                 <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{{ $log->user?->name ?? '—' }}</td>
                                 <td class="px-4 py-3 text-sm text-slate-800 dark:text-slate-200">{{ $log->summary }}</td>
                             </tr>

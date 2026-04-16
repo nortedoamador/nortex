@@ -33,7 +33,18 @@ class AuditoriaController extends Controller
 
         $logs = $query->paginate(30)->withQueryString();
 
-        return view('platform.auditoria.index', compact('logs', 'q', 'action'));
+        $acoes = PlatformActivityLog::query()
+            ->select('action')
+            ->whereNotNull('action')
+            ->where('action', '!=', '')
+            ->distinct()
+            ->orderBy('action')
+            ->pluck('action');
+
+        if ($action !== '' && ! $acoes->contains($action)) {
+            $acoes = $acoes->push($action)->sort()->values();
+        }
+
+        return view('platform.auditoria.index', compact('logs', 'q', 'action', 'acoes'));
     }
 }
-

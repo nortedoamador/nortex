@@ -61,6 +61,18 @@
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ __('Separe por vírgula ou por linha. Em branco = qualquer.') }}</p>
                     @error('allowed_extensions')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
+
+                @php
+                    $baseCtx = is_array(old('contexto_modulos'))
+                        ? old('contexto_modulos')
+                        : (is_array($tipo->contexto_modulos) ? $tipo->contexto_modulos : []);
+                    $comAnexos = $modulosComAnexos ?? [];
+                    $selectedCtx = array_values(array_unique(array_merge($baseCtx, $comAnexos)));
+                @endphp
+                @include('platform.cadastros.anexo-tipos.partials.contexto-modulos-checkboxes', [
+                    'selected' => $selectedCtx,
+                    'modulosComFicheirosNaBase' => $comAnexos,
+                ])
             </div>
 
             <div class="flex gap-2">

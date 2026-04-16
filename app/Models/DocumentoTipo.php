@@ -48,6 +48,11 @@ class DocumentoTipo extends TenantModel
             return $fromCol;
         }
 
-        return Normam211DocumentoCodigos::slugModeloPorCodigoChecklist((string) ($this->codigo ?? ''));
+        $codigo = (string) ($this->codigo ?? '');
+        if (in_array($codigo, ['CIR_PROCURACAO', 'CHA_PROCURACAO', 'TIE_PROCURACAO'], true)) {
+            return 'procuracao';
+        }
+
+        return Normam211DocumentoCodigos::slugModeloPorCodigoChecklist($codigo);
     }
 }

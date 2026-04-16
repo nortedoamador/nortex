@@ -7,20 +7,85 @@
             <x-text-input id="novo_ins_cha_n" data-instrutor-cha="numero" class="mt-1 block w-full" />
         </div>
         <div>
-            <x-input-label for="novo_ins_cha_cat" :value="__('Categoria CHA')" />
-            <x-text-input id="novo_ins_cha_cat" data-instrutor-cha="categoria" class="mt-1 block w-full" />
+            @include('partials.cha-select-categoria-habilitacao', [
+                'id' => 'novo_ins_cha_cat',
+                'name' => 'cha_categoria',
+                'selected' => '',
+                'dataInstrutorCha' => 'categoria',
+            ])
         </div>
         <div>
-            <x-input-label for="novo_ins_cha_de" :value="__('Data emissão CHA')" />
-            <input id="novo_ins_cha_de" type="date" data-instrutor-cha="data_emissao" class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-white" />
+            <x-input-label for="novo_ins_cha_de" :value="__('Data de emissão')" />
+            <input
+                type="text"
+                id="novo_ins_cha_de"
+                data-instrutor-cha="data_emissao"
+                inputmode="numeric"
+                maxlength="10"
+                autocomplete="off"
+                placeholder="dd/mm/aaaa"
+                data-nx-mask="date-br"
+                x-data="{
+                    brToIso(br) {
+                        const s = String(br || '').trim();
+                        const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                        if (!m) return '';
+                        return `${m[3]}-${m[2]}-${m[1]}`;
+                    },
+                    isoToBr(iso) {
+                        const s = String(iso || '').trim();
+                        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                        if (!m) return '';
+                        return `${m[3]}/${m[2]}/${m[1]}`;
+                    },
+                    addYears(br, years) {
+                        const iso = this.brToIso(br);
+                        if (!iso) return '';
+                        const d = new Date(String(iso) + 'T00:00:00');
+                        if (Number.isNaN(d.getTime())) return '';
+                        const y = d.getFullYear() + years;
+                        const mo = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return this.isoToBr(`${y}-${mo}-${day}`);
+                    },
+                    syncValidade(force = false) {
+                        const em = this.$el?.value;
+                        const vEl = document.getElementById('novo_ins_cha_dv');
+                        if (!vEl) return;
+                        if (!em) return;
+                        if (!force && vEl.dataset.nxManual === '1') return;
+                        const next = this.addYears(em, 10);
+                        if (next) vEl.value = next;
+                    },
+                }"
+                x-init="syncValidade(false)"
+                @change="syncValidade(true)"
+                @input="syncValidade(true)"
+                class="mt-1 block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+            />
         </div>
         <div>
-            <x-input-label for="novo_ins_cha_dv" :value="__('Validade CHA')" />
-            <input id="novo_ins_cha_dv" type="date" data-instrutor-cha="data_validade" class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-900 dark:text-white" />
+            <x-input-label for="novo_ins_cha_dv" :value="__('Vencimento')" />
+            <input
+                type="text"
+                id="novo_ins_cha_dv"
+                data-instrutor-cha="data_validade"
+                inputmode="numeric"
+                maxlength="10"
+                autocomplete="off"
+                placeholder="dd/mm/aaaa"
+                data-nx-mask="date-br"
+                @change="$el.dataset.nxManual = '1'"
+                @input="$el.dataset.nxManual = '1'"
+                class="mt-1 block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+            />
         </div>
-        <div class="md:col-span-2">
-            <x-input-label for="novo_ins_cha_j" :value="__('Jurisdição CHA')" />
-            <x-text-input id="novo_ins_cha_j" data-instrutor-cha="jurisdicao" class="mt-1 block w-full" />
-        </div>
+        @include('partials.cha-select-jurisdicao-habilitacao', [
+            'id' => 'novo_ins_cha_j',
+            'name' => 'cha_jurisdicao',
+            'selected' => '',
+            'dataInstrutorCha' => 'jurisdicao',
+            'wrapperClass' => 'md:col-span-2',
+        ])
     </div>
 </div>

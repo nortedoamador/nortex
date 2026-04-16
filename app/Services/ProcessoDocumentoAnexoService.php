@@ -11,6 +11,7 @@ use App\Models\Processo;
 use App\Models\ProcessoDocumento;
 use App\Models\ProcessoDocumentoAnexo;
 use App\Support\EncryptedS3AnexoStorage;
+use App\Support\UploadRasterCompressor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -109,15 +110,32 @@ class ProcessoDocumentoAnexoService
         $empresaId = (int) $processo->empresa_id;
         $dir = "processos/{$empresaId}/{$processo->id}/{$documento->id}";
 
-        $path = EncryptedS3AnexoStorage::storeEncryptedUpload($file, $dir);
+        $raw = $file->get();
+        if ($raw === false) {
+            throw new \RuntimeException(__('Falha ao ler o arquivo enviado.'));
+        }
+
+        $mimeIn = (string) ($file->getClientMimeType() ?: 'application/octet-stream');
+        $compressed = UploadRasterCompressor::tryCompress($raw, $mimeIn);
+
+        if ($compressed !== null) {
+            [$bytes, $mimeOut] = $compressed;
+            $path = EncryptedS3AnexoStorage::storeEncryptedPlainContents($dir, $bytes);
+            $mime = $mimeOut;
+            $tamanho = strlen($bytes);
+        } else {
+            $path = EncryptedS3AnexoStorage::storeEncryptedUpload($file, $dir);
+            $mime = $mimeIn;
+            $tamanho = $file->getSize();
+        }
 
         $anexo = ProcessoDocumentoAnexo::withoutGlobalScopes()->create([
             'processo_documento_id' => $documento->id,
             'disk' => EncryptedS3AnexoStorage::DISK,
             'path' => $path,
             'nome_original' => $file->getClientOriginalName(),
-            'mime' => $file->getClientMimeType(),
-            'tamanho' => $file->getSize(),
+            'mime' => $mime,
+            'tamanho' => $tamanho,
             'extra_validation_status' => AnexoValidacaoStatus::Pendente,
         ]);
 

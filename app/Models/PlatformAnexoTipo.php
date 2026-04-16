@@ -17,6 +17,7 @@ class PlatformAnexoTipo extends Model
         'allowed_mime_types',
         'allowed_extensions',
         'is_multiple',
+        'contexto_modulos',
     ];
 
     protected function casts(): array
@@ -26,7 +27,7 @@ class PlatformAnexoTipo extends Model
             'allowed_mime_types' => 'array',
             'allowed_extensions' => 'array',
             'is_multiple' => 'boolean',
+            'contexto_modulos' => 'array',
         ];
     }
 }
-

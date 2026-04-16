@@ -1,5 +1,7 @@
 @php
     /** @var \App\Models\AulaNautica|null $aula */
+    use App\Support\AulaEscolaInstrutorProgramaAtestado;
+
     $isEdit = $aula !== null;
 @endphp
 
@@ -21,7 +23,13 @@
                 class="space-y-6"
                 x-data="nxAulaNauticaForm({
                     initialAlunos: @js($isEdit ? $aula->alunos->map(fn($c)=>['id'=>$c->id,'nome'=>$c->nome,'cpf'=>$c->cpf])->values()->all() : []),
-                    initialInstrutores: @js($isEdit ? $aula->escolaInstrutores->map(fn($e)=>['id'=>$e->id,'nome'=>$e->cliente?->nome ?? '','cpf'=>$e->cliente?->cpf ?? '','cha'=>$e->cha_numero ?? ''])->values()->all() : []),
+                    initialInstrutores: @js($isEdit ? $aula->escolaInstrutores->map(fn ($e) => [
+                        'id' => $e->id,
+                        'nome' => $e->cliente?->nome ?? '',
+                        'cpf' => $e->cliente?->cpf ?? '',
+                        'cha' => $e->cha_numero ?? '',
+                        'programa_atestado' => $e->pivot->programa_atestado ?? AulaEscolaInstrutorProgramaAtestado::AMBOS,
+                    ])->values()->all() : []),
                     csrf: @js(csrf_token()),
                     buscarCpfUrl: @js(route('alunos.buscar-cpf')),
                     buscarEscolaInstrutorCpfUrl: @js(route('alunos.buscar-escola-instrutor-cpf')),

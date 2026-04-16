@@ -2,6 +2,7 @@
     /** @var \App\Models\EscolaNautica $escola */
     /** @var string|null $empresaCnpj */
     /** @var bool $temInstrutoresEtn */
+    /** @var \Illuminate\Support\Collection<int, \App\Models\EscolaInstrutor> $instrutoresResumo */
     use App\Support\DocumentoBrasil;
     use Illuminate\Support\Str;
     $cnpjDigits = $empresaCnpj ? DocumentoBrasil::apenasDigitos((string) $empresaCnpj) : '';
@@ -401,6 +402,37 @@
                 </div>
                 <h3 class="sr-only">{{ __('Associar instrutor') }}</h3>
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ __('Pesquise por CPF ou cadastre um novo cliente. Com um CPF completo e um único resultado, a associação é feita automaticamente.') }}</p>
+
+                <div class="mt-4 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/50">
+                    <p class="border-b border-slate-100 bg-slate-50/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400">{{ __('Resumo dos instrutores cadastrados') }}</p>
+                    @if ($instrutoresResumo->isEmpty())
+                        <p class="px-3 py-3 text-sm text-slate-500 dark:text-slate-400">{{ __('Ainda não há instrutores associados a esta escola.') }}</p>
+                    @else
+                        <div class="max-h-52 overflow-x-auto overflow-y-auto">
+                            <table class="min-w-full divide-y divide-slate-100 text-sm dark:divide-slate-800">
+                                <thead class="bg-slate-50/80 dark:bg-slate-800/40">
+                                    <tr>
+                                        <th class="whitespace-nowrap px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">{{ __('Nome') }}</th>
+                                        <th class="whitespace-nowrap px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">{{ __('CPF') }}</th>
+                                        <th class="whitespace-nowrap px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">{{ __('CHA nº') }}</th>
+                                        <th class="whitespace-nowrap px-3 py-2 text-left text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">{{ __('Validade CHA') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    @foreach ($instrutoresResumo as $ins)
+                                        @php $c = $ins->cliente; @endphp
+                                        <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/30">
+                                            <td class="max-w-[10rem] truncate px-3 py-2 font-medium text-slate-900 dark:text-white" title="{{ $c?->nome }}">{{ $c?->nome ?? '—' }}</td>
+                                            <td class="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-300">{{ $c?->cpf ?? '—' }}</td>
+                                            <td class="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-300">{{ $ins->cha_numero ?? '—' }}</td>
+                                            <td class="whitespace-nowrap px-3 py-2 text-slate-600 dark:text-slate-300">{{ $ins->cha_data_validade?->format('d/m/Y') ?? '—' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
 
                 <div
                     class="relative mt-4"

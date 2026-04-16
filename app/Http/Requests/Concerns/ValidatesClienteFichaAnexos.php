@@ -9,7 +9,7 @@ trait ValidatesClienteFichaAnexos
      */
     protected function clienteFichaAnexoRules(): array
     {
-        $file = ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,webp,doc,docx'];
+        $file = ['file', 'max:'.upload_max_kb(), 'mimes:pdf,jpg,jpeg,png,webp,doc,docx'];
 
         return [
             'anexo_cnh' => ['nullable', 'array', 'max:20'],
@@ -28,11 +28,11 @@ trait ValidatesClienteFichaAnexos
     protected function clienteFichaAnexoMessages(): array
     {
         return [
-            'anexo_cnh.*.max' => __('Cada arquivo deve ter no máximo 10 MB.'),
+            'anexo_cnh.*.max' => __('Cada arquivo deve ter no máximo :max.', ['max' => upload_max_file_help()]),
             'anexo_cnh.*.mimes' => __('Formatos permitidos: PDF, imagens, DOC/DOCX.'),
-            'anexo_comprovante.*.max' => __('Cada arquivo deve ter no máximo 10 MB.'),
+            'anexo_comprovante.*.max' => __('Cada arquivo deve ter no máximo :max.', ['max' => upload_max_file_help()]),
             'anexo_comprovante.*.mimes' => __('Formatos permitidos: PDF, imagens, DOC/DOCX.'),
-            'anexo_outro.*.max' => __('Cada arquivo deve ter no máximo 10 MB.'),
+            'anexo_outro.*.max' => __('Cada arquivo deve ter no máximo :max.', ['max' => upload_max_file_help()]),
             'anexo_outro.*.mimes' => __('Formatos permitidos: PDF, imagens, DOC/DOCX.'),
         ];
     }

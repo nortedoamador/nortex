@@ -60,6 +60,10 @@
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ __('Separe por vírgula ou por linha. Em branco = qualquer.') }}</p>
                     @error('allowed_extensions')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
+
+                @include('platform.cadastros.anexo-tipos.partials.contexto-modulos-checkboxes', [
+                    'selected' => is_array(old('contexto_modulos')) ? old('contexto_modulos') : [],
+                ])
             </div>
 
             <div class="flex gap-2">

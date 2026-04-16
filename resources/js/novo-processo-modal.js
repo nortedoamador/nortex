@@ -235,13 +235,15 @@ export function registerNovoProcessoModal(Alpine) {
             return t && t.documentos ? t.documentos : [];
         },
 
+        /** Rótulo da categoria (alinha a `TipoProcessoCategoria` / `platform_tipo_servicos`). */
         nomeTipoServico() {
-            const s = this.servicosFiltrados().find((x) => String(x.id) === String(this.tipoSel));
-            return s ? s.nome : '\u2014';
+            return this.categoriaLabels[this.categoriaSel] || '\u2014';
         },
 
-        nomeCategoria() {
-            return this.categoriaLabels[this.categoriaSel] || '\u2014';
+        /** Nome do `PlatformTipoProcesso` selecionado. */
+        nomeTipoProcesso() {
+            const s = this.servicosFiltrados().find((x) => String(x.id) === String(this.tipoSel));
+            return s ? s.nome : '\u2014';
         },
 
         nomeClienteResumo() {
@@ -292,11 +294,11 @@ export function registerNovoProcessoModal(Alpine) {
             this.erroPasso1 = '';
             const m = this.msgs;
             if (!this.categoriaSel) {
-                this.erroPasso1 = m.selTipoProcesso ?? '';
+                this.erroPasso1 = m.selTipoServico ?? '';
                 return false;
             }
             if (!this.tipoSel) {
-                this.erroPasso1 = m.selTipoServico ?? '';
+                this.erroPasso1 = m.selTipoProcesso ?? '';
                 return false;
             }
             const jurEl = document.getElementById('modal_proc_jurisdicao');
@@ -515,7 +517,7 @@ export function registerNovoProcessoModal(Alpine) {
 
                 return;
             }
-            const linhaProcesso = `${this.nomeTipoServico()} \u2014 ${this.nomeClienteResumo()}`;
+            const linhaProcesso = `${this.nomeTipoProcesso()} \u2014 ${this.nomeClienteResumo()}`;
             const fraseAviso = m.frase?.trim() || m.texto?.trim() || '';
             const r = await fireSwalTrocarAnexoLayout({
                 titulo: m.titulo,

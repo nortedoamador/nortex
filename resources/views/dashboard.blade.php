@@ -386,15 +386,32 @@
                 </ul>
             </div>
             <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 class="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-                    <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
-                    {{ __('Atividade recente') }}
-                </h3>
+                <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                        <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
+                        {{ __('Atividade recente') }}
+                    </h3>
+                    @if (Auth::user()->hasPermission('auditoria.view'))
+                        <a href="{{ tenant_admin_route('auditoria.index') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Ver auditoria') }}</a>
+                    @endif
+                </div>
                 <ul class="space-y-3 text-sm">
-                    <li class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                        <p class="font-medium text-slate-800 dark:text-slate-200">{{ __('Histórico da sua conta') }}</p>
-                        <p class="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">{{ __('Em breve') }} <span class="font-normal text-slate-500 dark:text-slate-400">· {{ __('últimas ações e notificações') }}</span></p>
-                    </li>
+                    @forelse (($atividadeRecente ?? collect()) as $log)
+                        <li class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                            <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                <span class="inline-flex rounded-md bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-700 dark:bg-slate-700 dark:text-slate-200">{{ activity_log_action_label($log->action) }}</span>
+                                <span class="ml-auto text-[11px] text-slate-500 dark:text-slate-400">{{ $log->created_at?->locale('pt_BR')->diffForHumans() }}</span>
+                            </div>
+                            <p class="mt-1.5 font-medium text-slate-800 dark:text-slate-200">{{ $log->summary }}</p>
+                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                                {{ $log->user?->name ?? __('Sistema') }}
+                            </p>
+                        </li>
+                    @empty
+                        <li class="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-950/30 dark:text-slate-400">
+                            {{ __('Nenhuma atualização recente na sua empresa.') }}
+                        </li>
+                    @endforelse
                 </ul>
             </div>
         </div>

@@ -26,6 +26,7 @@ class AulaNautica extends Model
         'hora_fim',
         'status',
         'comunicado_enviado_em',
+        'documentos_automaticos',
     ];
 
     protected $casts = [
@@ -34,6 +35,7 @@ class AulaNautica extends Model
         'hora_inicio' => 'string',
         'hora_fim' => 'string',
         'comunicado_enviado_em' => 'datetime',
+        'documentos_automaticos' => 'array',
     ];
 
     public function empresa(): BelongsTo
@@ -59,6 +61,7 @@ class AulaNautica extends Model
     public function escolaInstrutores(): BelongsToMany
     {
         return $this->belongsToMany(EscolaInstrutor::class, 'aula_nautica_escola_instrutores')
+            ->withPivot('programa_atestado')
             ->withTimestamps();
     }
 

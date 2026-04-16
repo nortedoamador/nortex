@@ -37,7 +37,7 @@ export function registerProcessoStatusCustomSelect(Alpine) {
                 return;
             }
             const r = btn.getBoundingClientRect();
-            const w = Math.max(r.width, 220);
+            const w = Math.max(r.width, 1);
             const left = Math.min(r.left, Math.max(12, window.innerWidth - w - 12));
             this.panelStyle = `top:${r.bottom + 8}px;left:${left}px;width:${w}px;`;
         },

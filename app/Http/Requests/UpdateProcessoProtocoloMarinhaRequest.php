@@ -23,7 +23,7 @@ class UpdateProcessoProtocoloMarinhaRequest extends FormRequest
         return [
             'marinha_protocolo_numero' => ['required', 'string', 'max:255'],
             'marinha_protocolo_data' => ['required', 'date'],
-            'marinha_protocolo_anexo' => ['nullable', 'file', 'max:15360', 'mimes:pdf,jpg,jpeg,png,webp'],
+            'marinha_protocolo_anexo' => ['nullable', 'file', 'max:'.upload_max_kb(), 'mimes:pdf,jpg,jpeg,png,webp'],
             'remover_marinha_protocolo_anexo' => ['nullable', 'boolean'],
         ];
     }

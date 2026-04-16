@@ -7,6 +7,7 @@ use App\Models\Cliente;
 use App\Models\Empresa;
 use App\Models\EmpresaAtestadoNormamDuracao;
 use App\Models\User;
+use App\Support\AulaEscolaInstrutorProgramaAtestado;
 use Illuminate\Support\Collection;
 
 /**
@@ -49,7 +50,9 @@ final class AulaNauticaAraPdfData
         $empresa = $aula->empresa ?? Empresa::query()->find($aula->empresa_id);
         $nomeEscola = $empresa?->nome ?? '—';
 
-        $ei = $aula->escolaInstrutores->first();
+        $ei = $aula->escolaInstrutores->first(
+            fn ($row) => AulaEscolaInstrutorProgramaAtestado::apareceNoAra($row->pivot->programa_atestado ?? null)
+        );
         $insCliente = $ei?->cliente;
         $insUser = $aula->instrutores->first();
 

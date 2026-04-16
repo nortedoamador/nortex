@@ -128,7 +128,7 @@
 
                     <div x-show="passo === 1" class="space-y-4" x-cloak>
                         <div>
-                            <x-input-label for="modal_categoria_processo" value="{{ __('Tipo de processo') }}" />
+                            <x-input-label for="modal_categoria_processo" value="{{ __('Tipo de serviço') }}" />
                             <select
                                 id="modal_categoria_processo"
                                 x-model="categoriaSel"
@@ -138,7 +138,7 @@
                                     ? 'cursor-not-allowed border-slate-200 bg-slate-200 text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300'
                                     : 'border-slate-300'"
                             >
-                                <option value="">{{ __('Selecione…') }}</option>
+                                <option value="">{{ __('Selecione o tipo de serviço…') }}</option>
                                 @foreach ($categoriasProcesso as $cat)
                                     <option value="{{ $cat->value }}" @selected($categoriaProcessoOld === $cat->value)>{{ $cat->label() }}</option>
                                 @endforeach
@@ -146,7 +146,7 @@
                         </div>
 
                         <div>
-                            <x-input-label for="modal_tipo_processo_id" value="{{ __('Tipo de serviço') }}" />
+                            <x-input-label for="modal_tipo_processo_id" value="{{ __('Tipo de processo') }}" />
                             <select
                                 id="modal_tipo_processo_id"
                                 name="platform_tipo_processo_id"
@@ -154,14 +154,14 @@
                                 class="mt-1 block w-full rounded-xl border-slate-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-950 dark:text-white"
                                 :disabled="categoriaSel === ''"
                             >
-                                <option value="">{{ __('Selecione o tipo de serviço…') }}</option>
+                                <option value="">{{ __('Selecione o tipo de processo…') }}</option>
                                 <template x-for="s in servicosFiltrados()" :key="s.id">
                                     <option :value="String(s.id)" x-text="s.nome"></option>
                                 </template>
                             </select>
                             <x-input-error :messages="$errors->get('platform_tipo_processo_id')" class="mt-2" />
                             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="categoriaSel !== '' && servicosFiltrados().length === 0" x-cloak>
-                                {{ __('Nenhum tipo de serviço cadastrado nesta categoria.') }}
+                                {{ __('Nenhum tipo de processo cadastrado nesta categoria.') }}
                             </p>
                         </div>
 
@@ -363,12 +363,12 @@
 
                         <dl class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2 sm:gap-x-6 sm:gap-y-3 dark:border-slate-700 dark:bg-slate-950/50">
                             <div class="flex min-w-0 flex-col gap-0.5">
-                                <dt class="font-medium text-slate-500 dark:text-slate-400">{{ __('Tipo de processo') }}</dt>
-                                <dd class="text-slate-900 dark:text-slate-100" x-text="nomeCategoria()"></dd>
-                            </div>
-                            <div class="flex min-w-0 flex-col gap-0.5">
                                 <dt class="font-medium text-slate-500 dark:text-slate-400">{{ __('Tipo de serviço') }}</dt>
                                 <dd class="text-slate-900 dark:text-slate-100" x-text="nomeTipoServico()"></dd>
+                            </div>
+                            <div class="flex min-w-0 flex-col gap-0.5">
+                                <dt class="font-medium text-slate-500 dark:text-slate-400">{{ __('Tipo de processo') }}</dt>
+                                <dd class="text-slate-900 dark:text-slate-100" x-text="nomeTipoProcesso()"></dd>
                             </div>
                             <div class="flex min-w-0 flex-col gap-0.5 sm:col-span-2">
                                 <dt class="font-medium text-slate-500 dark:text-slate-400">{{ __('Jurisdição (Capitania / órgão)') }}</dt>
@@ -621,7 +621,7 @@
                                     </li>
                                 </template>
                             </ul>
-                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400" x-show="checklistDocs.length === 0" x-cloak>{{ __('Nenhum documento configurado para este tipo de serviço.') }}</p>
+                            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400" x-show="checklistDocs.length === 0" x-cloak>{{ __('Nenhum documento configurado para este tipo de processo.') }}</p>
                         </div>
 
                         <div>

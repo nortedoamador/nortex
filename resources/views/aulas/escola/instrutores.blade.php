@@ -27,7 +27,7 @@
 
             <div class="flex flex-wrap gap-2">
                 <x-escola-nav-pill :href="route('aulas.escola.instrutores', ['sub' => 'resumo'])" :active="$sub === 'resumo'">{{ __('Visão geral') }}</x-escola-nav-pill>
-                <x-escola-nav-pill :href="route('aulas.escola.instrutores', ['sub' => 'carteira'])" :active="$sub === 'carteira'">{{ __('Carteira') }}</x-escola-nav-pill>
+                <x-escola-nav-pill :href="route('aulas.escola.instrutores', ['sub' => 'carteira'])" :active="$sub === 'carteira'">{{ __('Editar carteira') }}</x-escola-nav-pill>
             </div>
 
             @if ($sub === 'resumo')
@@ -77,8 +77,11 @@
                                     <x-text-input :id="'cha_n_'.$ins->id" name="cha_numero" class="mt-1 block w-full" :value="old('cha_numero', $ins->cha_numero)" />
                                 </div>
                                 <div>
-                                    <x-input-label :for="'cha_cat_'.$ins->id" :value="__('Categoria CHA')" />
-                                    <x-text-input :id="'cha_cat_'.$ins->id" name="cha_categoria" class="mt-1 block w-full" :value="old('cha_categoria', $ins->cha_categoria)" />
+                                    @include('partials.cha-select-categoria-habilitacao', [
+                                        'id' => 'cha_cat_'.$ins->id,
+                                        'name' => 'cha_categoria',
+                                        'selected' => old('cha_categoria', $ins->cha_categoria),
+                                    ])
                                 </div>
                                 <div>
                                     <x-input-label :for="'cha_de_'.$ins->id" :value="__('Data emissão CHA')" />
@@ -88,10 +91,12 @@
                                     <x-input-label :for="'cha_dv_'.$ins->id" :value="__('Validade CHA')" />
                                     <input :id="'cha_dv_'.$ins->id" type="date" name="cha_data_validade" value="{{ old('cha_data_validade', $ins->cha_data_validade?->format('Y-m-d')) }}" class="mt-1 block w-full rounded-lg border-slate-300 text-sm shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100" />
                                 </div>
-                                <div class="md:col-span-2">
-                                    <x-input-label :for="'cha_j_'.$ins->id" :value="__('Jurisdição CHA')" />
-                                    <x-text-input :id="'cha_j_'.$ins->id" name="cha_jurisdicao" class="mt-1 block w-full" :value="old('cha_jurisdicao', $ins->cha_jurisdicao)" />
-                                </div>
+                                @include('partials.cha-select-jurisdicao-habilitacao', [
+                                    'id' => 'cha_j_'.$ins->id,
+                                    'name' => 'cha_jurisdicao',
+                                    'selected' => old('cha_jurisdicao', $ins->cha_jurisdicao),
+                                    'wrapperClass' => 'md:col-span-2',
+                                ])
                                 <div class="md:col-span-2 flex flex-wrap gap-2">
                                     <x-secondary-button type="submit">{{ __('Guardar CHA') }}</x-secondary-button>
                                 </div>

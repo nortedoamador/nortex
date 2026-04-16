@@ -58,6 +58,8 @@ final class ProcessoChecklistPreencherDeFichaService
             return;
         }
 
+        $this->marcarProcuracaoComModeloSeAplicavel($doc);
+
         if (ChecklistDocumentoModelo::satisfeitoViaModeloOuDeclaracaoLegada($doc) && $doc->anexos->isEmpty()) {
             return;
         }
@@ -81,6 +83,34 @@ final class ProcessoChecklistPreencherDeFichaService
         if ($this->codigoUsaChaHabilitacao($codigo)) {
             $this->copiarChaHabilitacao($processo, $doc);
         }
+    }
+
+    /**
+     * Itens de procuração passam a contar com o PDF do modelo (slug «procuracao») sem upload manual.
+     */
+    private function marcarProcuracaoComModeloSeAplicavel(ProcessoDocumento $doc): void
+    {
+        $codigo = (string) ($doc->documentoTipo?->codigo ?? '');
+        if (! in_array($codigo, ['CIR_PROCURACAO', 'CHA_PROCURACAO', 'TIE_PROCURACAO'], true)) {
+            return;
+        }
+        if (! ChecklistDocumentoModelo::tipoTemModelo($doc->documentoTipo)) {
+            return;
+        }
+        if ((bool) ($doc->preenchido_via_modelo ?? false)) {
+            return;
+        }
+        if ($doc->anexos->isNotEmpty()) {
+            return;
+        }
+        if ($doc->status === ProcessoDocumentoStatus::Dispensado) {
+            return;
+        }
+
+        $doc->forceFill([
+            'preenchido_via_modelo' => true,
+            'status' => ProcessoDocumentoStatus::Enviado,
+        ])->save();
     }
 
     private function sincronizarFotosEmbarcacao(Processo $processo, ProcessoDocumento $doc): void
