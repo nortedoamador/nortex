@@ -69,26 +69,10 @@ final class CnhAtestadoOrientacaoService
             || $codigo === 'CHA_CNH_OU_ATESTADO'
             || $codigo === ChaChecklistDocumentoCodigos::CNH_COM_VALIDADE
             || $codigo === 'CHA_CNH_OU_RG') {
-            if ($dataValidadeDocumento === null) {
-                $linhas[] = [
-                    'nivel' => 'info',
-                    'texto' => 'Sem data de validade informada: o sistema não aplica dispensa automática de atestado. Registre a validade para orientação.',
-                ];
-
-                return $linhas;
-            }
-
-            if ($this->cnhValidaNaReferencia($dataValidadeDocumento, $dataReferencia)) {
-                $linhas[] = [
-                    'nivel' => 'info',
-                    'texto' => 'CNH válida na data de referência: em regra, pode dispensar atestado médico (confirme no processo e no checklist).',
-                ];
-            } else {
-                $linhas[] = [
-                    'nivel' => 'warning',
-                    'texto' => 'CNH vencida na data de referência: ainda pode ser anexada como documento, mas NÃO dispensa atestado médico pela regra CNH.',
-                ];
-            }
+            $linhas[] = [
+                'nivel' => 'info',
+                'texto' => 'Há dispensa automática de atestado quando existe CNH no processo ou na ficha do cliente (cópia anexada).',
+            ];
 
             return $linhas;
         }
@@ -96,7 +80,7 @@ final class CnhAtestadoOrientacaoService
         if ($codigo === 'ATESTADO_MEDICO' || $codigo === ChaChecklistDocumentoCodigos::ATESTADO_MEDICO_PSICOFISICO) {
             $linhas[] = [
                 'nivel' => 'info',
-                'texto' => 'Atestado médico/psicofísico: verifique validade (menos de 1 ano) e o tipo de processo. A dispensa automática ocorre quando a CNH está anexada, com validade informada e vigente.',
+                'texto' => 'Atestado médico/psicofísico: verifique validade (menos de 1 ano) e o tipo de processo. A dispensa automática ocorre quando há CNH anexada no processo ou na ficha do cliente.',
             ];
         }
 

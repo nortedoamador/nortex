@@ -1,8 +1,8 @@
-<x-tenant-admin-layout title="{{ __('Laboratório de modelos PDF') }}">
+<x-tenant-admin-layout title="{{ __('Documentos automatizados') }}">
     <x-slot name="header">
-        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Laboratório de modelos PDF') }}</h2>
+        <h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ __('Documentos automatizados') }}</h2>
         <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ __('Escolha um cliente e, se necessário, uma embarcação para abrir cada anexo e validar o preenchimento.') }}</p>
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">{{ __('Pode substituir o HTML/Blade de cada modelo enviando um ficheiro (.blade.php, .html ou .txt); o conteúdo passa a ser o da sua empresa.') }}</p>
+        <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">{{ __('Os esqueletos globais podem ser personalizados por ficheiro ou no gestor; «Repor esqueleto global» volta ao conteúdo da plataforma.') }}</p>
     </x-slot>
 
     <div class="px-4 py-6 sm:px-6 lg:px-8">
@@ -143,12 +143,13 @@
                         <span class="text-xs font-normal text-slate-500 dark:text-slate-400">{{ __('Deslize horizontalmente se faltar alguma coluna.') }}</span>
                     </div>
                     <div class="overflow-x-auto overscroll-x-contain">
-                    <table class="min-w-[56rem] w-full divide-y divide-slate-200 dark:divide-slate-800">
+                    <table class="min-w-[64rem] w-full divide-y divide-slate-200 dark:divide-slate-800">
                         <thead class="bg-slate-50 dark:bg-slate-800/50">
                             <tr>
                                 @include('admin.documento-modelos.partials.lab-sort-th', ['column' => 'slug', 'label' => __('Slug'), 'align' => 'left'])
                                 @include('admin.documento-modelos.partials.lab-sort-th', ['column' => 'titulo', 'label' => __('Título'), 'align' => 'left'])
                                 @include('admin.documento-modelos.partials.lab-sort-th', ['column' => 'referencia', 'label' => __('Referência'), 'align' => 'left'])
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Estado') }}</th>
                                 @include('admin.documento-modelos.partials.lab-sort-th', ['column' => 'atualizado_em', 'label' => __('Atualizado'), 'align' => 'left'])
                                 @include('admin.documento-modelos.partials.lab-sort-th', ['column' => 'precisa_embarcacao', 'label' => __('Pré-visualizar'), 'align' => 'right'])
                                 @include('admin.documento-modelos.partials.lab-sort-th', ['column' => 'tem_modelo', 'label' => __('Ações'), 'align' => 'left'])
@@ -156,6 +157,9 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                            @php
+                                $labClienteModel = \App\Models\Cliente::query()->find((int) $clienteId);
+                            @endphp
                             @foreach ($linhasLaboratorio as $linha)
                                 @php
                                     $slug = $linha['slug'];
@@ -165,9 +169,13 @@
                                     if ($precisaEmb && $embarcacaoId && ctype_digit((string) $embarcacaoId)) {
                                         $q['contexto_id'] = (int) $embarcacaoId;
                                     }
-                                    $urlHtml = route('clientes.documento-modelos.render', ['cliente' => (int) $clienteId, 'slug' => $slug]).'?'.http_build_query($q);
+                                    $urlHtml = $labClienteModel
+                                        ? route('clientes.documento-modelos.render', ['cliente' => $labClienteModel, 'slug' => $slug]).'?'.http_build_query($q)
+                                        : '#';
                                     $qPdf = array_merge($q, ['format' => 'pdf']);
-                                    $urlPdf = route('clientes.documento-modelos.render', ['cliente' => (int) $clienteId, 'slug' => $slug]).'?'.http_build_query($qPdf);
+                                    $urlPdf = $labClienteModel
+                                        ? route('clientes.documento-modelos.render', ['cliente' => $labClienteModel, 'slug' => $slug]).'?'.http_build_query($qPdf)
+                                        : '#';
                                 @endphp
                                 <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
                                     <td class="px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-300">{{ $slug }}</td>
@@ -175,6 +183,17 @@
                                     <td class="max-w-[12rem] px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
                                         @if (filled($linha['referencia'] ?? null))
                                             {{ $linha['referencia'] }}
+                                        @else
+                                            <span class="text-slate-400 dark:text-slate-500">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-xs">
+                                        @if (! empty($linha['documento_modelo_global_id']))
+                                            @if (! empty($linha['personalizado']))
+                                                <span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">{{ __('Personalizado') }}</span>
+                                            @else
+                                                <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200">{{ __('Igual ao global') }}</span>
+                                            @endif
                                         @else
                                             <span class="text-slate-400 dark:text-slate-500">—</span>
                                         @endif
@@ -201,12 +220,32 @@
                                                     class="text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
                                                 >{{ __('Editar no gestor') }}</a>
                                             @endif
+                                            @if ($dm && ! empty($linha['documento_modelo_global_id']) && ! empty($linha['personalizado']))
+                                                <form
+                                                    method="post"
+                                                    action="{{ tenant_admin_route('documento-modelos.laboratorio.repor-global') }}"
+                                                    class="inline"
+                                                    onsubmit="return confirm(@js(__('Repor o conteúdo a partir do documento automático global? Perde as alterações locais deste slug.')))"
+                                                >
+                                                    @csrf
+                                                    <input type="hidden" name="slug" value="{{ $slug }}" />
+                                                    <input type="hidden" name="cliente_id" value="{{ $clienteId }}" />
+                                                    @if ($embarcacaoId && ctype_digit((string) $embarcacaoId))
+                                                        <input type="hidden" name="embarcacao_id" value="{{ $embarcacaoId }}" />
+                                                    @endif
+                                                    <input type="hidden" name="sort" value="{{ $labSort }}" />
+                                                    <input type="hidden" name="dir" value="{{ $labDir }}" />
+                                                    <button type="submit" class="text-xs font-semibold text-violet-600 hover:text-violet-500 dark:text-violet-400">
+                                                        {{ __('Repor esqueleto global') }}
+                                                    </button>
+                                                </form>
+                                            @endif
                                             @if ($dm)
                                                 <form
                                                     method="post"
                                                     action="{{ tenant_admin_route('documento-modelos.laboratorio.destroy', ['modelo' => $dm]) }}"
                                                     class="inline"
-                                                    onsubmit="return confirm(@js(__('Remover este modelo da empresa? Deixa de aparecer no laboratório. Para voltar a ver o anexo no catálogo NORMAM, envie de novo um ficheiro por «Substituir por ficheiro».')))"
+                                                    onsubmit="return confirm(@js(__('Remover este modelo da empresa? Deixa de aparecer na lista de documentos automatizados. Para voltar a ver o anexo no catálogo NORMAM, envie de novo um ficheiro por «Substituir por ficheiro».')))"
                                                 >
                                                     @csrf
                                                     @method('DELETE')

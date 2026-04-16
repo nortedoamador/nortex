@@ -1,7 +1,7 @@
 @php
     /** @var \App\Models\Habilitacao|null $habilitacao */
     /** @var \Illuminate\Support\Collection<int, \App\Models\Cliente>|iterable $clientes */
-    /** @var \Illuminate\Support\Collection<int, array{id:int, doc:string, docDigits:string, nome:string}>|iterable $clientesSuggest */
+    /** @var \Illuminate\Support\Collection<int, array{id:int, hashid:string, doc:string, docDigits:string, nome:string}>|iterable $clientesSuggest */
     $habilitacao = $habilitacao ?? null;
     $idPrefix = $idPrefix ?? '';
     $clientesSuggest = $clientesSuggest ?? collect();
@@ -38,10 +38,28 @@
         $cpfCampoInicial = (string) $cpfCampoInicial;
     }
 
+    $nxOldClienteRouteKey = '';
+    $cid = old('cliente_id');
+    if (($cid === null || $cid === '') && $habilitacao !== null) {
+        $cid = $habilitacao->cliente_id;
+    }
+    if ($cid !== null && $cid !== '' && ctype_digit((string) $cid)) {
+        $row = \App\Models\Cliente::query()->find((int) $cid);
+        $nxOldClienteRouteKey = $row ? $row->getRouteKey() : '';
+    }
+
     $nxCpfPayloadId = 'nx-cpf-payload-'.bin2hex(random_bytes(8));
 @endphp
 
-<input type="hidden" id="{{ $idPrefix }}cliente_id" name="cliente_id" value="{{ $nxOld('cliente_id') }}" />
+<input
+    type="hidden"
+    id="{{ $idPrefix }}cliente_id"
+    name="cliente_id"
+    value="{{ $nxOld('cliente_id') }}"
+    @if ($nxOldClienteRouteKey !== '')
+        data-initial-cliente-route-key="{{ $nxOldClienteRouteKey }}"
+    @endif
+/>
 <x-input-error :messages="$errors->get('cliente_id')" class="md:col-span-3" />
 
 <textarea id="{{ $nxCpfPayloadId }}" class="hidden" readonly tabindex="-1" aria-hidden="true">@json($clientesSuggest)</textarea>

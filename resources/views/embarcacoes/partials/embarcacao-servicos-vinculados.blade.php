@@ -22,6 +22,7 @@
                             origemFichaEmbarcacao: true,
                             categoria: 'embarcacao',
                             clienteId: @js($embarcacao->cliente_id),
+                            clienteRouteKey: @js($embarcacao->cliente?->getRouteKey()),
                             embarcacaoId: @js($embarcacao->id),
                             clienteDoc: @js($embarcacao->cliente ? ($embarcacao->cliente->documentoFormatado() ?? $embarcacao->cliente->cpf) : null),
                             clienteNome: @js($embarcacao->cliente?->nome),
@@ -80,6 +81,15 @@
                                 >
                                     <span class="sr-only">{{ __('Documentos pendentes') }}:</span>
                                     <x-processo-docs-pendente-icon class="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                </span>
+                            @endif
+                            @if ($processo->faltaIdentificacaoProtocoloMarinha())
+                                <span
+                                    class="inline-flex shrink-0 text-amber-600 dark:text-amber-400"
+                                    title="{{ __('Falta indicar o número de protocolo da Marinha.') }}"
+                                >
+                                    <span class="sr-only">{{ __('Protocolo da Marinha por indicar') }}:</span>
+                                    <x-processo-protocolo-marinha-alerta-icon class="h-4 w-4" />
                                 </span>
                             @endif
                             {{ $processo->status->label() }}

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesHashidsRouteKey;
+use App\Support\TenantHashids;
 use App\Enums\EmbarcacaoAreaNavegacao;
 use App\Enums\EmbarcacaoTipoNavegacao;
 use App\Enums\EmbarcacaoTipoPropulsao;
@@ -10,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Embarcacao extends TenantModel
 {
+    use UsesHashidsRouteKey;
+
     /** Tabela em português; o plural automático seria `embarcacaos`. */
     protected $table = 'embarcacoes';
 
@@ -233,5 +237,10 @@ class Embarcacao extends TenantModel
             'potencia' => $pot,
             'numero_serie' => $num,
         ]];
+    }
+
+    public static function routeHashidType(): int
+    {
+        return TenantHashids::TYPE_EMBARCACAO;
     }
 }

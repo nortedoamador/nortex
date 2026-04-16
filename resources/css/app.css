@@ -49,6 +49,23 @@ a.nx-arquivos-adicionar:focus-visible {
     -webkit-text-fill-color: #ffffff;
 }
 
+/*
+ * CTA «Guardar protocolo» (ficha processo / Marinha): ícone branco (mesmo padrão que nx-arquivos-adicionar).
+ */
+button.nx-processo-protocolo-submit,
+button.nx-processo-protocolo-submit:hover,
+button.nx-processo-protocolo-submit:focus,
+button.nx-processo-protocolo-submit:focus-visible,
+button.nx-processo-protocolo-submit:active,
+button.nx-processo-protocolo-submit:disabled {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff;
+}
+
+button.nx-processo-protocolo-submit svg {
+    color: #ffffff !important;
+}
+
 [x-cloak] {
     display: none !important;
 }

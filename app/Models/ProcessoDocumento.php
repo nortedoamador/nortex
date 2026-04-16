@@ -27,6 +27,7 @@ class ProcessoDocumento extends Model
         'declaracao_anexo_5d',
         'declaracao_anexo_3d',
         'preenchido_via_modelo',
+        'satisfeito_via_ficha_embarcacao',
     ];
 
     protected function casts(): array
@@ -39,6 +40,7 @@ class ProcessoDocumento extends Model
             'declaracao_anexo_5d' => 'boolean',
             'declaracao_anexo_3d' => 'boolean',
             'preenchido_via_modelo' => 'boolean',
+            'satisfeito_via_ficha_embarcacao' => 'boolean',
         ];
     }
 

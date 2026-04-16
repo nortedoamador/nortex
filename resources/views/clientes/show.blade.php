@@ -254,6 +254,14 @@
                                     <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ $proc->tipoProcesso->nome ?? '—' }}</p>
                                 </div>
                                 <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                                    @if ($proc->faltaIdentificacaoProtocoloMarinha())
+                                        <span
+                                            class="inline-flex shrink-0 text-amber-500 dark:text-amber-400"
+                                            title="{{ __('Falta indicar o número de protocolo da Marinha.') }}"
+                                        >
+                                            <x-processo-protocolo-marinha-alerta-icon class="h-5 w-5" />
+                                        </span>
+                                    @endif
                                     <x-processo-docs-pendente-badge :processo="$proc" />
                                     <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                                         {{ $proc->status->label() }}

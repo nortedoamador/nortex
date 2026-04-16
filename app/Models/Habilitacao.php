@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesHashidsRouteKey;
+use App\Support\TenantHashids;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Habilitacao extends TenantModel
 {
+    use UsesHashidsRouteKey;
+
     protected $table = 'habilitacoes';
 
     /** @var list<string> */
@@ -152,5 +156,10 @@ class Habilitacao extends TenantModel
     public function anexos(): HasMany
     {
         return $this->hasMany(HabilitacaoAnexo::class);
+    }
+
+    public static function routeHashidType(): int
+    {
+        return TenantHashids::TYPE_HABILITACAO;
     }
 }

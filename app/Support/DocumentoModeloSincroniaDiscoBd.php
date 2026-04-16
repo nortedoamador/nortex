@@ -39,6 +39,10 @@ final class DocumentoModeloSincroniaDiscoBd
      */
     public static function aplicar(DocumentoModelo $modelo): bool
     {
+        if ($modelo->documento_modelo_global_id !== null) {
+            return false;
+        }
+
         $slug = (string) $modelo->getAttribute('slug');
         $noDisco = self::lerConteudoFicheiroPadrao($slug);
         if ($noDisco === null) {

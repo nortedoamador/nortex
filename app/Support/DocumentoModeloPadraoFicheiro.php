@@ -32,6 +32,15 @@ final class DocumentoModeloPadraoFicheiro
     /**
      * @return string|null Mensagem de erro ou null se OK
      */
+    public static function gravarSeModeloEmpresaSemGlobal(\App\Models\DocumentoModelo $modelo, string $conteudo): ?string
+    {
+        if (! $modelo->escreveFicheiroPadraoNoRepositorio()) {
+            return null;
+        }
+
+        return self::gravar((string) $modelo->slug, $conteudo);
+    }
+
     public static function gravar(string $slug, string $conteudo): ?string
     {
         if (! self::slugValidoParaFicheiro($slug)) {

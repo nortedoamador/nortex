@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesHashidsRouteKey;
+use App\Support\TenantHashids;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -139,5 +142,22 @@ class Cliente extends TenantModel
     public function processos(): HasMany
     {
         return $this->hasMany(Processo::class);
+    }
+
+    /** @return BelongsToMany<AulaNautica> */
+    public function aulasNauticasComoAluno(): BelongsToMany
+    {
+        return $this->belongsToMany(AulaNautica::class, 'aula_nautica_alunos')
+            ->withTimestamps();
+    }
+
+    public function escolaInstrutor(): HasMany
+    {
+        return $this->hasMany(EscolaInstrutor::class);
+    }
+
+    public static function routeHashidType(): int
+    {
+        return TenantHashids::TYPE_CLIENTE;
     }
 }

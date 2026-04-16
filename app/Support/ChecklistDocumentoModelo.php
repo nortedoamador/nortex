@@ -48,7 +48,7 @@ final class ChecklistDocumentoModelo
         }
 
         if (! self::tipoTemModelo($linha->documentoTipo)) {
-            return false;
+            return (bool) ($linha->satisfeito_via_ficha_embarcacao ?? false);
         }
 
         return (bool) ($linha->preenchido_via_modelo ?? false);

@@ -1,18 +1,25 @@
 import './bootstrap';
+import './escola-turbo';
+import { registerNxAulasIndex } from './aulas-nautica-index';
+
+registerNxAulasIndex();
 
 import { initClienteFichaMasks } from './cliente-ficha-masks';
 import { initClienteFichaDoc } from './cliente-ficha-doc';
 import { initClienteFichaGeo } from './cliente-ficha-geo';
 import { initDateBrMasks } from './date-br-mask';
+import { initCnpjMasks } from './cnpj-mask';
 import { registerEmbarcacaoFotoDrop } from './embarcacao-foto-drop';
 import { initEmbarcacaoGaleriaDelete } from './embarcacao-galeria-delete';
 import { registerEmbarcacaoCpfSuggest } from './embarcacao-cpf-suggest';
 import { registerNovoProcessoModal } from './novo-processo-modal';
 import { initProcessoStatusFormConfirm } from './processo-status-form-confirm';
 import { registerProcessosBulkActions } from './processos-bulk-actions';
+import { registerProcessoStatusCustomSelect } from './processo-status-custom-select';
 import { registerProcessoPostIts } from './processo-post-its';
 import './platform-dashboard-map';
 import { initTipoProcessoRegrasSort } from './tipo-processo-regras-sort';
+import { initFinanceiroPage } from './financeiro';
 import Alpine from 'alpinejs';
 
 document.addEventListener('alpine:init', () => {
@@ -20,6 +27,7 @@ document.addEventListener('alpine:init', () => {
     registerEmbarcacaoCpfSuggest(Alpine);
     registerNovoProcessoModal(Alpine);
     registerProcessosBulkActions(Alpine);
+    registerProcessoStatusCustomSelect(Alpine);
     registerProcessoPostIts(Alpine);
 
     Alpine.store('novoCliente', {
@@ -31,6 +39,10 @@ document.addEventListener('alpine:init', () => {
     });
 
     Alpine.store('novaHabilitacao', {
+        open: false,
+    });
+
+    Alpine.store('novaAula', {
         open: false,
     });
 
@@ -83,8 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
         initTipoProcessoRegrasSort(form);
     });
     initDateBrMasks(document);
+    initCnpjMasks(document);
     initProcessoStatusFormConfirm();
     initEmbarcacaoGaleriaDelete();
+    initFinanceiroPage();
 });
 
 function applyTheme(theme) {

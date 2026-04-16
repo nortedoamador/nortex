@@ -1,5 +1,7 @@
 @php
     /** @var \App\Models\Cliente|null $cliente */
+    /** @var bool $nxInstrutorChaAfterPrincipalAnexos Inserir bloco CHA (modal instrutor) após CNH/comprovante e antes de «Outros anexos». */
+    $nxInstrutorChaAfterPrincipalAnexos = $nxInstrutorChaAfterPrincipalAnexos ?? false;
     $c = $cliente ?? null;
     $tipoDoc = old('tipo_documento', $c?->tipo_documento);
     if ($tipoDoc === null && filled($c?->cpf)) {
@@ -148,6 +150,10 @@
             ></p>
         </div>
     </div>
+
+    @if ($nxInstrutorChaAfterPrincipalAnexos)
+        @include('aulas.partials.instrutor-modal-cha-section')
+    @endif
 
     <div
         class="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/50"

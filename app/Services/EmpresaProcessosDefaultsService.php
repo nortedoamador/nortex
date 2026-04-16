@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\DocumentoModelo;
+use App\Models\DocumentoModeloGlobal;
 use App\Models\DocumentoTipo;
 use App\Models\Empresa;
+use App\Support\DocumentoModeloCatalogoPadrao;
 use App\Support\Normam211DocumentoCodigos;
 use Illuminate\Support\Facades\Cache;
 
@@ -14,7 +16,7 @@ use Illuminate\Support\Facades\Cache;
 final class EmpresaProcessosDefaultsService
 {
     /** Incrementar quando os templates PHP (Normam / checklist) mudarem de forma a exigir nova sincronização. */
-    private const TEMPLATE_BASICO_CACHE_BUSTER = 'v13';
+    private const TEMPLATE_BASICO_CACHE_BUSTER = 'v14';
 
     public function garantirTemplateBasico(Empresa $empresa): void
     {
@@ -71,97 +73,55 @@ final class EmpresaProcessosDefaultsService
             return;
         }
 
-        $map = self::mapModelosPdfFicheiroPadrao();
-        if (! isset($map[$slug])) {
+        $global = DocumentoModeloGlobal::query()->where('slug', $slug)->first();
+        if ($global !== null) {
+            $this->garantirModeloGlobalNaEmpresa($empresa, $global);
+
             return;
         }
 
-        $meta = $map[$slug];
-        $titulo = $meta['titulo'];
-        $relativePath = $meta['relativePath'];
+        $meta = DocumentoModeloCatalogoPadrao::metaPorSlug($slug);
+        if ($meta === null) {
+            return;
+        }
+
         $referencia = isset($meta['referencia']) && $meta['referencia'] !== ''
             ? (string) $meta['referencia']
             : null;
-        $this->garantirModeloPdfDeArquivo($empresa, $slug, $titulo, $relativePath, $referencia);
+        $this->garantirModeloPdfDeArquivoLegado($empresa, $slug, $meta['titulo'], $meta['relativePath'], $referencia);
     }
 
     /**
-     * Slugs com template em resources/views/documento-modelos/defaults/.
+     * Catálogo para documentos automatizados e validações: primeiro a tabela global; fallback ao mapa em ficheiros.
      *
-     * @return array<string, array{titulo: string, relativePath: string, referencia?: string}>
+     * @return array<string, array{titulo: string, relativePath?: string, referencia?: string|null, documento_modelo_global_id?: int|null}>
      */
     public static function modelosPdfPadraoDefinicoes(): array
     {
-        return self::mapModelosPdfFicheiroPadrao();
-    }
+        $out = [];
+        foreach (DocumentoModeloGlobal::query()->orderBy('slug')->get() as $g) {
+            $out[$g->slug] = [
+                'titulo' => $g->titulo,
+                'referencia' => $g->referencia,
+                'documento_modelo_global_id' => (int) $g->id,
+            ];
+        }
+        foreach (DocumentoModeloCatalogoPadrao::mapaFicheirosRelativos() as $slug => $meta) {
+            if (isset($out[$slug])) {
+                continue;
+            }
+            if (DocumentoModeloCatalogoPadrao::conteudoDoFicheiroPadrao($slug) === null) {
+                continue;
+            }
+            $out[$slug] = [
+                'titulo' => $meta['titulo'],
+                'relativePath' => $meta['relativePath'],
+                'referencia' => $meta['referencia'] ?? null,
+                'documento_modelo_global_id' => null,
+            ];
+        }
 
-    /**
-     * @return array<string, array{titulo: string, relativePath: string, referencia?: string}>
-     */
-    private static function mapModelosPdfFicheiroPadrao(): array
-    {
-        return [
-            'anexo-2g' => [
-                'titulo' => 'ANEXO 2-G - Declaração de residência',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-2g.blade.php',
-                'referencia' => 'NORMAM-211/DPC',
-            ],
-            'anexo-5h' => [
-                'titulo' => 'ANEXO 5-H - Requerimento (NORMAM 211)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-5h.blade.php',
-                'referencia' => 'NORMAM-211/DPC',
-            ],
-            'anexo-5d' => [
-                'titulo' => 'ANEXO 5-D - Declaração de extravio/dano (CHA, NORMAM 211)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-5d.blade.php',
-                'referencia' => 'NORMAM-211/DPC',
-            ],
-            'anexo-1c-normam212' => [
-                'titulo' => 'ANEXO 1-C - Declaração de residência (NORMAM 212)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-1c-normam212.blade.php',
-                'referencia' => 'NORMAM-212/DPC',
-            ],
-            'anexo-2a-normam212' => [
-                'titulo' => 'ANEXO 2-A - Requerimento (NORMAM 212)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-2a-normam212.blade.php',
-                'referencia' => 'NORMAM-212/DPC',
-            ],
-            'anexo-2b-bdmoto-normam212' => [
-                'titulo' => 'ANEXO 2-B - BDMOTO (NORMAM 212)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-2b-bdmoto-normam212.blade.php',
-                'referencia' => 'NORMAM-212/DPC',
-            ],
-            'anexo-2c-normam212' => [
-                'titulo' => 'ANEXO 2-C - Declaração de perda/roubo/extravio de TIE (NORMAM 212)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-2c-normam212.blade.php',
-                'referencia' => 'NORMAM-212/DPC',
-            ],
-            'anexo-3a-cha-mta-normam212' => [
-                'titulo' => 'ANEXO 3-A - Requerimento CHA-MTA (NORMAM 212)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-3a-cha-mta-normam212.blade.php',
-                'referencia' => 'NORMAM-212/DPC',
-            ],
-            'anexo-3d-extravio-cha-mta-normam212' => [
-                'titulo' => 'ANEXO 3-D - Declaração de extravio CHA-MTA (NORMAM 212)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-3d-extravio-cha-mta-normam212.blade.php',
-                'referencia' => 'NORMAM-212/DPC',
-            ],
-            'anexo-2b-bsade' => [
-                'titulo' => 'ANEXO 2-B - BSADE (NORMAM 211)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-2b-bsade.blade.php',
-                'referencia' => 'NORMAM-211/DPC',
-            ],
-            'anexo-2c-normam211' => [
-                'titulo' => 'ANEXO 2-C - Requerimento (NORMAM 211)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-2c-normam211.blade.php',
-                'referencia' => 'NORMAM-211/DPC',
-            ],
-            'anexo-2h-normam211' => [
-                'titulo' => 'ANEXO 2-H - Declaração de extravio (NORMAM 211)',
-                'relativePath' => 'views/documento-modelos/defaults/anexo-2h-normam211.blade.php',
-                'referencia' => 'NORMAM-211/DPC',
-            ],
-        ];
+        return $out;
     }
 
     /**
@@ -170,8 +130,14 @@ final class EmpresaProcessosDefaultsService
      */
     private function garantirModelosDocumentoPdfPadrao(Empresa $empresa): void
     {
-        foreach (self::mapModelosPdfFicheiroPadrao() as $slug => $meta) {
-            $this->garantirModeloPdfDeArquivo($empresa, $slug, $meta['titulo'], $meta['relativePath']);
+        foreach (DocumentoModeloGlobal::query()->orderBy('slug')->cursor() as $global) {
+            $this->garantirModeloGlobalNaEmpresa($empresa, $global);
+        }
+        foreach (DocumentoModeloCatalogoPadrao::mapaFicheirosRelativos() as $slug => $meta) {
+            if (DocumentoModeloGlobal::query()->where('slug', $slug)->exists()) {
+                continue;
+            }
+            $this->garantirModeloPdfDeArquivoLegado($empresa, $slug, $meta['titulo'], $meta['relativePath'], $meta['referencia'] ?? null);
         }
 
         $mapTipoModelo = [
@@ -200,7 +166,89 @@ final class EmpresaProcessosDefaultsService
         }
     }
 
-    private function garantirModeloPdfDeArquivo(Empresa $empresa, string $slug, string $titulo, string $relativeToViews, ?string $referencia = null): void
+    /**
+     * Repõe o conteúdo da empresa a partir do registo global (marca como não personalizado).
+     *
+     * @return string|null Mensagem de erro ou null se OK
+     */
+    public function reporEsqueletoGlobalNaEmpresa(Empresa $empresa, string $slug): ?string
+    {
+        $slug = trim(mb_strtolower(preg_replace('/\s+/', '-', $slug)));
+        if ($slug === '') {
+            return __('Slug inválido.');
+        }
+
+        $global = DocumentoModeloGlobal::query()->where('slug', $slug)->first();
+        if ($global === null) {
+            return __('Não existe documento automático global para este slug.');
+        }
+
+        $modelo = DocumentoModelo::query()
+            ->withoutGlobalScope('empresa')
+            ->where('empresa_id', $empresa->id)
+            ->where('slug', $slug)
+            ->first();
+
+        if ($modelo === null) {
+            $this->garantirModeloGlobalNaEmpresa($empresa, $global);
+
+            return null;
+        }
+
+        $modelo->update([
+            'titulo' => $global->titulo,
+            'referencia' => $global->referencia,
+            'conteudo' => $global->conteudo,
+            'conteudo_upload_bruto' => $global->conteudo,
+            'upload_mapeamento_pendente' => false,
+            'mapeamento_upload' => null,
+            'documento_modelo_global_id' => $global->id,
+            'personalizado' => false,
+            'global_synced_at' => now(),
+        ]);
+
+        return null;
+    }
+
+    public function garantirModeloGlobalNaEmpresa(Empresa $empresa, DocumentoModeloGlobal $global): void
+    {
+        if ($empresa->documentoModeloLabSlugEstaOculto($global->slug)) {
+            return;
+        }
+
+        $existing = DocumentoModelo::query()
+            ->withoutGlobalScope('empresa')
+            ->where('empresa_id', $empresa->id)
+            ->where('slug', $global->slug)
+            ->first();
+
+        if ($existing !== null && $existing->personalizado) {
+            if ($existing->documento_modelo_global_id === null) {
+                $existing->update(['documento_modelo_global_id' => $global->id]);
+            }
+
+            return;
+        }
+
+        DocumentoModelo::query()->updateOrCreate(
+            ['empresa_id' => $empresa->id, 'slug' => $global->slug],
+            [
+                'titulo' => $global->titulo,
+                'conteudo' => $global->conteudo,
+                'conteudo_upload_bruto' => $global->conteudo,
+                'upload_mapeamento_pendente' => false,
+                'referencia' => $global->referencia,
+                'documento_modelo_global_id' => $global->id,
+                'personalizado' => false,
+                'global_synced_at' => now(),
+            ],
+        );
+    }
+
+    /**
+     * Fallback quando existe ficheiro em resources/views mas ainda não há linha em documento_modelo_globais.
+     */
+    private function garantirModeloPdfDeArquivoLegado(Empresa $empresa, string $slug, string $titulo, string $relativeToViews, ?string $referencia = null): void
     {
         if ($empresa->documentoModeloLabSlugEstaOculto($slug)) {
             return;
@@ -212,6 +260,16 @@ final class EmpresaProcessosDefaultsService
             return;
         }
 
+        $existing = DocumentoModelo::query()
+            ->withoutGlobalScope('empresa')
+            ->where('empresa_id', $empresa->id)
+            ->where('slug', $slug)
+            ->first();
+
+        if ($existing !== null && $existing->personalizado) {
+            return;
+        }
+
         DocumentoModelo::query()->updateOrCreate(
             ['empresa_id' => $empresa->id, 'slug' => $slug],
             [
@@ -220,6 +278,9 @@ final class EmpresaProcessosDefaultsService
                 'conteudo_upload_bruto' => $conteudo,
                 'upload_mapeamento_pendente' => false,
                 'referencia' => $referencia,
+                'documento_modelo_global_id' => null,
+                'personalizado' => false,
+                'global_synced_at' => null,
             ],
         );
     }

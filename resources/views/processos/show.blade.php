@@ -1,16 +1,24 @@
 @inject('nxStatusSvc', \App\Services\ProcessoStatusService::class)
 @php
+    use App\Enums\ProcessoStatus;
+
+    $nxLinhaFicha = ($processo->tipoProcesso?->nome ?? __('Processo'));
+    $nxTemDocsPendentes = $nxStatusSvc->quantidadeDocumentosObrigatoriosPendentes($processo) > 0;
     $nxTituloSwalPendencias = __('Processo com pendências');
     $nxCienciaTextoSecundario = __('Deseja realmente alterar o status mesmo assim?');
-    $nxLinhaFicha = ($processo->tipoProcesso?->nome ?? __('Processo'));
-    $nxNPendCiencia = $nxStatusSvc->quantidadeDocumentosObrigatoriosPendentes($processo);
-    $nxFraseCiencia = trans_choice('{1} :count documento obrigatório pendente|[2,*] :count documentos obrigatórios pendentes', $nxNPendCiencia, ['count' => $nxNPendCiencia]);
-    $nxTemDocsPendentes = $nxNPendCiencia > 0;
-    $nxRequerCiencia = ($nxTemDocsPendentes && $processo->status === \App\Enums\ProcessoStatus::EmMontagem) ? '1' : '0';
+    $nxNPendCienciaFicha = $nxStatusSvc->quantidadeDocumentosObrigatoriosPendentes($processo);
+    $nxFraseCienciaFicha = trans_choice('{1} :count documento obrigatório pendente|[2,*] :count documentos obrigatórios pendentes', $nxNPendCienciaFicha, ['count' => $nxNPendCienciaFicha]);
+    $nxRequerCienciaFicha = ($nxNPendCienciaFicha > 0 && $processo->status === ProcessoStatus::EmMontagem) ? '1' : '0';
+    $nxLinhaCienciaFicha = ($processo->tipoProcesso?->nome ?? __('Processo')).' — '.($processo->cliente?->nome ?? __('Sem cliente'));
 
     $ordemTipoIds = $processo->tipoProcesso?->documentoRegras?->pluck('id')->all() ?? [];
     $nxPosTipo = array_flip($ordemTipoIds);
     $documentosOrdenados = $processo->documentosChecklist->sortBy(fn ($d) => $nxPosTipo[$d->documento_tipo_id] ?? 9999)->values();
+
+    /** PDF/DOC/imprimir a partir do checklist (desativado por pedido; voltar a `true` para mostrar). */
+    $nxFichaChecklistMostrarBaixarModelo = false;
+    /** Voltar modelo gerado a «Pendente» (desativado por pedido). */
+    $nxFichaChecklistMostrarAnularCorrigirModelo = false;
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -30,14 +38,132 @@
 
             <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:gap-8">
             <div class="min-w-0 flex-1 xl:max-w-4xl">
-            <article class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <article
+                class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+                x-data="{
+                    faltaProtocolo: {{ $processo->faltaIdentificacaoProtocoloMarinha() ? 'true' : 'false' }},
+                    protoBusy: false,
+                    protoOk: null,
+                    protoErrNumero: @js($errors->first('marinha_protocolo_numero')),
+                    protoErrData: @js($errors->first('marinha_protocolo_data')),
+                    protoErrAnexo: @js($errors->first('marinha_protocolo_anexo')),
+                    protoAnexoNome: @js($processo->marinha_protocolo_anexo_original_name),
+                    protoAnexoUrl: @js(filled($processo->marinha_protocolo_anexo_path) ? route('processos.protocolo-marinha.anexo', $processo) : null),
+                    protoAnexoLocalPreviewUrl: null,
+                    protoAnexoLocalNome: null,
+                    protoAnexoLocalIsImage: false,
+                    protoAnexoRevokeLocalPreview() {
+                        if (this.protoAnexoLocalPreviewUrl) {
+                            URL.revokeObjectURL(this.protoAnexoLocalPreviewUrl);
+                            this.protoAnexoLocalPreviewUrl = null;
+                        }
+                    },
+                    protoAnexoNomeIsImage(nm) {
+                        if (typeof nm !== 'string' || nm === '') {
+                            return false;
+                        }
+
+                        return /\\.(jpe?g|png|gif|webp)$/i.test(nm);
+                    },
+                    protoAnexoSyncLocalPreview() {
+                        this.protoAnexoRevokeLocalPreview();
+                        const inp = this.$refs.marinhaProtocoloAnexoInput;
+                        if (! inp || ! inp.files || ! inp.files.length) {
+                            this.protoAnexoLocalNome = null;
+                            this.protoAnexoLocalIsImage = false;
+                            return;
+                        }
+                        const f = inp.files[0];
+                        this.protoAnexoLocalNome = f.name;
+                        this.protoAnexoLocalIsImage = /^image\\//.test(f.type || '') || this.protoAnexoNomeIsImage(f.name || '');
+                        if (this.protoAnexoLocalIsImage) {
+                            this.protoAnexoLocalPreviewUrl = URL.createObjectURL(f);
+                        }
+                    },
+                    async saveProtocoloMarinha(ev) {
+                        ev.preventDefault();
+                        const form = ev.target;
+                        this.protoOk = null;
+                        this.protoErrNumero = null;
+                        this.protoErrData = null;
+                        this.protoErrAnexo = null;
+                        this.protoBusy = true;
+                        const token = document.querySelector('meta[name=csrf-token]').getAttribute('content');
+                        const fd = new FormData(form);
+                        let res;
+                        try {
+                            res = await fetch(form.action, {
+                                method: 'POST',
+                                body: fd,
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'X-CSRF-TOKEN': token,
+                                },
+                                credentials: 'same-origin',
+                            });
+                        } catch (_) {
+                            this.protoBusy = false;
+                            this.protoErrNumero = @json(__('Ligação interrompida. Tente de novo.'));
+                            return;
+                        }
+                        let data = {};
+                        try {
+                            data = await res.json();
+                        } catch (_) {}
+                        this.protoBusy = false;
+                        if (! res.ok) {
+                            const errs = data.errors || {};
+                            this.protoErrNumero = errs.marinha_protocolo_numero ? errs.marinha_protocolo_numero[0] : null;
+                            this.protoErrData = errs.marinha_protocolo_data ? errs.marinha_protocolo_data[0] : null;
+                            this.protoErrAnexo = errs.marinha_protocolo_anexo ? errs.marinha_protocolo_anexo[0] : null;
+                            if (! this.protoErrNumero && ! this.protoErrData && ! this.protoErrAnexo && data.message) {
+                                this.protoErrNumero = data.message;
+                            }
+                            return;
+                        }
+                        this.protoOk = data.message || '';
+                        this.faltaProtocolo = typeof data.falta_protocolo === 'boolean' ? data.falta_protocolo : false;
+                        if (Object.prototype.hasOwnProperty.call(data, 'marinha_protocolo_anexo_original_name')) {
+                            this.protoAnexoNome = data.marinha_protocolo_anexo_original_name || null;
+                        }
+                        if (Object.prototype.hasOwnProperty.call(data, 'marinha_protocolo_anexo_url')) {
+                            this.protoAnexoUrl = data.marinha_protocolo_anexo_url || null;
+                        }
+                        const fileInp = form.querySelector('input[name=marinha_protocolo_anexo]');
+                        if (fileInp) {
+                            fileInp.value = '';
+                        }
+                        this.protoAnexoRevokeLocalPreview();
+                        this.protoAnexoLocalNome = null;
+                        this.protoAnexoLocalIsImage = false;
+                        const rem = form.querySelector('input[name=remover_marinha_protocolo_anexo]');
+                        if (rem && rem.type === 'checkbox') {
+                            rem.checked = false;
+                        }
+                    },
+                }"
+            >
                 {{-- Cabeçalho: título, meta, badges, status --}}
                 <header class="border-b border-slate-100 px-5 py-5 sm:px-7 sm:py-6 dark:border-slate-800">
                     <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                         <div class="min-w-0 flex-1 space-y-4">
-                            <h1 class="text-lg font-bold leading-snug text-slate-900 sm:text-xl dark:text-white">
-                                {{ $processo->tipoProcesso?->nome ?? __('Processo') }}
-                            </h1>
+                            <div class="flex flex-wrap items-center gap-2 gap-y-1">
+                                <h1 class="min-w-0 text-lg font-bold leading-snug text-slate-900 sm:text-xl dark:text-white">
+                                    {{ $processo->tipoProcesso?->nome ?? __('Processo') }}
+                                </h1>
+                                @if ($processo->status->exigeDadosProtocoloMarinha())
+                                    <span
+                                        x-show="faltaProtocolo"
+                                        x-cloak
+                                        class="inline-flex shrink-0 text-orange-500 dark:text-orange-400"
+                                        title="{{ __('Falta indicar o número de protocolo da Marinha. Utilize a secção «Protocolo da Marinha» abaixo.') }}"
+                                        aria-label="{{ __('Falta indicar o número de protocolo da Marinha. Utilize a secção «Protocolo da Marinha» abaixo.') }}"
+                                    >
+                                        <x-processo-protocolo-marinha-alerta-icon class="h-5 w-5" />
+                                    </span>
+                                @endif
+                            </div>
                             <div class="flex flex-wrap gap-x-8 gap-y-2.5 text-sm text-slate-600 dark:text-slate-400">
                                 <span class="inline-flex items-center gap-2">
                                     <svg class="h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5-3.9 19.5m-9.6-19.5-3.9 19.5" /></svg>
@@ -76,42 +202,39 @@
                             </div>
                         </div>
                         @can('updateStatus', $processo)
-                            <div class="shrink-0 lg:pt-0.5">
+                            @php $nxStFicha = $processo->status; @endphp
+                            <div class="flex min-w-0 shrink-0 flex-col items-stretch gap-2 sm:max-w-[20rem] sm:items-end lg:pt-0.5">
                                 <form
                                     method="POST"
                                     action="{{ route('processos.status', $processo) }}"
-                                    class="inline-flex"
+                                    class="w-full min-w-[13.75rem] sm:min-w-[15.25rem]"
                                     data-nx-status-ciencia-form="1"
-                                    data-nx-requer-ciencia="{{ $nxRequerCiencia }}"
+                                    data-nx-requer-ciencia="{{ $nxRequerCienciaFicha }}"
                                     data-nx-status-submit-on-change="1"
                                     data-nx-status-atual="{{ $processo->status->value }}"
                                     data-nx-swal-titulo="{{ e($nxTituloSwalPendencias) }}"
-                                    data-nx-ciencia-linha="{{ e($nxLinhaFicha) }}"
-                                    data-nx-ciencia-frase-pendentes="{{ e($nxFraseCiencia) }}"
+                                    data-nx-ciencia-linha="{{ e($nxLinhaCienciaFicha) }}"
+                                    data-nx-ciencia-frase-pendentes="{{ e($nxFraseCienciaFicha) }}"
                                     data-nx-ciencia-texto-secundario="{{ e($nxCienciaTextoSecundario) }}"
                                 >
                                     @csrf
                                     @method('PATCH')
                                     <input type="hidden" name="confirmar_ciencia_pendencias_documentais" value="0" autocomplete="off" />
-                                    <label class="relative inline-flex min-w-[13.75rem] max-w-[20rem] cursor-pointer items-center gap-2.5 rounded-xl border border-violet-200 bg-violet-50/90 py-2.5 pl-3.5 pr-10 shadow-sm dark:border-violet-900/50 dark:bg-violet-950/40 sm:min-w-[15.25rem] sm:pl-4 sm:pr-11">
-                                        <svg class="h-5 w-5 shrink-0 text-violet-600 dark:text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                        <select
-                                            name="status"
-                                            class="min-w-0 flex-1 cursor-pointer appearance-none border-0 bg-transparent py-0.5 pl-0 pr-1 text-left text-sm font-semibold leading-snug text-violet-950 focus:outline-none focus:ring-0 dark:text-violet-100"
-                                            aria-label="{{ __('Alterar etapa do processo') }}"
-                                        >
-                                            @foreach ($statuses as $st)
-                                                <option
-                                                    value="{{ $st->value }}"
-                                                    style="{{ $st->uiNativeSelectOptionStyle() }}"
-                                                    @selected($processo->status === $st)
-                                                >{{ $st->label() }}</option>
-                                            @endforeach
-                                        </select>
-                                        <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 shrink-0 -translate-y-1/2 text-violet-600 opacity-80 dark:text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                    </label>
+                                    <div class="block w-full">
+                                        <span class="mb-1.5 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                                            <svg class="h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                            {{ __('Alterar etapa') }}
+                                        </span>
+                                        <x-processo-status-custom-select :processo="$processo" :chrome-wrap-class="$nxStFicha->uiListSelectChromeWrapClass()" />
+                                    </div>
                                 </form>
-                                <x-input-error :messages="$errors->get('status')" class="mt-2" />
+                                <a
+                                    href="{{ route('processos.kanban') }}"
+                                    class="text-center text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 sm:text-right"
+                                >
+                                    {{ __('Ou no Kanban (arrastar o card) →') }}
+                                </a>
+                                <x-input-error :messages="$errors->get('status')" class="mt-0 sm:text-right" />
                             </div>
                         @else
                             <div class="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
@@ -143,6 +266,221 @@
                     </div>
                 </section>
 
+                @if ($processo->status === ProcessoStatus::AguardandoProva)
+                    <section class="border-b border-sky-200/80 bg-gradient-to-br from-sky-50/90 via-white to-sky-100/40 px-5 py-5 sm:px-7 dark:border-sky-900/40 dark:from-sky-950/35 dark:via-slate-900 dark:to-sky-950/20">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h2 class="text-base font-semibold text-sky-950 dark:text-sky-100">{{ __('Prova na Marinha') }}</h2>
+                                <p class="mt-1 text-xs text-sky-900/85 dark:text-sky-200/85">{{ __('Indique a data em que a prova prática está marcada no órgão. Esta data aparece no dashboard da empresa.') }}</p>
+                            </div>
+                        </div>
+                        @can('updateDocumento', $processo)
+                            <form method="POST" action="{{ route('processos.prova-marinha.update', $processo) }}" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                                @csrf
+                                @method('PATCH')
+                                <div class="min-w-0 flex-1 sm:max-w-xs">
+                                    <x-input-label for="marinha_prova_data" :value="__('Data da prova')" class="!mb-1" />
+                                    <x-text-input
+                                        id="marinha_prova_data"
+                                        name="marinha_prova_data"
+                                        type="date"
+                                        class="mt-0 block w-full"
+                                        :value="old('marinha_prova_data', $processo->marinha_prova_data?->format('Y-m-d'))"
+                                    />
+                                    <x-input-error :messages="$errors->get('marinha_prova_data')" class="mt-1" />
+                                </div>
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+                                >
+                                    {{ __('Guardar data') }}
+                                </button>
+                            </form>
+                        @else
+                            <p class="mt-3 text-sm font-medium text-slate-800 dark:text-slate-200">
+                                {{ $processo->marinha_prova_data?->format('d/m/Y') ?? '—' }}
+                            </p>
+                        @endcan
+                    </section>
+                @endif
+
+                @if ($processo->status->exigeDadosProtocoloMarinha())
+                    <section class="border-b border-violet-200/90 bg-gradient-to-br from-violet-50/95 via-white to-violet-100/50 px-5 py-5 sm:px-7 dark:border-violet-800/45 dark:from-violet-950/40 dark:via-slate-900 dark:to-violet-950/25">
+                        <div class="mb-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/35 dark:text-amber-100" x-show="faltaProtocolo" x-cloak>
+                            <x-processo-protocolo-marinha-alerta-icon class="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                            <p>{{ __('Registe o número e a data de protocolo da Marinha para esta etapa.') }}</p>
+                        </div>
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h2 class="text-base font-semibold text-violet-950 dark:text-violet-100">{{ __('Protocolo da Marinha') }}</h2>
+                                <p class="mt-1 text-xs text-violet-900/80 dark:text-violet-200/90">{{ __('Número e data da protocolação entregues pelo órgão. Pode anexar o comprovativo (PDF ou imagem), opcionalmente. Para gravar na ficha, use «Guardar número e data» (também envia o anexo se tiver escolhido um ficheiro).') }}</p>
+                            </div>
+                        </div>
+                        @can('updateDocumento', $processo)
+                            <form method="POST" action="{{ route('processos.protocolo-marinha.update', $processo) }}" class="mt-4" @submit="saveProtocoloMarinha($event)">
+                                @csrf
+                                @method('PATCH')
+                                <input
+                                    id="marinha_protocolo_anexo"
+                                    x-ref="marinhaProtocoloAnexoInput"
+                                    type="file"
+                                    name="marinha_protocolo_anexo"
+                                    accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                                    class="hidden"
+                                    @change="protoAnexoSyncLocalPreview()"
+                                />
+                                <div class="flex flex-col gap-3 sm:flex-row sm:flex-nowrap sm:items-end">
+                                    <div class="min-w-0 flex-1">
+                                        <x-input-label for="marinha_protocolo_numero" :value="__('Número de protocolo')" class="!mb-1" />
+                                        <x-text-input
+                                            id="marinha_protocolo_numero"
+                                            name="marinha_protocolo_numero"
+                                            type="text"
+                                            class="mt-0 block w-full"
+                                            :value="old('marinha_protocolo_numero', $processo->marinha_protocolo_numero)"
+                                            autocomplete="off"
+                                        />
+                                    </div>
+                                    <div class="w-full shrink-0 sm:w-40">
+                                        <x-input-label for="marinha_protocolo_data" :value="__('Data da protocolação')" class="!mb-1" />
+                                        <x-text-input
+                                            id="marinha_protocolo_data"
+                                            name="marinha_protocolo_data"
+                                            type="date"
+                                            class="mt-0 block w-full"
+                                            :value="old('marinha_protocolo_data', $processo->marinha_protocolo_data?->format('Y-m-d'))"
+                                        />
+                                    </div>
+                                    <div class="flex w-full shrink-0 flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-start sm:pb-0.5">
+                                        <button
+                                            type="button"
+                                            class="inline-flex size-[2.75rem] shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                            title="{{ __('Anexar') }}"
+                                            aria-label="{{ __('Anexar') }}"
+                                            @click="$refs.marinhaProtocoloAnexoInput.click()"
+                                        >
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.009-.01-.01m7.364-7.364L12 10.5" /></svg>
+                                        </button>
+                                        <a
+                                            href="#"
+                                            role="button"
+                                            tabindex="0"
+                                            class="nx-processo-protocolo-submit inline-flex size-[2.75rem] shrink-0 cursor-pointer items-center justify-center rounded-lg bg-violet-600 !text-white no-underline shadow-sm hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2 focus:ring-offset-white dark:bg-violet-600 dark:hover:bg-violet-500 dark:focus:ring-offset-slate-900"
+                                            x-bind:class="{ 'pointer-events-none cursor-not-allowed opacity-60': protoBusy }"
+                                            x-bind:aria-busy="protoBusy"
+                                            x-bind:aria-disabled="protoBusy"
+                                            x-bind:aria-label="protoBusy ? @js(__('A guardar na ficha…')) : @js(__('Guardar número, data e anexo do protocolo da Marinha na ficha'))"
+                                            x-bind:title="protoBusy ? @js(__('A guardar na ficha…')) : @js(__('Guardar número e data'))"
+                                            @click.prevent="if (!protoBusy) $el.closest('form').requestSubmit()"
+                                            @keydown.enter.prevent="if (!protoBusy) $el.closest('form').requestSubmit()"
+                                            @keydown.space.prevent="if (!protoBusy) $el.closest('form').requestSubmit()"
+                                        >
+                                            <span class="sr-only">{{ __('Guardar número e data') }}</span>
+                                            {{-- Disquete «guardar» (traço branco via currentColor + nx-processo-protocolo-submit) --}}
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-6 w-6 shrink-0"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                stroke-width="1.75"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                aria-hidden="true"
+                                                focusable="false"
+                                                x-show="!protoBusy"
+                                            >
+                                                <path d="M6 4h10l4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
+                                                <path d="M14 4v4H8V4" />
+                                                <path d="M8.25 12h7.5v6.25H8.25z" />
+                                            </svg>
+                                            <svg
+                                                class="h-5 w-5 shrink-0 animate-spin"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                aria-hidden="true"
+                                                x-cloak
+                                                x-show="protoBusy"
+                                            >
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="mt-4 w-full max-w-2xl space-y-2">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <img
+                                            x-show="protoAnexoLocalIsImage && protoAnexoLocalPreviewUrl"
+                                            x-cloak
+                                            :src="protoAnexoLocalPreviewUrl"
+                                            alt=""
+                                            class="h-9 w-9 shrink-0 rounded-md object-cover ring-1 ring-slate-200 dark:ring-slate-600"
+                                        />
+                                        <span
+                                            x-show="protoAnexoLocalNome"
+                                            x-cloak
+                                            class="max-w-[min(100%,14rem)] truncate text-sm font-medium text-slate-800 dark:text-slate-200"
+                                            x-text="protoAnexoLocalNome"
+                                        ></span>
+                                        <span x-show="protoAnexoLocalNome" x-cloak class="text-xs text-slate-500 dark:text-slate-400">{{ __('(ainda não guardado — use «Guardar número e data»)') }}</span>
+                                        <a
+                                            x-show="!protoAnexoLocalNome && protoAnexoUrl && protoAnexoNome"
+                                            x-cloak
+                                            :href="protoAnexoUrl"
+                                            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title="{{ __('Visualizar') }}"
+                                            aria-label="{{ __('Visualizar') }}"
+                                        >
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                                        </a>
+                                        <a
+                                            x-show="!protoAnexoLocalNome && protoAnexoUrl && protoAnexoNome"
+                                            x-cloak
+                                            :href="protoAnexoUrl"
+                                            class="max-w-[min(100%,18rem)] truncate text-sm font-medium text-indigo-600 underline decoration-indigo-600/30 underline-offset-2 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            x-text="protoAnexoNome"
+                                        >{{ $processo->marinha_protocolo_anexo_original_name }}</a>
+                                        <span x-show="!protoAnexoLocalNome && protoAnexoUrl && protoAnexoNome" x-cloak class="text-xs text-slate-500 dark:text-slate-400">{{ __('(na ficha)') }}</span>
+                                    </div>
+                                    <label x-show="protoAnexoUrl" x-cloak class="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                        <input type="checkbox" name="remover_marinha_protocolo_anexo" value="1" class="rounded border-slate-300 text-violet-600 shadow-sm focus:ring-violet-500 dark:border-slate-600 dark:bg-slate-800 dark:focus:ring-violet-500" />
+                                        <span>{{ __('Remover o comprovativo anexado') }}</span>
+                                    </label>
+                                </div>
+                                <p x-show="protoOk" x-cloak class="mt-2 text-sm font-medium text-emerald-700 dark:text-emerald-400" x-text="protoOk"></p>
+                                <p x-show="protoErrNumero" x-cloak class="mt-2 text-sm text-red-600 dark:text-red-400" x-text="protoErrNumero"></p>
+                                <p x-show="protoErrData" x-cloak class="mt-2 text-sm text-red-600 dark:text-red-400" x-text="protoErrData"></p>
+                                <p x-show="protoErrAnexo" x-cloak class="mt-2 text-sm text-red-600 dark:text-red-400" x-text="protoErrAnexo"></p>
+                            </form>
+                        @else
+                            <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                                <div>
+                                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Número de protocolo') }}</dt>
+                                    <dd class="mt-0.5 font-medium text-slate-900 dark:text-slate-100">{{ filled($processo->marinha_protocolo_numero) ? $processo->marinha_protocolo_numero : '—' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-slate-500 dark:text-slate-400">{{ __('Data da protocolação') }}</dt>
+                                    <dd class="mt-0.5 font-medium text-slate-900 dark:text-slate-100">{{ $processo->marinha_protocolo_data?->format('d/m/Y') ?? '—' }}</dd>
+                                </div>
+                                @if (filled($processo->marinha_protocolo_anexo_path))
+                                    <div class="sm:col-span-2">
+                                        <dt class="text-slate-500 dark:text-slate-400">{{ __('Comprovativo do protocolo') }}</dt>
+                                        <dd class="mt-0.5">
+                                            <a href="{{ route('processos.protocolo-marinha.anexo', $processo) }}" class="font-medium text-indigo-600 underline decoration-indigo-600/30 underline-offset-2 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300" target="_blank" rel="noopener noreferrer">{{ $processo->marinha_protocolo_anexo_original_name ?: __('Descarregar') }}</a>
+                                        </dd>
+                                    </div>
+                                @endif
+                            </dl>
+                        @endcan
+                    </section>
+                @endif
+
                 @if ($motivoBloqueio)
                     <div class="mx-5 my-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:mx-7 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
                         <div class="flex gap-3">
@@ -155,7 +493,7 @@
                 {{-- Checklist (linha compacta como referência visual) --}}
                 <section class="pb-2">
                     <h2 class="flex items-center gap-2 border-b border-slate-100 px-5 py-3.5 text-base font-semibold text-indigo-950 sm:px-7 dark:border-slate-800 dark:text-indigo-200">
-                        <svg class="h-6 w-6 shrink-0 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.362-.941-2.544-2.25-2.894a48.14 48.14 0 0 0-.75-.06V5.25c0 .621-.504 1.125-1.125 1.125H5.625A1.125 1.125 0 0 1 4.5 5.25v6.108c0 1.362.941 2.544 2.25 2.894.25.082.504.158.75.06M9 12H4.5A2.25 2.25 0 0 1 2.25 9.75v-6A2.25 2.25 0 0 1 4.5 1.125h15A2.25 2.25 0 0 1 21.75 3v6a2.25 2.25 0 0 1-2.25 2.25H18m-10.5-6h7.5m-7.5 6h7.5" /></svg>
+                        <svg class="h-6 w-6 shrink-0 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 4.5h12M3.75 6.75h.008v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.008v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 4.5h.008v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
                         {{ __('Checklist, orientação CNH/atestado e anexos') }}
                     </h2>
                     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -204,86 +542,108 @@
                                     && \App\Support\ChecklistDocumentoModelo::satisfeitoViaModeloOuDeclaracaoLegada($doc))
                                     ? $urlModeloRender
                                     : null;
+                                $nxChecklistIconeVerdeFicheiro = $st === \App\Enums\ProcessoDocumentoStatus::Fisico
+                                    || ($st === \App\Enums\ProcessoDocumentoStatus::Enviado && $doc->anexos->isNotEmpty());
+                                $nxChecklistIconeTitulo = $nxChecklistIconeVerdeFicheiro
+                                    ? $st->label()
+                                    : ($st === \App\Enums\ProcessoDocumentoStatus::Enviado
+                                        ? __('Enviado sem ficheiro anexado nesta linha; o visto verde aparece após anexar ou marcar como físico.')
+                                        : $st->label());
                             @endphp
                             <li class="px-5 py-4 sm:px-7">
                                 <div class="flex items-start gap-3 sm:gap-4">
-                                    <span class="relative mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center" title="{{ $st->label() }}">
-                                        @if ($st === \App\Enums\ProcessoDocumentoStatus::Enviado || $st === \App\Enums\ProcessoDocumentoStatus::Fisico)
-                                            <svg class="h-7 w-7 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                    <span
+                                        class="relative mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center"
+                                        title="{{ $nxChecklistIconeTitulo }}"
+                                        aria-label="{{ $nxChecklistIconeTitulo }}"
+                                    >
+                                        @if ($nxChecklistIconeVerdeFicheiro)
+                                            <svg class="h-6 w-6 text-emerald-600 dark:text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
                                         @elseif ($st === \App\Enums\ProcessoDocumentoStatus::Dispensado)
-                                            <svg class="h-7 w-7 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" /></svg>
+                                            <svg class="h-6 w-6 text-slate-400 dark:text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" />
+                                            </svg>
                                         @else
-                                            <svg class="h-7 w-7 text-amber-500 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                            <svg class="h-6 w-6 text-amber-500 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
                                         @endif
                                     </span>
                                     <div class="min-w-0 flex-1">
-                                        <p class="py-2 text-sm font-medium leading-snug text-slate-800 dark:text-slate-200">
-                                            {{ $doc->documentoTipo->nome }}
-                                        </p>
+                                        <div class="flex flex-wrap items-start gap-x-2 gap-y-1.5 py-2">
+                                            <p class="min-w-0 flex-1 text-sm font-medium leading-snug text-slate-800 dark:text-slate-200">
+                                                {{ $doc->documentoTipo->nome }}
+                                            </p>
+                                            @if ($st === \App\Enums\ProcessoDocumentoStatus::Fisico)
+                                                <span
+                                                    class="inline-flex shrink-0 items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-900 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-950/45 dark:text-emerald-100"
+                                                    title="{{ __('Documento marcado como entrega física (em papel ou presencial), sem anexo digital nesta linha.') }}"
+                                                >
+                                                    {{ __('Físico') }}
+                                                </span>
+                                            @elseif ($st === \App\Enums\ProcessoDocumentoStatus::Enviado && $doc->anexos->isNotEmpty())
+                                                <span
+                                                    class="inline-flex shrink-0 items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-900 shadow-sm dark:border-emerald-800/50 dark:bg-emerald-950/45 dark:text-emerald-100"
+                                                    title="{{ __('Documento com ficheiro anexado nesta linha.') }}"
+                                                >
+                                                    {{ __('Anexado') }}
+                                                </span>
+                                            @endif
+                                        </div>
                                         @if (\App\Support\ChaChecklistDocumentoCodigos::isCnhComValidade($codigoTipo))
-                                            @can('updateDocumento', $processo)
-                                                <form method="POST" action="{{ route('processos.documentos.update', [$processo, $doc]) }}" class="mt-2 flex flex-wrap items-center gap-2">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <input type="hidden" name="status" value="{{ $st->value }}" />
-                                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-400" for="nx-validade-cnh-{{ $doc->id }}">{{ __('Validade da CNH') }}</label>
-                                                    <input
-                                                        type="text"
-                                                        id="nx-validade-cnh-{{ $doc->id }}"
-                                                        name="data_validade_documento"
-                                                        value="{{ $doc->data_validade_documento?->format('d/m/Y') }}"
-                                                        inputmode="numeric"
-                                                        maxlength="10"
-                                                        autocomplete="off"
-                                                        placeholder="dd/mm/aaaa"
-                                                        data-nx-mask="date-br"
-                                                        class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 shadow-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-                                                    />
-                                                    <button type="submit" class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-                                                        {{ __('Guardar validade') }}
-                                                    </button>
-                                                </form>
-                                            @endcan
+                                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Se existir CNH na ficha do cliente, ela é copiada para este processo ao abrir a ficha. Pode também anexar outra cópia abaixo.') }}</p>
+                                        @endif
+                                        @if ($isResidenciaItem || $codigoTipo === \App\Support\Normam211DocumentoCodigos::CHA_COMPROVANTE_RESIDENCIA_212_1C_LEGACY)
+                                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Se existir comprovante de endereço na ficha do cliente, ele é copiado automaticamente para este processo (exceto se usar só a declaração por modelo).') }}</p>
+                                        @endif
+                                        @if ($codigoTipo === 'CHA_CARTEIRA_EXISTENTE' || $codigoTipo === 'CHA_OU_DECL_EXTRAVIO_5D')
+                                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Se a CHA estiver anexada na habilitação do cliente, a cópia é trazida para este processo ao abrir a ficha.') }}</p>
+                                        @endif
+                                        @if (\App\Support\ChecklistDocumentoMultiplosAnexos::permite($codigoTipo))
+                                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Se a embarcação do processo já tiver foto de través e de popa na ficha, este item fica concluído; pode anexar mais fotos aqui se precisar.') }}</p>
                                         @endif
                                         @if (\App\Support\ChaChecklistDocumentoCodigos::isAtestadoMedicoPsicofisico($codigoTipo) && $st === \App\Enums\ProcessoDocumentoStatus::Dispensado)
-                                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Dispensado automaticamente: CNH válida anexada com data de validade em vigor.') }}</p>
+                                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Dispensado automaticamente: há CNH anexada no processo ou na ficha do cliente.') }}</p>
                                         @endif
                                     </div>
                                     <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
                                         @if ($st === \App\Enums\ProcessoDocumentoStatus::Pendente)
                                             @can('updateDocumento', $processo)
                                                 @if ($urlModeloRender && $doc->preenchido_via_modelo)
-                                                    @php
-                                                        $urlModeloPrint = $urlModeloRender.(str_contains($urlModeloRender, '?') ? '&' : '?').'print=1';
-                                                        $urlModeloPdf = $urlModeloRender.(str_contains($urlModeloRender, '?') ? '&' : '?').'format=pdf';
-                                                        $urlModeloDoc = $urlModeloRender.(str_contains($urlModeloRender, '?') ? '&' : '?').'format=doc';
-                                                        $nxBaixarId = 'nx-baixar-modelo-'.$doc->id;
-                                                    @endphp
                                                     <a
                                                         href="{{ $urlModeloRender }}"
                                                         target="_blank"
                                                         rel="noopener"
-                                                        class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/50 dark:text-indigo-200"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/50 dark:text-indigo-200"
+                                                        title="{{ __('Abrir modelo') }}"
+                                                        aria-label="{{ __('Abrir modelo') }}"
                                                     >
-                                                        <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                                                        {{ __('Abrir modelo') }}
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                                                     </a>
-                                                    <label class="relative inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
-                                                        <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                                                        <span>{{ __('Baixar') }}</span>
-                                                        <select
-                                                            id="{{ $nxBaixarId }}"
-                                                            aria-label="{{ __('Baixar') }}"
-                                                            class="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
-                                                            onchange="const v=this.value; if(v){ window.open(v,'_blank','noopener'); } this.selectedIndex=0;"
-                                                        >
-                                                            <option value="" selected>{{ __('Baixar') }}</option>
-                                                            <option value="{{ $urlModeloPdf }}">{{ __('PDF') }}</option>
-                                                            <option value="{{ $urlModeloDoc }}">{{ __('DOC') }}</option>
-                                                            <option value="{{ $urlModeloPrint }}">{{ __('Imprimir') }}</option>
-                                                        </select>
-                                                        <svg class="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                                    </label>
+                                                    @if ($nxFichaChecklistMostrarBaixarModelo)
+                                                        @php
+                                                            $urlModeloPrint = $urlModeloRender.(str_contains($urlModeloRender, '?') ? '&' : '?').'print=1';
+                                                            $urlModeloPdf = $urlModeloRender.(str_contains($urlModeloRender, '?') ? '&' : '?').'format=pdf';
+                                                            $urlModeloDoc = $urlModeloRender.(str_contains($urlModeloRender, '?') ? '&' : '?').'format=doc';
+                                                            $nxBaixarId = 'nx-baixar-modelo-'.$doc->id;
+                                                        @endphp
+                                                        <label class="relative inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" title="{{ __('Baixar como PDF, DOC ou para impressão') }}">
+                                                            <svg class="pointer-events-none h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                                                            <select
+                                                                id="{{ $nxBaixarId }}"
+                                                                aria-label="{{ __('Baixar como PDF, DOC ou para impressão') }}"
+                                                                class="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
+                                                                onchange="const v=this.value; if(v){ window.open(v,'_blank','noopener'); } this.selectedIndex=0;"
+                                                            >
+                                                                <option value="" selected>{{ __('Baixar') }}</option>
+                                                                <option value="{{ $urlModeloPdf }}">{{ __('PDF') }}</option>
+                                                                <option value="{{ $urlModeloDoc }}">{{ __('DOC') }}</option>
+                                                                <option value="{{ $urlModeloPrint }}">{{ __('Imprimir') }}</option>
+                                                            </select>
+                                                        </label>
+                                                    @endif
                                                 @endif
                                                 @if (\App\Support\ChecklistDocumentoModelo::tipoTemModelo($doc->documentoTipo) && ! $isResidenciaItem && ! $isAnexo5hItem && ! $isAnexo5dItem && ! $isAnexo3dItem)
                                                     <form method="POST" action="{{ route('processos.documentos.update', [$processo, $doc]) }}" class="inline">
@@ -291,8 +651,8 @@
                                                         @method('PATCH')
                                                         <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Enviado->value }}" />
                                                         <input type="hidden" name="preenchido_via_modelo" value="1" />
-                                                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 shadow-sm hover:bg-teal-100 dark:border-teal-900/40 dark:bg-teal-950/50 dark:text-teal-200">
-                                                            {{ __('Gerar') }}
+                                                        <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-900 shadow-sm hover:bg-teal-100 dark:border-teal-900/40 dark:bg-teal-950/50 dark:text-teal-200" title="{{ __('Conclui o item pelo preenchimento digital do modelo. Para ver o documento, use Visualizar ou Abrir modelo. Para anexar o ficheiro assinado ou entrega em papel, use Anexar ou Físico.') }}" aria-label="{{ __('Gerar') }}">
+                                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
                                                         </button>
                                                     </form>
                                                 @endif
@@ -302,8 +662,8 @@
                                                         @method('PATCH')
                                                         <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Enviado->value }}" />
                                                         <input type="hidden" name="declaracao_residencia_2g" value="1" />
-                                                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-900 shadow-sm hover:bg-sky-100 dark:border-sky-900/40 dark:bg-sky-950/50 dark:text-sky-200">
-                                                            {{ __('Declaração') }}
+                                                        <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-900 shadow-sm hover:bg-sky-100 dark:border-sky-900/40 dark:bg-sky-950/50 dark:text-sky-200" title="{{ __('Declaração') }}" aria-label="{{ __('Declaração') }}">
+                                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
                                                         </button>
                                                     </form>
                                                 @endif
@@ -313,8 +673,8 @@
                                                         @method('PATCH')
                                                         <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Enviado->value }}" />
                                                         <input type="hidden" name="declaracao_anexo_5h" value="1" />
-                                                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-950/50 dark:text-violet-200">
-                                                            {{ __('Requerimento') }}
+                                                        <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-950/50 dark:text-violet-200" title="{{ __('Requerimento') }}" aria-label="{{ __('Requerimento') }}">
+                                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
                                                         </button>
                                                     </form>
                                                 @endif
@@ -324,8 +684,8 @@
                                                         @method('PATCH')
                                                         <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Enviado->value }}" />
                                                         <input type="hidden" name="declaracao_anexo_5d" value="1" />
-                                                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-950/50 dark:text-violet-200">
-                                                            {{ __('Declaração') }}
+                                                        <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-950/50 dark:text-violet-200" title="{{ __('Declaração') }}" aria-label="{{ __('Declaração') }}">
+                                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
                                                         </button>
                                                     </form>
                                                 @endif
@@ -335,26 +695,24 @@
                                                         @method('PATCH')
                                                         <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Enviado->value }}" />
                                                         <input type="hidden" name="declaracao_anexo_3d" value="1" />
-                                                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-950/50 dark:text-violet-200">
-                                                            {{ __('Declaração') }} <span class="font-normal opacity-80">(NORMAM 212)</span>
+                                                        <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 text-violet-900 shadow-sm hover:bg-violet-100 dark:border-violet-900/40 dark:bg-violet-950/50 dark:text-violet-200" title="{{ __('Declaração') }} (NORMAM 212)" aria-label="{{ __('Declaração') }} (NORMAM 212)">
+                                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
                                                         </button>
                                                     </form>
                                                 @endif
                                                 <form method="POST" action="{{ route('processos.documentos.anexos.store', [$processo, $doc]) }}" enctype="multipart/form-data" class="inline">
                                                     @csrf
                                                     <input type="file" name="arquivos[]" multiple class="hidden" accept="{{ \App\Support\ChecklistDocumentoMultiplosAnexos::permite($codigoTipo) ? '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp' : '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,application/pdf,image/*' }}" id="nx-ficha-file-{{ $doc->id }}" onchange="this.form.requestSubmit()" />
-                                                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" onclick="document.getElementById('nx-ficha-file-{{ $doc->id }}').click()">
-                                                        <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m0 0 .01.01m7.364-7.364L12 10.5" /></svg>
-                                                        {{ __('Anexar') }}
+                                                    <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" title="{{ __('Anexar') }}" aria-label="{{ __('Anexar') }}" onclick="document.getElementById('nx-ficha-file-{{ $doc->id }}').click()">
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.009-.01-.01m7.364-7.364L12 10.5" /></svg>
                                                     </button>
                                                 </form>
                                                 <form method="POST" action="{{ route('processos.documentos.update', [$processo, $doc]) }}" class="inline">
                                                     @csrf
                                                     @method('PATCH')
                                                     <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Fisico->value }}" />
-                                                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/50 dark:text-indigo-200">
-                                                        <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                                                        {{ __('Físico') }}
+                                                    <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/50 dark:text-indigo-200" title="{{ __('Físico') }}" aria-label="{{ __('Físico') }}">
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><path d="M14 2v6h6" /><path d="M10 9H8M16 13H8M16 17H8M16 11H8M16 15H8M13 19H8" /></svg>
                                                     </button>
                                                 </form>
                                             @endcan
@@ -367,10 +725,11 @@
                                                                 href="{{ $anexo->urlPublica() }}"
                                                                 target="_blank"
                                                                 rel="noopener"
-                                                                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                                                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                                                                title="{{ $anexo->nome_original }}"
+                                                                aria-label="{{ __('Visualizar') }}: {{ $anexo->nome_original }}"
                                                             >
-                                                                <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                                                                {{ \Illuminate\Support\Str::limit($anexo->nome_original, 36) }}
+                                                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                                                             </a>
                                                             @can('updateDocumento', $processo)
                                                                 <form
@@ -381,8 +740,8 @@
                                                                 >
                                                                     @csrf
                                                                     @method('DELETE')
-                                                                    <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-900 shadow-sm hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
-                                                                        {{ __('Remover') }}
+                                                                    <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-900 shadow-sm hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200" title="{{ __('Remover') }}" aria-label="{{ __('Remover') }}">
+                                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
                                                                     </button>
                                                                 </form>
                                                             @endcan
@@ -393,64 +752,114 @@
                                                         <form method="POST" action="{{ route('processos.documentos.anexos.store', [$processo, $doc]) }}" enctype="multipart/form-data" class="inline">
                                                             @csrf
                                                             <input type="file" name="arquivos[]" multiple class="hidden" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" id="nx-ficha-file-mais-{{ $doc->id }}" onchange="this.form.requestSubmit()" />
-                                                            <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" onclick="document.getElementById('nx-ficha-file-mais-{{ $doc->id }}').click()">
-                                                                <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m0 0 .01.01m7.364-7.364L12 10.5" /></svg>
-                                                                {{ __('Anexar mais') }}
+                                                            <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" title="{{ __('Anexar mais') }}" aria-label="{{ __('Anexar mais') }}" onclick="document.getElementById('nx-ficha-file-mais-{{ $doc->id }}').click()">
+                                                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                                                             </button>
                                                         </form>
                                                     @endcan
                                                 </div>
                                             @else
-                                            <a
-                                                href="{{ $doc->anexos->first()->urlPublica() }}"
-                                                target="_blank"
-                                                rel="noopener"
-                                                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-                                            >
-                                                <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                                                {{ __('Visualizar') }}
-                                            </a>
+                                                <div class="flex max-w-md flex-col items-end gap-2">
+                                                    <div class="flex flex-wrap items-center justify-end gap-2">
+                                                        <a
+                                                            href="{{ $doc->anexos->first()->urlPublica() }}"
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                                                            title="{{ __('Visualizar') }}"
+                                                            aria-label="{{ __('Visualizar') }}"
+                                                        >
+                                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                                                        </a>
+                                                        @can('updateDocumento', $processo)
+                                                            <form
+                                                                method="POST"
+                                                                action="{{ $doc->anexos->first()->opaqueDestroyUrl() }}"
+                                                                class="inline"
+                                                                onsubmit="return confirm(@json(__('Remover este anexo?')))"
+                                                            >
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-900 shadow-sm hover:bg-red-100 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200" title="{{ __('Excluir anexo') }}" aria-label="{{ __('Excluir anexo') }}">
+                                                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                                                                </button>
+                                                            </form>
+                                                        @endcan
+                                                    </div>
+                                                </div>
                                             @endif
                                         @elseif ($urlVisualizarModeloLinha)
-                                            @php
-                                                $urlModeloPrint = $urlVisualizarModeloLinha.(str_contains($urlVisualizarModeloLinha, '?') ? '&' : '?').'print=1';
-                                                $urlModeloPdf = $urlVisualizarModeloLinha.(str_contains($urlVisualizarModeloLinha, '?') ? '&' : '?').'format=pdf';
-                                                $urlModeloDoc = $urlVisualizarModeloLinha.(str_contains($urlVisualizarModeloLinha, '?') ? '&' : '?').'format=doc';
-                                                $nxBaixarId = 'nx-baixar-modelo-v-'.$doc->id;
-                                            @endphp
                                             <a
                                                 href="{{ $urlVisualizarModeloLinha }}"
                                                 target="_blank"
                                                 rel="noopener"
-                                                class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/50 dark:text-indigo-200"
+                                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/50 dark:text-indigo-200"
+                                                title="{{ __('Abrir modelo') }}"
+                                                aria-label="{{ __('Abrir modelo') }}"
                                             >
-                                                <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                                                {{ __('Abrir modelo') }}
+                                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                                             </a>
-                                            <label class="relative inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
-                                                <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-                                                <span>{{ __('Baixar') }}</span>
-                                                <select
-                                                    id="{{ $nxBaixarId }}"
-                                                    aria-label="{{ __('Baixar') }}"
-                                                    class="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
-                                                    onchange="const v=this.value; if(v){ window.open(v,'_blank','noopener'); } this.selectedIndex=0;"
-                                                >
-                                                    <option value="" selected>{{ __('Baixar') }}</option>
-                                                    <option value="{{ $urlModeloPdf }}">{{ __('PDF') }}</option>
-                                                    <option value="{{ $urlModeloDoc }}">{{ __('DOC') }}</option>
-                                                    <option value="{{ $urlModeloPrint }}">{{ __('Imprimir') }}</option>
-                                                </select>
-                                                <svg class="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                            </label>
+                                            @if ($nxFichaChecklistMostrarBaixarModelo)
+                                                @php
+                                                    $urlModeloPrint = $urlVisualizarModeloLinha.(str_contains($urlVisualizarModeloLinha, '?') ? '&' : '?').'print=1';
+                                                    $urlModeloPdf = $urlVisualizarModeloLinha.(str_contains($urlVisualizarModeloLinha, '?') ? '&' : '?').'format=pdf';
+                                                    $urlModeloDoc = $urlVisualizarModeloLinha.(str_contains($urlVisualizarModeloLinha, '?') ? '&' : '?').'format=doc';
+                                                    $nxBaixarId = 'nx-baixar-modelo-v-'.$doc->id;
+                                                @endphp
+                                                <label class="relative inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" title="{{ __('Baixar como PDF, DOC ou para impressão') }}">
+                                                    <svg class="pointer-events-none h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                                                    <select
+                                                        id="{{ $nxBaixarId }}"
+                                                        aria-label="{{ __('Baixar como PDF, DOC ou para impressão') }}"
+                                                        class="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
+                                                        onchange="const v=this.value; if(v){ window.open(v,'_blank','noopener'); } this.selectedIndex=0;"
+                                                    >
+                                                        <option value="" selected>{{ __('Baixar') }}</option>
+                                                        <option value="{{ $urlModeloPdf }}">{{ __('PDF') }}</option>
+                                                        <option value="{{ $urlModeloDoc }}">{{ __('DOC') }}</option>
+                                                        <option value="{{ $urlModeloPrint }}">{{ __('Imprimir') }}</option>
+                                                    </select>
+                                                </label>
+                                            @endif
+                                            @can('updateDocumento', $processo)
+                                                <form method="POST" action="{{ route('processos.documentos.anexos.store', [$processo, $doc]) }}" enctype="multipart/form-data" class="inline">
+                                                    @csrf
+                                                    <input type="file" name="arquivos[]" multiple class="hidden" accept="{{ \App\Support\ChecklistDocumentoMultiplosAnexos::permite($codigoTipo) ? '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp' : '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,application/pdf,image/*' }}" id="nx-ficha-file-modelo-{{ $doc->id }}" onchange="this.form.requestSubmit()" />
+                                                    <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" title="{{ __('Anexar') }}" aria-label="{{ __('Anexar') }}" onclick="document.getElementById('nx-ficha-file-modelo-{{ $doc->id }}').click()">
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.009-.01-.01m7.364-7.364L12 10.5" /></svg>
+                                                    </button>
+                                                </form>
+                                                <form method="POST" action="{{ route('processos.documentos.update', [$processo, $doc]) }}" class="inline">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Fisico->value }}" />
+                                                    <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/50 dark:text-indigo-200" title="{{ __('Físico') }}" aria-label="{{ __('Físico') }}">
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><path d="M14 2v6h6" /><path d="M10 9H8M16 13H8M16 17H8M16 11H8M16 15H8M13 19H8" /></svg>
+                                                    </button>
+                                                </form>
+                                                @if ($nxFichaChecklistMostrarAnularCorrigirModelo)
+                                                    <form
+                                                        method="POST"
+                                                        action="{{ route('processos.documentos.update', [$processo, $doc]) }}"
+                                                        class="inline"
+                                                        onsubmit="return confirm(@json(__('Anular o preenchimento por modelo e voltar a «Pendente»? Pode gerar de novo ou anexar outro documento.')))"
+                                                    >
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Pendente->value }}" />
+                                                        <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-950 shadow-sm hover:bg-amber-100 dark:border-amber-900/40 dark:bg-amber-950/45 dark:text-amber-100" title="{{ __('Anular / corrigir') }}" aria-label="{{ __('Anular / corrigir') }}">
+                                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            @endcan
                                         @elseif ($st === \App\Enums\ProcessoDocumentoStatus::Dispensado && ! $isResidenciaItem && ! $isAnexo5hItem && ! $isAnexo5dItem && ! $isAnexo3dItem)
                                             @can('updateDocumento', $processo)
                                                 <form method="POST" action="{{ route('processos.documentos.anexos.store', [$processo, $doc]) }}" enctype="multipart/form-data" class="inline">
                                                     @csrf
                                                     <input type="file" name="arquivos[]" multiple class="hidden" accept="{{ \App\Support\ChecklistDocumentoMultiplosAnexos::permite($codigoTipo) ? '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp' : '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,application/pdf,image/*' }}" id="nx-ficha-file-{{ $doc->id }}" onchange="this.form.requestSubmit()" />
-                                                    <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" onclick="document.getElementById('nx-ficha-file-{{ $doc->id }}').click()">
-                                                        <svg class="h-3.5 w-3.5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m0 0 .01.01m7.364-7.364L12 10.5" /></svg>
-                                                        {{ __('Anexar') }}
+                                                    <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" title="{{ __('Anexar') }}" aria-label="{{ __('Anexar') }}" onclick="document.getElementById('nx-ficha-file-{{ $doc->id }}').click()">
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.009-.01-.01m7.364-7.364L12 10.5" /></svg>
                                                     </button>
                                                 </form>
                                             @endcan
@@ -471,8 +880,8 @@
                                                     @csrf
                                                     @method('PATCH')
                                                     <input type="hidden" name="status" value="{{ \App\Enums\ProcessoDocumentoStatus::Pendente->value }}" />
-                                                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200">
-                                                        {{ __('Trocar anexo') }}
+                                                    <button type="submit" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200" title="{{ __('Trocar anexo') }}" aria-label="{{ __('Trocar anexo') }}">
+                                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13.5V7.5H13.5M12 5.5l2.5 2-2.5 2" /><path d="M19 10.5v6H10.5M12 15l-2.5 1.5 2.5 1.5" /></svg>
                                                     </button>
                                                 </form>
                                             @endcan

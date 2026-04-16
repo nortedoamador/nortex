@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\DocumentoModelo;
+use App\Models\DocumentoModeloGlobal;
 use App\Models\Empresa;
 use App\Support\DocumentoModeloFicheiroUpload;
 use App\Support\DocumentoModeloPadraoFicheiro;
@@ -65,6 +66,9 @@ class DocumentoModeloController extends Controller
             'conteudo_upload_bruto' => $raw,
             'upload_mapeamento_pendente' => true,
             'mapeamento_upload' => $posUpload['mapeamento_upload'],
+            'documento_modelo_global_id' => null,
+            'personalizado' => true,
+            'global_synced_at' => null,
         ]);
 
         $status = __('Modelo criado. Compare o upload à direita e confirme o mapeamento para gravar variáveis Blade e o ficheiro em disco (:slug).', ['slug' => $base]);
@@ -170,13 +174,18 @@ class DocumentoModeloController extends Controller
         $map = $out['mapeamento_upload'];
         $map['confirmado_em'] = now()->toIso8601String();
 
-        $modelo->update([
+        $patch = [
             'conteudo' => $out['html'],
             'upload_mapeamento_pendente' => false,
             'mapeamento_upload' => $map,
-        ]);
+        ];
+        if ($modelo->documento_modelo_global_id !== null) {
+            $patch['personalizado'] = true;
+            $patch['global_synced_at'] = null;
+        }
+        $modelo->update($patch);
 
-        $diskErr = DocumentoModeloPadraoFicheiro::gravar($modelo->slug, $out['html']);
+        $diskErr = DocumentoModeloPadraoFicheiro::gravarSeModeloEmpresaSemGlobal($modelo, $out['html']);
         $status = __('Mapeamento confirmado. Modelo actualizado e ficheiro gravado em disco.');
         if ($diskErr !== null) {
             $status = __('Mapeamento confirmado na base de dados, mas o ficheiro em disco não foi gravado: :erro', ['erro' => $diskErr]);
@@ -198,12 +207,13 @@ class DocumentoModeloController extends Controller
         DocumentoModeloSincroniaDiscoBd::aplicar($modelo);
 
         $caminhoPadrao = resource_path('views/documento-modelos/defaults/'.$modelo->slug.'.blade.php');
-        $existePadrao = is_readable($caminhoPadrao);
+        $existePadrao = $modelo->documento_modelo_global_id !== null
+            || is_readable($caminhoPadrao);
         $caminhoPadraoRelativo = 'resources/views/documento-modelos/defaults/'.$modelo->slug.'.blade.php';
 
         $normalizarNl = static fn (string $s): string => DocumentoModeloSincroniaDiscoBd::normalizarQuebrasLinha($s);
         $conteudoFicheiroDivergeDaBd = false;
-        if ($existePadrao) {
+        if ($modelo->documento_modelo_global_id === null && is_readable($caminhoPadrao)) {
             $noDisco = @file_get_contents($caminhoPadrao);
             if (is_string($noDisco)) {
                 $conteudoFicheiroDivergeDaBd = $normalizarNl($noDisco) !== $normalizarNl((string) $modelo->conteudo);
@@ -226,7 +236,7 @@ class DocumentoModeloController extends Controller
         $empresaId = TenantEmpresaContext::empresaId($request);
         abort_unless((int) $modelo->empresa_id === $empresaId, 404);
 
-        $diskErr = DocumentoModeloPadraoFicheiro::gravar($modelo->slug, (string) $modelo->conteudo);
+        $diskErr = DocumentoModeloPadraoFicheiro::gravarSeModeloEmpresaSemGlobal($modelo, (string) $modelo->conteudo);
         if ($diskErr !== null) {
             return back()->withErrors(['conteudo' => $diskErr]);
         }
@@ -256,9 +266,14 @@ class DocumentoModeloController extends Controller
         $data['conteudo_upload_bruto'] = null;
         $data['upload_mapeamento_pendente'] = false;
 
+        if ($modelo->documento_modelo_global_id !== null) {
+            $data['personalizado'] = true;
+            $data['global_synced_at'] = null;
+        }
+
         $modelo->update($data);
 
-        $diskErr = DocumentoModeloPadraoFicheiro::gravar($modelo->slug, (string) $data['conteudo']);
+        $diskErr = DocumentoModeloPadraoFicheiro::gravarSeModeloEmpresaSemGlobal($modelo, (string) $data['conteudo']);
         $status = __('Modelo atualizado.');
         if ($diskErr !== null) {
             $status .= ' '.$diskErr;
@@ -299,11 +314,14 @@ class DocumentoModeloController extends Controller
             'conteudo_upload_bruto' => $modelo->conteudo_upload_bruto,
             'upload_mapeamento_pendente' => $modelo->upload_mapeamento_pendente,
             'mapeamento_upload' => $modelo->mapeamento_upload,
+            'documento_modelo_global_id' => null,
+            'personalizado' => true,
+            'global_synced_at' => null,
         ]);
 
         $diskErr = null;
         if (! $novo->upload_mapeamento_pendente) {
-            $diskErr = DocumentoModeloPadraoFicheiro::gravar($slug, (string) $novo->conteudo);
+            $diskErr = DocumentoModeloPadraoFicheiro::gravarSeModeloEmpresaSemGlobal($novo, (string) $novo->conteudo);
         }
         $status = __('Modelo duplicado. Revise o slug e o título antes de usar em produção.');
         if ($novo->upload_mapeamento_pendente) {
@@ -325,20 +343,30 @@ class DocumentoModeloController extends Controller
         $empresaId = TenantEmpresaContext::empresaId($request);
         abort_unless((int) $modelo->empresa_id === $empresaId, 404);
 
-        $path = resource_path('views/documento-modelos/defaults/'.$modelo->slug.'.blade.php');
-        if (! is_readable($path)) {
-            return back()->withErrors(['conteudo' => __('Não existe ficheiro padrão para este slug (:s).', ['s' => $modelo->slug])]);
-        }
+        if ($modelo->documento_modelo_global_id !== null) {
+            $global = DocumentoModeloGlobal::query()->find($modelo->documento_modelo_global_id);
+            if ($global === null) {
+                return back()->withErrors(['conteudo' => __('Modelo global não encontrado.')]);
+            }
+            $conteudo = $global->conteudo;
+        } else {
+            $path = resource_path('views/documento-modelos/defaults/'.$modelo->slug.'.blade.php');
+            if (! is_readable($path)) {
+                return back()->withErrors(['conteudo' => __('Não existe ficheiro padrão para este slug (:s).', ['s' => $modelo->slug])]);
+            }
 
-        $conteudo = file_get_contents($path);
-        if ($conteudo === false) {
-            return back()->withErrors(['conteudo' => __('Não foi possível ler o ficheiro padrão.')]);
+            $conteudo = file_get_contents($path);
+            if ($conteudo === false) {
+                return back()->withErrors(['conteudo' => __('Não foi possível ler o ficheiro padrão.')]);
+            }
         }
 
         $modelo->update([
             'conteudo' => $conteudo,
             'conteudo_upload_bruto' => $conteudo,
             'upload_mapeamento_pendente' => false,
+            'personalizado' => false,
+            'global_synced_at' => $modelo->documento_modelo_global_id !== null ? now() : null,
         ]);
 
         return back()->with('status', __('Conteúdo reposto a partir do modelo padrão do sistema.'));

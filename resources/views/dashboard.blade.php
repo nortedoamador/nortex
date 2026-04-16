@@ -277,39 +277,95 @@
 
         <div class="grid gap-6 pb-8 lg:grid-cols-3">
             <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 class="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-                    <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
-                    {{ __('Agenda') }}
-                </h3>
+                <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                        <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
+                        {{ __('Agenda') }}
+                    </h3>
+                    @if (Auth::user()->hasPermission('empresa.manage'))
+                        <a href="{{ route('admin.empresa.compromissos.index') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Gerir compromissos') }}</a>
+                    @endif
+                </div>
+                <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">{{ __('Reuniões, atendimento na Marinha e aulas náuticas agendadas.') }}</p>
                 <ul class="space-y-3 text-sm">
-                    <li class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                        <p class="font-medium text-slate-800 dark:text-slate-200">{{ __('Navegação básica — Teoria') }}</p>
-                        <p class="mt-1 text-xs text-slate-500">{{ __('Em breve • módulo Aulas') }}</p>
-                    </li>
-                    <li class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40">
-                        <p class="font-medium text-slate-800 dark:text-slate-200">{{ __('Simulado CHA') }}</p>
-                        <p class="mt-1 text-xs text-slate-500">{{ __('Aguardando calendário') }}</p>
-                    </li>
+                    @forelse (($agendaItens ?? []) as $item)
+                        @php
+                            $tone = $item['badge_tone'] ?? 'slate';
+                            $badgeClass = match ($tone) {
+                                'violet' => 'bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-200',
+                                'emerald' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200',
+                                default => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-200',
+                            };
+                        @endphp
+                        <li class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide {{ $badgeClass }}">{{ $item['badge'] }}</span>
+                                @if (! empty($item['href']))
+                                    <a href="{{ $item['href'] }}" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Abrir') }}</a>
+                                @endif
+                            </div>
+                            <p class="mt-1.5 font-medium text-slate-800 dark:text-slate-200">{{ $item['titulo'] }}</p>
+                            <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ $item['meta'] }}</p>
+                        </li>
+                    @empty
+                        <li class="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-950/30 dark:text-slate-400">
+                            {{ __('Nenhum compromisso ou aula futura.') }}
+                            @if (Auth::user()->hasPermission('empresa.manage'))
+                                <a href="{{ route('admin.empresa.compromissos.create') }}" class="mt-2 block font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Adicionar reunião ou dia na Marinha') }}</a>
+                            @endif
+                        </li>
+                    @endforelse
                 </ul>
             </div>
             <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 class="mb-4 text-sm font-semibold text-slate-900 dark:text-white">{{ __('Provas na Marinha') }}</h3>
-                <div class="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 dark:border-indigo-900/40 dark:from-indigo-950/40 dark:to-slate-900">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">{{ __('Exemplo') }}</p>
-                    <p class="mt-2 text-lg font-bold text-slate-900 dark:text-white">{{ __('Prova prática — Arrais') }}</p>
-                    <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ __('Acompanhe datas oficiais no site da Marinha.') }}</p>
+                <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 class="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                        <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
+                        {{ __('Provas na Marinha') }}
+                    </h3>
+                    @if (Auth::user()->hasPermission('processos.view'))
+                        <a href="{{ route('processos.index') }}" class="text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Ver processos') }}</a>
+                    @endif
                 </div>
+                <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">{{ __('Processos em «Aguardando prova» com a data indicada na ficha.') }}</p>
+                <ul class="space-y-3 text-sm">
+                    @if (! Auth::user()->hasPermission('processos.view'))
+                        <li class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-400">
+                            {{ __('Não tem permissão para ver a lista de processos.') }}
+                        </li>
+                    @else
+                        @forelse (($provasMarinhaItens ?? []) as $pv)
+                            <li class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @if (! empty($pv['sem_data']))
+                                        <span class="inline-flex rounded-md bg-slate-200/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-700 dark:bg-slate-700 dark:text-slate-200">{{ __('Sem data') }}</span>
+                                    @elseif (! empty($pv['atrasado']))
+                                        <span class="inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">{{ __('Data passada') }}</span>
+                                    @else
+                                        <span class="inline-flex rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-900 dark:bg-sky-950/50 dark:text-sky-200">{{ __('Agendada') }}</span>
+                                    @endif
+                                    <a href="{{ $pv['href'] }}" class="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Ficha') }}</a>
+                                </div>
+                                <p class="mt-1.5 font-medium text-slate-800 dark:text-slate-200">{{ $pv['titulo'] }}</p>
+                                <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ $pv['meta'] }}</p>
+                            </li>
+                        @empty
+                            <li class="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-950/30 dark:text-slate-400">
+                                {{ __('Nenhum processo em «Aguardando prova».') }}
+                            </li>
+                        @endforelse
+                    @endif
+                </ul>
             </div>
             <div class="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 class="mb-4 text-sm font-semibold text-slate-900 dark:text-white">{{ __('Atividade recente') }}</h3>
-                <ul class="space-y-4 text-sm">
-                    <li class="flex gap-3">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">NX</span>
-                        <div class="min-w-0">
-                            <p class="font-medium text-slate-800 dark:text-slate-200">{{ __('Sistema NorteX') }}</p>
-                            <p class="text-xs text-slate-500">{{ __('Checklist e anexos disponíveis nos processos.') }}</p>
-                            <span class="mt-1 inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-400">{{ __('Dica') }}</span>
-                        </div>
+                <h3 class="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                    <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
+                    {{ __('Atividade recente') }}
+                </h3>
+                <ul class="space-y-3 text-sm">
+                    <li class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                        <p class="font-medium text-slate-800 dark:text-slate-200">{{ __('Histórico da sua conta') }}</p>
+                        <p class="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">{{ __('Em breve') }} <span class="font-normal text-slate-500 dark:text-slate-400">· {{ __('últimas ações e notificações') }}</span></p>
                     </li>
                 </ul>
             </div>

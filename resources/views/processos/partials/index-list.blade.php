@@ -66,6 +66,14 @@
                                         <x-processo-docs-pendente-icon class="h-5 w-5" />
                                     </span>
                                 @endif
+                                @if ($processo->faltaIdentificacaoProtocoloMarinha())
+                                    <span
+                                        class="inline-flex shrink-0 text-orange-500 dark:text-orange-400"
+                                        title="{{ __('Falta indicar o número de protocolo da Marinha. Abra a ficha para registar.') }}"
+                                    >
+                                        <x-processo-protocolo-marinha-alerta-icon class="h-5 w-5" />
+                                    </span>
+                                @endif
                             </div>
                             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 sm:text-[0.8125rem]">
                                 <span class="inline-flex items-center gap-1.5">
@@ -102,55 +110,48 @@
                         </span>
                     </a>
                     <div
-                        class="flex w-full shrink-0 items-center gap-3 border-t border-slate-100 bg-slate-50/50 px-4 py-4 motion-safe:transition-[background-color] motion-safe:duration-300 group-hover:bg-slate-100/70 dark:border-slate-700/80 dark:bg-slate-800/30 dark:group-hover:bg-slate-800/55 sm:w-auto sm:border-l sm:border-t-0 sm:px-0 sm:py-3 sm:pl-3 sm:pr-4"
-                        title="{{ __('Alterar status ou excluir rascunho') }}"
+                        class="flex w-full shrink-0 flex-col gap-3 border-t border-slate-100 bg-slate-50/50 px-4 py-4 motion-safe:transition-[background-color] motion-safe:duration-300 group-hover:bg-slate-100/70 dark:border-slate-700/80 dark:bg-slate-800/30 dark:group-hover:bg-slate-800/55 sm:w-auto sm:flex-row sm:items-center sm:justify-between sm:border-l sm:border-t-0 sm:px-0 sm:py-3 sm:pl-3 sm:pr-4"
+                        title="{{ __('Alterar etapa: menu abaixo, ficha do processo ou em lote.') }}"
                     >
-                        @if (($podeAlterarStatus ?? false))
-                            <form
-                                method="POST"
-                                action="{{ route('processos.status', $processo) }}"
-                                class="relative inline-flex items-center"
-                                data-nx-status-ciencia-form="1"
-                                data-nx-requer-ciencia="{{ ($pendenteDocs && $st === ProcessoStatus::EmMontagem) ? '1' : '0' }}"
-                                data-nx-status-submit-on-change="1"
-                                data-nx-status-atual="{{ $st->value }}"
-                                data-nx-swal-titulo="{{ e($nxTituloSwalPendencias ?? __('Processo com pendências')) }}"
-                                data-nx-ciencia-linha="{{ e($linhaPrincipal) }}"
-                                data-nx-ciencia-frase-pendentes="{{ e($nxFraseCiencia) }}"
-                                data-nx-ciencia-texto-secundario="{{ e($nxCienciaTextoSecundario ?? __('Deseja realmente alterar o status mesmo assim?')) }}"
-                            >
-                                @csrf
-                                @method('PATCH')
-                                <input type="hidden" name="confirmar_ciencia_pendencias_documentais" value="0" autocomplete="off" />
-                                <label class="sr-only" for="status_proc_{{ $processo->id }}">{{ __('Alterar status') }}</label>
-                                <div class="{{ $st->uiListSelectChromeWrapClass() }} mt-1 w-full sm:mt-0 sm:w-44">
-                                    <select
-                                        id="status_proc_{{ $processo->id }}"
-                                        name="status"
-                                        data-nx-processo-list-status="1"
-                                        title="{{ __('Ao escolher outro status, o pedido é enviado automaticamente (pode ser pedida confirmação)') }}"
-                                        class="nx-processo-list-status-select w-full min-w-0 cursor-pointer py-3 pl-4 pr-12 text-left text-sm font-semibold leading-snug motion-safe:transition-all motion-safe:duration-200 motion-safe:active:scale-[0.98] focus-visible:outline-none {{ $st->uiListSelectClasses() }}"
-                                    >
-                                        @foreach ($processo->statusesPermitidosParaAlteracao() as $opt)
-                                            <option
-                                                value="{{ $opt->value }}"
-                                                style="{{ $opt->uiNativeSelectOptionStyle() }}"
-                                                @selected($st === $opt)
-                                            >{{ $opt->label() }}</option>
-                                        @endforeach
-                                    </select>
+                        <div class="flex min-w-0 flex-col gap-2">
+                            @if (($podeAlterarStatus ?? false))
+                                @php
+                                    $nxRequerCienciaList = ($pendenteDocs && $processo->status === ProcessoStatus::EmMontagem) ? '1' : '0';
+                                @endphp
+                                <form
+                                    method="POST"
+                                    action="{{ route('processos.status', $processo) }}"
+                                    class="mt-1 w-full min-w-0 sm:mt-0 sm:w-72 sm:max-w-[min(18rem,100%)]"
+                                    data-nx-status-ciencia-form="1"
+                                    data-nx-requer-ciencia="{{ $nxRequerCienciaList }}"
+                                    data-nx-status-submit-on-change="1"
+                                    data-nx-status-atual="{{ $processo->status->value }}"
+                                    data-nx-swal-titulo="{{ e(__('Processo com pendências')) }}"
+                                    data-nx-ciencia-linha="{{ e($linhaPrincipal) }}"
+                                    data-nx-ciencia-frase-pendentes="{{ e($nxFraseCiencia) }}"
+                                    data-nx-ciencia-texto-secundario="{{ e(__('Deseja realmente alterar o status mesmo assim?')) }}"
+                                >
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="confirmar_ciencia_pendencias_documentais" value="0" autocomplete="off" />
+                                    <x-processo-status-custom-select :processo="$processo" :chrome-wrap-class="$st->uiListSelectChromeWrapClass()" />
+                                </form>
+                            @else
+                                <div class="{{ $st->uiListSelectChromeWrapClass() }} mt-1 w-full min-w-0 sm:mt-0 sm:w-72 sm:max-w-[min(18rem,100%)]" title="{{ __('Status atual (sem permissão para alterar)') }}">
+                                    <div class="{{ $st->uiListReadonlyPillClasses() }} nx-processo-list-status-select flex items-center gap-2 !py-2.5">
+                                        <span class="shrink-0 {{ $st->uiStatusSelectIconClass() }}">
+                                            @include('processos.partials.status-filter-icon', ['status' => $st, 'class' => 'h-5 w-5 shrink-0'])
+                                        </span>
+                                        <span class="min-w-0 flex-1 truncate">{{ $st->label() }}</span>
+                                    </div>
+                                    <span class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 {{ $st->uiListSelectChevronClass() }}" aria-hidden="true">
+                                        <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                        </svg>
+                                    </span>
                                 </div>
-                                <span class="pointer-events-none absolute right-3.5 top-1/2 z-10 -translate-y-1/2 {{ $st->uiListSelectChevronClass() }}" aria-hidden="true">
-                                    <svg class="h-4 w-4 shrink-0 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                                    </svg>
-                                </span>
-                            </form>
-                        @else
-                            <div class="{{ $st->uiListSelectChromeWrapClass() }} mt-1 w-full sm:mt-0 sm:w-44" title="{{ __('Status atual (sem permissão para alterar aqui)') }}">
-                                <span class="{{ $st->uiListReadonlyPillClasses() }} nx-processo-list-status-select pr-12">{{ $st->label() }}</span>
-                            </div>
-                        @endif
+                            @endif
+                        </div>
                         @can('delete', $processo)
                             @if ($st === ProcessoStatus::EmMontagem)
                                 <form

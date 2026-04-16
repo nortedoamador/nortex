@@ -45,6 +45,7 @@ export function registerNovoProcessoModal(Alpine) {
             }
             if (idEl) {
                 idEl.value = '';
+                delete idEl.dataset.clienteRouteKey;
             }
             if (nomeEl) {
                 nomeEl.value = '';
@@ -143,6 +144,12 @@ export function registerNovoProcessoModal(Alpine) {
                 const hid = document.getElementById('modal_proc_cliente_id');
                 if (hid) {
                     hid.value = clienteId;
+                    const rk = p.clienteRouteKey != null && p.clienteRouteKey !== '' ? String(p.clienteRouteKey) : '';
+                    if (rk) {
+                        hid.dataset.clienteRouteKey = rk;
+                    } else {
+                        delete hid.dataset.clienteRouteKey;
+                    }
                 }
                 const nomeEl = document.getElementById('modal_proc_interessado_nome');
                 if (nomeEl && p.clienteNome) {
@@ -171,7 +178,7 @@ export function registerNovoProcessoModal(Alpine) {
                 if (embBlock && typeof window.Alpine.$data === 'function') {
                     const ed = window.Alpine.$data(embBlock);
                     if (ed && typeof ed.loadEmbarcacoes === 'function') {
-                        await ed.loadEmbarcacoes(clienteId);
+                        await ed.loadEmbarcacoes();
                     }
                 }
                 await this.$nextTick();

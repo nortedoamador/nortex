@@ -75,7 +75,15 @@
                                         @endif
                                     @endcan
                                 </div>
-                                <div class="flex flex-1 justify-end self-end">
+                                <div class="flex flex-1 items-center justify-end gap-1.5 self-end">
+                                    @if ($processo->faltaIdentificacaoProtocoloMarinha())
+                                        <span
+                                            class="inline-flex shrink-0 text-amber-500 dark:text-amber-400"
+                                            title="{{ __('Falta indicar o número de protocolo da Marinha.') }}"
+                                        >
+                                            <x-processo-protocolo-marinha-alerta-icon class="h-4 w-4" />
+                                        </span>
+                                    @endif
                                     <x-processo-docs-pendente-badge :processo="$processo" compact short />
                                 </div>
                             </div>

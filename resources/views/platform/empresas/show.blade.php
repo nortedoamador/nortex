@@ -85,8 +85,8 @@
                     <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Modelos e regras de documentos da empresa.') }}</p>
                 </a>
                 <a href="{{ route('platform.empresas.admin.documento-modelos.laboratorio', $empresa) }}" class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900 dark:hover:border-indigo-800">
-                    <p class="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 dark:text-white dark:group-hover:text-indigo-300">{{ __('Laboratório PDF') }}</p>
-                    <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Upload, mapeamento e modelos PDF.') }}</p>
+                    <p class="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 dark:text-white dark:group-hover:text-indigo-300">{{ __('Documentos automatizados') }}</p>
+                    <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Upload, mapeamento e modelos a partir do esqueleto global.') }}</p>
                 </a>
             </div>
         </div>

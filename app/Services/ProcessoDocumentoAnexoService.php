@@ -35,37 +35,73 @@ class ProcessoDocumentoAnexoService
         $documento->refresh();
 
         if ($count > 0) {
-            $documento->loadMissing('documentoTipo');
-            $codigo = (string) ($documento->documentoTipo?->codigo ?? '');
-            $data = [];
-            if ($codigo === Normam211DocumentoCodigos::COMPROVANTE_RESIDENCIA_CEP) {
-                $data['declaracao_residencia_2g'] = false;
-            }
-            if (Normam211DocumentoCodigos::isDeclaracaoAnexo5h($codigo)) {
-                $data['declaracao_anexo_5h'] = false;
-            }
-            if (Normam211DocumentoCodigos::isDeclaracaoAnexo5d($codigo)) {
-                $data['declaracao_anexo_5d'] = false;
-            }
-            if (Normam211DocumentoCodigos::isDeclaracaoAnexo3d($codigo)) {
-                $data['declaracao_anexo_3d'] = false;
-            }
-            if (ChecklistDocumentoModelo::tipoTemModelo($documento->documentoTipo)) {
-                $data['preenchido_via_modelo'] = false;
-            }
-            if (in_array($documento->status, [
-                ProcessoDocumentoStatus::Pendente,
-                ProcessoDocumentoStatus::Fisico,
-                ProcessoDocumentoStatus::Dispensado,
-            ], true)) {
-                $data['status'] = ProcessoDocumentoStatus::Enviado;
-            }
-            if ($data !== []) {
-                $documento->update($data);
-            }
+            $documento->refresh();
+            $this->aplicarEstadoAposNovosAnexos($documento);
         }
 
         return $count;
+    }
+
+    /**
+     * Regista um ficheiro no checklist a partir de conteúdo já lido em claro (ex.: cópia da ficha do cliente).
+     */
+    public function armazenarConteudoPlainCifrado(
+        Processo $processo,
+        ProcessoDocumento $documento,
+        string $plainContents,
+        string $nomeOriginal,
+        string $mime,
+    ): void {
+        $empresaId = (int) $processo->empresa_id;
+        $dir = "processos/{$empresaId}/{$processo->id}/{$documento->id}";
+        $path = EncryptedS3AnexoStorage::storeEncryptedPlainContents($dir, $plainContents);
+
+        $anexo = ProcessoDocumentoAnexo::withoutGlobalScopes()->create([
+            'processo_documento_id' => $documento->id,
+            'disk' => EncryptedS3AnexoStorage::DISK,
+            'path' => $path,
+            'nome_original' => $nomeOriginal,
+            'mime' => $mime,
+            'tamanho' => strlen($plainContents),
+            'extra_validation_status' => AnexoValidacaoStatus::Pendente,
+        ]);
+
+        ValidarAnexoUploadJob::dispatch(ProcessoDocumentoAnexo::class, $anexo->id);
+
+        $documento->refresh();
+        $this->aplicarEstadoAposNovosAnexos($documento);
+    }
+
+    private function aplicarEstadoAposNovosAnexos(ProcessoDocumento $documento): void
+    {
+        $documento->loadMissing('documentoTipo');
+        $codigo = (string) ($documento->documentoTipo?->codigo ?? '');
+        $data = [
+            'satisfeito_via_ficha_embarcacao' => false,
+        ];
+        if ($codigo === Normam211DocumentoCodigos::COMPROVANTE_RESIDENCIA_CEP) {
+            $data['declaracao_residencia_2g'] = false;
+        }
+        if (Normam211DocumentoCodigos::isDeclaracaoAnexo5h($codigo)) {
+            $data['declaracao_anexo_5h'] = false;
+        }
+        if (Normam211DocumentoCodigos::isDeclaracaoAnexo5d($codigo)) {
+            $data['declaracao_anexo_5d'] = false;
+        }
+        if (Normam211DocumentoCodigos::isDeclaracaoAnexo3d($codigo)) {
+            $data['declaracao_anexo_3d'] = false;
+        }
+        if (ChecklistDocumentoModelo::tipoTemModelo($documento->documentoTipo)) {
+            $data['preenchido_via_modelo'] = false;
+        }
+        if (in_array($documento->status, [
+            ProcessoDocumentoStatus::Pendente,
+            ProcessoDocumentoStatus::Fisico,
+            ProcessoDocumentoStatus::Dispensado,
+        ], true)) {
+            $data['status'] = ProcessoDocumentoStatus::Enviado;
+        }
+        $documento->update($data);
     }
 
     public function armazenarUm(Processo $processo, ProcessoDocumento $documento, UploadedFile $file): ProcessoDocumentoAnexo
@@ -105,6 +141,7 @@ class ProcessoDocumentoAnexoService
                 'declaracao_anexo_5d' => false,
                 'declaracao_anexo_3d' => false,
                 'preenchido_via_modelo' => false,
+                'satisfeito_via_ficha_embarcacao' => false,
             ]);
         }
     }

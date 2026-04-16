@@ -1,12 +1,11 @@
 @php
     /** @var \Illuminate\Support\Collection<int, \App\Models\PlatformTipoProcesso> $tipos */
-    /** @var \Illuminate\Support\Collection<int, array{id:int, doc:string, docDigits:string, nome:string}> $clientesSuggest */
+    /** @var \Illuminate\Support\Collection<int, array{id:int, hashid:string, doc:string, docDigits:string, nome:string}> $clientesSuggest */
     /** @var string $tiposExigenciasJson */
     /** @var string $servicosPorCategoriaJson */
     /** @var list<\App\Enums\TipoProcessoCategoria> $categoriasProcesso */
     /** @var string|null $categoriaProcessoOld */
     use App\Models\PlatformTipoProcesso;
-    $habilitacoesOptionsUrlTemplate = url('/clientes/__CID__/habilitacoes-options');
 @endphp
 
 <x-app-layout>
@@ -135,13 +134,15 @@
                                 embarcacoes: [],
                                 loading: false,
                                 erro: '',
-                                async loadEmbarcacoes(clienteId) {
+                                async loadEmbarcacoes() {
                                     this.embarcacoes = [];
                                     this.erro = '';
-                                    if (!clienteId) return;
+                                    const el = document.getElementById('cliente_id');
+                                    const routeKey = el?.dataset?.clienteRouteKey || el?.dataset?.initialClienteRouteKey || '';
+                                    if (!routeKey) return;
                                     this.loading = true;
                                     try {
-                                        const res = await fetch(@js(url('/clientes/__ID__/embarcacoes-options')).replace('__ID__', String(clienteId)), {
+                                        const res = await fetch(@js(route('clientes.embarcacoes.options', ['cliente' => '__NX_CLIENT_HASH__'])).replace('__NX_CLIENT_HASH__', routeKey), {
                                             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                                             credentials: 'same-origin',
                                         });
@@ -157,8 +158,8 @@
                                 init() {
                                     const el = document.getElementById('cliente_id');
                                     if (el) {
-                                        this.loadEmbarcacoes(el.value);
-                                        el.addEventListener('change', () => this.loadEmbarcacoes(el.value));
+                                        this.loadEmbarcacoes();
+                                        el.addEventListener('change', () => this.loadEmbarcacoes());
                                     }
                                 },
                             }"
@@ -190,11 +191,13 @@
                                 loading: false,
                                 erro: '',
                                 oldHabId: @json(old('habilitacao_id')),
-                                async loadHabilitacoes(clienteId) {
+                                async loadHabilitacoes() {
                                     this.habilitacoes = [];
                                     this.erro = '';
                                     const selHab = document.getElementById('habilitacao_id');
-                                    if (!clienteId) {
+                                    const el = document.getElementById('cliente_id');
+                                    const routeKey = el?.dataset?.clienteRouteKey || el?.dataset?.initialClienteRouteKey || '';
+                                    if (!routeKey) {
                                         if (selHab) {
                                             selHab.value = '';
                                         }
@@ -203,8 +206,7 @@
                                     }
                                     this.loading = true;
                                     try {
-                                        const tpl = @json($habilitacoesOptionsUrlTemplate);
-                                        const res = await fetch(tpl.replace('__CID__', String(clienteId)), {
+                                        const res = await fetch(@js(route('clientes.habilitacoes.options', ['cliente' => '__NX_CLIENT_HASH__'])).replace('__NX_CLIENT_HASH__', routeKey), {
                                             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                                             credentials: 'same-origin',
                                         });
@@ -231,8 +233,8 @@
                                 init() {
                                     const el = document.getElementById('cliente_id');
                                     if (el) {
-                                        this.loadHabilitacoes(el.value);
-                                        el.addEventListener('change', () => this.loadHabilitacoes(el.value));
+                                        this.loadHabilitacoes();
+                                        el.addEventListener('change', () => this.loadHabilitacoes());
                                     }
                                 },
                             }"

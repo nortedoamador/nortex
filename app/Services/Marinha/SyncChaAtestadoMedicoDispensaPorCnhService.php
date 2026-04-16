@@ -6,19 +6,15 @@ use App\Enums\ProcessoDocumentoStatus;
 use App\Models\Processo;
 use App\Models\ProcessoDocumento;
 use App\Support\ChaChecklistDocumentoCodigos;
-use Carbon\Carbon;
+use App\Support\ClienteTiposAnexo;
 
 /**
- * Quando a CNH está anexada, com data de validade informada e válida na data de referência,
- * marca o atestado médico/psicofísico como dispensado (sem anexos). Reverte para pendente
- * quando a condição deixa de ser satisfeita e o atestado ainda não tem arquivos.
+ * Quando há cópia da CNH no processo ou na ficha do cliente, marca o atestado médico/psicofísico como dispensado
+ * (sem anexos no item do atestado). Reverte para pendente quando deixa de haver CNH anexada em ambos os sítios
+ * e o atestado ainda não tem arquivos.
  */
 final class SyncChaAtestadoMedicoDispensaPorCnhService
 {
-    public function __construct(
-        private CnhAtestadoOrientacaoService $orientacao,
-    ) {}
-
     /**
      * @return list<int> IDs de linhas de checklist alteradas (ex.: item do atestado).
      */
@@ -28,6 +24,7 @@ final class SyncChaAtestadoMedicoDispensaPorCnhService
         $processo->load([
             'documentosChecklist.documentoTipo',
             'documentosChecklist.anexos',
+            'cliente.anexos',
         ]);
 
         $cnh = $processo->documentosChecklist->first(
@@ -45,11 +42,13 @@ final class SyncChaAtestadoMedicoDispensaPorCnhService
             return [];
         }
 
-        $validade = $cnh->data_validade_documento;
-        $validadeCarbon = $validade ? Carbon::parse((string) $validade) : null;
+        $cnhNoProcesso = $cnh->anexos->isNotEmpty();
+        $cnhNaFichaCliente = $processo->cliente !== null
+            && $processo->cliente->anexos->contains(
+                fn ($a) => (string) ($a->tipo_codigo ?? '') === ClienteTiposAnexo::CNH
+            );
 
-        $cnhDispensa = $cnh->anexos->isNotEmpty()
-            && $this->orientacao->cnhDispensaAtestadoMedico($validadeCarbon);
+        $cnhDispensa = $cnhNoProcesso || $cnhNaFichaCliente;
 
         $changed = [];
 

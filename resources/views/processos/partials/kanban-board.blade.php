@@ -55,6 +55,17 @@
                 this.dragUrl = null;
                 return;
             }
+            if (novoStatus === this.dragStatusAtual) {
+                this.dragUrl = null;
+                this.dragId = null;
+                this.dragStatusAtual = null;
+                this.dragDocsPendentes = false;
+                this.dragCienciaLinha = '';
+                this.dragCienciaFrase = '';
+                this.dragCienciaTexto = '';
+                this.dragCienciaTitulo = '';
+                return;
+            }
             let confirmarCiencia = false;
             if (this.dragDocsPendentes && novoStatus !== this.dragStatusAtual) {
                 let ok = false;
@@ -133,9 +144,9 @@
     <div class="w-full max-w-[1600px] mx-auto">
         <p class="mb-4 text-sm text-slate-600 dark:text-slate-400">
             @if ($podeMoverKanban)
-                {{ __('Arraste um card para outra coluna para alterar o status. Se houver documentos obrigatórios pendentes, será pedida confirmação de ciência antes de concluir.') }}
+                {{ __('Pode alterar a etapa aqui arrastando o cartão para outra coluna — ou na lista de processos, na ficha e em lote (menu da lista). Se houver documentos obrigatórios pendentes ao sair de «Em montagem», será pedida confirmação de ciência.') }}
             @else
-                {{ __('Você não tem permissão para mover cards; use o detalhe do processo para acompanhar.') }}
+                {{ __('Você não tem permissão para mover cartões neste quadro; na lista ou na ficha do processo pode alterar a etapa se tiver permissão.') }}
             @endif
         </p>
 
@@ -181,17 +192,23 @@
                                 @dragend="endDrag($event)"
                                 class="rounded-lg border border-slate-200/80 bg-white p-3 shadow-sm transition hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900 @if ($podeMoverKanban) cursor-grab active:cursor-grabbing @else cursor-default @endif"
                             >
-                                <a href="{{ route('processos.show', $processo) }}" class="block">
-                                    <div class="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                        {{ $processo->tipoProcesso?->nome ?? __('Processo') }}
-                                    </div>
-                                    <div class="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                                        {{ $processo->cliente?->nome ?? __('Sem cliente') }}
-                                    </div>
-                                    <div class="mt-1 text-xs text-slate-500 dark:text-slate-500">
-                                        {{ __('Nº') }} {{ $processo->id }}
-                                    </div>
-                                </a>
+                                <div class="min-w-0">
+                                    <a
+                                        href="{{ route('processos.show', $processo) }}"
+                                        draggable="false"
+                                        class="block rounded-md outline-none hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 dark:hover:text-indigo-300"
+                                    >
+                                        <div class="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                                            {{ $processo->tipoProcesso?->nome ?? __('Processo') }}
+                                        </div>
+                                        <div class="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                                            {{ $processo->cliente?->nome ?? __('Sem cliente') }}
+                                        </div>
+                                        <div class="mt-1 text-xs text-slate-500 dark:text-slate-500">
+                                            {{ __('Nº') }} {{ $processo->id }}
+                                        </div>
+                                    </a>
+                                </div>
                                 <div class="mt-3 flex items-end justify-between gap-2">
                                     <div class="min-w-0 shrink-0" @mousedown.stop @click.stop>
                                         @can('delete', $processo)
@@ -224,7 +241,15 @@
                                             @endif
                                         @endcan
                                     </div>
-                                    <div class="flex flex-1 justify-end self-end pointer-events-none">
+                                    <div class="flex flex-1 items-center justify-end gap-1.5 self-end pointer-events-none">
+                                        @if ($processo->faltaIdentificacaoProtocoloMarinha())
+                                            <span
+                                                class="inline-flex shrink-0 text-amber-500 dark:text-amber-400"
+                                                title="{{ __('Falta indicar o número de protocolo da Marinha.') }}"
+                                            >
+                                                <x-processo-protocolo-marinha-alerta-icon class="h-4 w-4" />
+                                            </span>
+                                        @endif
                                         <x-processo-docs-pendente-badge :processo="$processo" compact short class="pointer-events-auto" />
                                     </div>
                                 </div>

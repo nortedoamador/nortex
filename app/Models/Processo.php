@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesHashidsRouteKey;
+use App\Support\TenantHashids;
 use App\Enums\ProcessoStatus;
 use App\Services\ProcessoChecklistService;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Processo extends TenantModel
 {
+    use UsesHashidsRouteKey;
+
     protected $fillable = [
         'empresa_id',
         'cliente_id',
@@ -19,12 +23,19 @@ class Processo extends TenantModel
         'status',
         'observacoes',
         'jurisdicao',
+        'marinha_protocolo_numero',
+        'marinha_protocolo_data',
+        'marinha_protocolo_anexo_path',
+        'marinha_protocolo_anexo_original_name',
+        'marinha_prova_data',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => ProcessoStatus::class,
+            'marinha_protocolo_data' => 'date',
+            'marinha_prova_data' => 'date',
         ];
     }
 
@@ -99,5 +110,20 @@ class Processo extends TenantModel
         }
 
         return ($this->tipoProcesso ?? $this->tipoProcessoTenant)?->permiteStatusAguardandoProva() ?? false;
+    }
+
+    public static function routeHashidType(): int
+    {
+        return TenantHashids::TYPE_PROCESSO;
+    }
+
+    /** Falta o número de protocolo da Marinha (etapas após protocolação). */
+    public function faltaIdentificacaoProtocoloMarinha(): bool
+    {
+        if (! $this->status->exigeDadosProtocoloMarinha()) {
+            return false;
+        }
+
+        return ! filled(trim((string) ($this->marinha_protocolo_numero ?? '')));
     }
 }

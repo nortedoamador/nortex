@@ -449,6 +449,7 @@ async function executarDialogoCiencia(form) {
     if (!r.isConfirmed) {
         if (sel && atual !== '') {
             sel.value = atual;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
         }
         return false;
     }

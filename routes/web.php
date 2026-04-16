@@ -3,20 +3,32 @@
 use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\DocumentoModeloLaboratorioController;
 use App\Http\Controllers\Admin\DocumentoTipoAdminController;
+use App\Http\Controllers\Admin\EmpresaCompromissoController;
 use App\Http\Controllers\Admin\EmpresaSettingsController;
 use App\Http\Controllers\Admin\RelatorioController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TipoProcessoAdminController;
 use App\Http\Controllers\ClienteAnexoFileController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\AlunoAjaxController;
+use App\Http\Controllers\AulaAtestadoController;
+use App\Http\Controllers\AulaComunicadoController;
+use App\Http\Controllers\AulaEscolaController;
+use App\Http\Controllers\AulaNauticaController;
+use App\Http\Controllers\AulaNauticaPdfController;
+use App\Http\Controllers\EscolaInstrutorController;
 use App\Http\Controllers\DocumentoModeloController;
 use App\Http\Controllers\DocumentoModeloRenderController;
 use App\Http\Controllers\EmbarcacaoAnexoFileController;
 use App\Http\Controllers\EmbarcacaoController;
 use App\Http\Controllers\EquipeController;
+use App\Http\Controllers\FinanceiroController;
 use App\Http\Controllers\HabilitacaoAnexoFileController;
 use App\Http\Controllers\HabilitacaoController;
 use App\Http\Controllers\Platform\AnexoTipoController as PlatformAnexoTipoController;
+use App\Http\Controllers\Platform\DocumentoModeloGlobalController as PlatformDocumentoModeloGlobalController;
+use App\Http\Controllers\Platform\DocumentoModeloGlobalLaboratorioController as PlatformDocumentoModeloGlobalLaboratorioController;
+use App\Http\Controllers\Platform\DocumentoModeloGlobalPreviewController;
 use App\Http\Controllers\Platform\AuditoriaController as PlatformAuditoriaController;
 use App\Http\Controllers\Platform\DashboardController as PlatformDashboardController;
 use App\Http\Controllers\Platform\EmpresaAdminUserController as PlatformEmpresaAdminUserController;
@@ -203,6 +215,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/cadastros/modelos-pdf/laboratorio', [DocumentoModeloLaboratorioController::class, 'index'])->name('documento-modelos.laboratorio');
             Route::post('/cadastros/modelos-pdf/laboratorio/upload', [DocumentoModeloLaboratorioController::class, 'upload'])->name('documento-modelos.laboratorio.upload');
             Route::post('/cadastros/modelos-pdf/laboratorio/novo-modelo', [DocumentoModeloLaboratorioController::class, 'storeNovo'])->name('documento-modelos.laboratorio.store-novo');
+            Route::post('/cadastros/modelos-pdf/laboratorio/repor-esqueleto-global', [DocumentoModeloLaboratorioController::class, 'reporEsqueletoGlobal'])->name('documento-modelos.laboratorio.repor-global');
             Route::post('/cadastros/modelos-pdf/laboratorio/ocultar-catalogo', [DocumentoModeloLaboratorioController::class, 'ocultarCatalogo'])->name('documento-modelos.laboratorio.ocultar-catalogo');
             Route::delete('/cadastros/modelos-pdf/laboratorio/modelo/{modelo}', [DocumentoModeloLaboratorioController::class, 'destroy'])->name('documento-modelos.laboratorio.destroy');
 
@@ -257,6 +270,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/anexo-tipos', [PlatformAnexoTipoController::class, 'store'])->name('anexo-tipos.store');
             Route::get('/anexo-tipos/{anexo_tipo}/editar', [PlatformAnexoTipoController::class, 'edit'])->name('anexo-tipos.edit');
             Route::patch('/anexo-tipos/{anexo_tipo}', [PlatformAnexoTipoController::class, 'update'])->name('anexo-tipos.update');
+
+            Route::get('/documentos-automatizados/laboratorio', [PlatformDocumentoModeloGlobalLaboratorioController::class, 'index'])->name('documentos-automatizados.laboratorio');
+            Route::post('/documentos-automatizados/laboratorio/upload', [PlatformDocumentoModeloGlobalLaboratorioController::class, 'upload'])->name('documentos-automatizados.laboratorio.upload');
+            Route::post('/documentos-automatizados/laboratorio/novo-modelo', [PlatformDocumentoModeloGlobalLaboratorioController::class, 'storeNovo'])->name('documentos-automatizados.laboratorio.store-novo');
+            Route::get('/documentos-automatizados/preview', DocumentoModeloGlobalPreviewController::class)->name('documentos-automatizados.preview');
+
+            Route::get('/documentos-automatizados', [PlatformDocumentoModeloGlobalController::class, 'index'])->name('documentos-automatizados.index');
+            Route::get('/documentos-automatizados/criar', [PlatformDocumentoModeloGlobalController::class, 'create'])->name('documentos-automatizados.create');
+            Route::post('/documentos-automatizados', [PlatformDocumentoModeloGlobalController::class, 'store'])->name('documentos-automatizados.store');
+            Route::get('/documentos-automatizados/{documento_modelo_global}/editar', [PlatformDocumentoModeloGlobalController::class, 'edit'])->name('documentos-automatizados.edit');
+            Route::patch('/documentos-automatizados/{documento_modelo_global}', [PlatformDocumentoModeloGlobalController::class, 'update'])->name('documentos-automatizados.update');
+            Route::delete('/documentos-automatizados/{documento_modelo_global}', [PlatformDocumentoModeloGlobalController::class, 'destroy'])->name('documentos-automatizados.destroy');
+            Route::post('/documentos-automatizados/{documento_modelo_global}/propagar', [PlatformDocumentoModeloGlobalController::class, 'propagar'])->name('documentos-automatizados.propagar');
         });
     });
 
@@ -280,9 +306,72 @@ Route::middleware(['auth', 'tenant.empresa', 'permission:usuarios.manage'])->gro
 });
 
 Route::middleware(['auth', 'tenant.empresa'])->group(function () {
+    Route::middleware(['permission:financeiro.view'])->group(function () {
+        Route::prefix('financeiro')->name('financeiro.')->group(function () {
+            Route::get('/', [FinanceiroController::class, 'index'])->name('index');
+
+            Route::get('/export/aulas.csv', [FinanceiroController::class, 'exportAulasCsv'])->name('export.aulas');
+            Route::get('/export/admin-direto.csv', [FinanceiroController::class, 'exportAdminDiretoCsv'])->name('export.admin_direto');
+            Route::get('/export/despesas.csv', [FinanceiroController::class, 'exportDespesasCsv'])->name('export.despesas');
+            Route::get('/export/parcerias-b2b.csv', [FinanceiroController::class, 'exportParceriasCsv'])->name('export.parcerias');
+            Route::get('/export/engenharia.csv', [FinanceiroController::class, 'exportEngenhariaCsv'])->name('export.engenharia');
+
+            Route::prefix('api')->name('api.')->group(function () {
+                Route::get('/resumo', [FinanceiroController::class, 'apiResumo'])->name('resumo');
+                Route::get('/grafico/caixa', [FinanceiroController::class, 'apiGraficoCaixa'])->name('grafico.caixa');
+                Route::get('/grafico/servicos', [FinanceiroController::class, 'apiGraficoServicos'])->name('grafico.servicos');
+                Route::get('/lista/{modulo}', [FinanceiroController::class, 'apiLista'])->name('lista');
+                Route::get('/notas', [FinanceiroController::class, 'apiNotas'])->name('notas');
+            });
+
+            Route::middleware(['permission:financeiro.manage'])->group(function () {
+                Route::post('/aulas', [FinanceiroController::class, 'storeAula'])->name('store.aula');
+                Route::patch('/aulas/{lancamento}', [FinanceiroController::class, 'updateAula'])->name('update.aula');
+                Route::delete('/aulas/{lancamento}', [FinanceiroController::class, 'destroyAula'])->name('destroy.aula');
+
+                Route::post('/admin-direto', [FinanceiroController::class, 'storeAdminDireto'])->name('store.admin_direto');
+                Route::patch('/admin-direto/{lancamento}', [FinanceiroController::class, 'updateAdminDireto'])->name('update.admin_direto');
+                Route::delete('/admin-direto/{lancamento}', [FinanceiroController::class, 'destroyAdminDireto'])->name('destroy.admin_direto');
+
+                Route::post('/despesas', [FinanceiroController::class, 'storeDespesa'])->name('store.despesa');
+                Route::patch('/despesas/{lancamento}', [FinanceiroController::class, 'updateDespesa'])->name('update.despesa');
+                Route::delete('/despesas/{lancamento}', [FinanceiroController::class, 'destroyDespesa'])->name('destroy.despesa');
+
+                Route::post('/parcerias', [FinanceiroController::class, 'storeLoteParceria'])->name('store.parceria');
+                Route::patch('/parcerias/{lote}', [FinanceiroController::class, 'updateLoteParceria'])->name('update.parceria');
+                Route::delete('/parcerias/{lote}', [FinanceiroController::class, 'destroyLoteParceria'])->name('destroy.parceria');
+                Route::post('/parcerias/{lote}/itens', [FinanceiroController::class, 'storeItemLoteParceria'])->name('store.parceria.item');
+                Route::patch('/parcerias/itens/{item}', [FinanceiroController::class, 'updateItemLoteParceria'])->name('update.parceria.item');
+                Route::delete('/parcerias/itens/{item}', [FinanceiroController::class, 'destroyItemLoteParceria'])->name('destroy.parceria.item');
+
+                Route::post('/engenharia', [FinanceiroController::class, 'storeLoteEngenharia'])->name('store.engenharia');
+                Route::patch('/engenharia/{lote}', [FinanceiroController::class, 'updateLoteEngenharia'])->name('update.engenharia');
+                Route::delete('/engenharia/{lote}', [FinanceiroController::class, 'destroyLoteEngenharia'])->name('destroy.engenharia');
+                Route::post('/engenharia/{lote}/itens', [FinanceiroController::class, 'storeItemLoteEngenharia'])->name('store.engenharia.item');
+                Route::patch('/engenharia/itens/{item}', [FinanceiroController::class, 'updateItemLoteEngenharia'])->name('update.engenharia.item');
+                Route::delete('/engenharia/itens/{item}', [FinanceiroController::class, 'destroyItemLoteEngenharia'])->name('destroy.engenharia.item');
+
+                Route::post('/notas/emitir', [FinanceiroController::class, 'emitirNota'])->name('notas.emitir');
+
+                Route::post('/upload/admin-direto/{lancamento}', [FinanceiroController::class, 'uploadAdminDiretoComprovante'])->name('upload.admin_direto');
+                Route::post('/upload/despesas/{lancamento}', [FinanceiroController::class, 'uploadDespesaNota'])->name('upload.despesa');
+                Route::post('/upload/lote-parceria/{lote}', [FinanceiroController::class, 'uploadLoteParceriaComprovante'])->name('upload.lote_parceria');
+                Route::post('/upload/lote-engenharia/{lote}', [FinanceiroController::class, 'uploadLoteEngenhariaComprovante'])->name('upload.lote_engenharia');
+            });
+
+            Route::middleware('signed')->group(function () {
+                Route::get('/anexo/admin-direto/{lancamento}', [FinanceiroController::class, 'downloadAdminDiretoComprovante'])->name('anexo.admin_direto');
+                Route::get('/anexo/despesas/{lancamento}', [FinanceiroController::class, 'downloadDespesaNota'])->name('anexo.despesa');
+                Route::get('/anexo/lote-parceria/{lote}', [FinanceiroController::class, 'downloadLoteParceriaComprovante'])->name('anexo.lote_parceria');
+                Route::get('/anexo/lote-engenharia/{lote}', [FinanceiroController::class, 'downloadLoteEngenhariaComprovante'])->name('anexo.lote_engenharia');
+            });
+        });
+    });
+
     Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes.index');
     Route::get('/clientes/criar', [ClienteController::class, 'create'])->name('clientes.create');
     Route::post('/clientes', [ClienteController::class, 'store'])->name('clientes.store');
+    Route::post('/clientes/modal-store', [ClienteController::class, 'modalStore'])->name('clientes.modal-store');
     Route::get('/clientes/{cliente}', [ClienteController::class, 'show'])->name('clientes.show');
     Route::get('/clientes/{cliente}/editar', [ClienteController::class, 'edit'])->name('clientes.edit');
     Route::patch('/clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
@@ -333,6 +422,9 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
     Route::get('/processos/{processo}', [ProcessoController::class, 'show'])->name('processos.show');
     Route::delete('/processos/{processo}', [ProcessoController::class, 'destroy'])->name('processos.destroy');
     Route::patch('/processos/{processo}/observacoes', [ProcessoController::class, 'updateObservacoes'])->name('processos.observacoes.update');
+    Route::patch('/processos/{processo}/protocolo-marinha', [ProcessoController::class, 'updateProtocoloMarinha'])->name('processos.protocolo-marinha.update');
+    Route::patch('/processos/{processo}/prova-marinha', [ProcessoController::class, 'updateProvaMarinha'])->name('processos.prova-marinha.update');
+    Route::get('/processos/{processo}/protocolo-marinha/anexo', [ProcessoController::class, 'downloadProtocoloMarinhaAnexo'])->name('processos.protocolo-marinha.anexo');
     Route::post('/processos/{processo}/post-its', [ProcessoController::class, 'storePostIt'])->name('processos.post-its.store');
     Route::patch('/processos/{processo}/post-its/{postIt}', [ProcessoController::class, 'updatePostIt'])->name('processos.post-its.update');
     Route::delete('/processos/{processo}/post-its/{postIt}', [ProcessoController::class, 'destroyPostIt'])->name('processos.post-its.destroy');
@@ -363,11 +455,51 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
     Route::get('/clientes/{cliente}/documento-modelos/{slug}', [DocumentoModeloRenderController::class, 'render'])
         ->name('clientes.documento-modelos.render');
 
+    // Aulas náuticas (rotas estáticas antes de /aulas/{aula})
+    Route::middleware(['permission:aulas.view'])->group(function () {
+        Route::get('/aulas', [AulaNauticaController::class, 'index'])->name('aulas.index');
+        Route::get('/aulas/atestados', [AulaAtestadoController::class, 'index'])->name('aulas.atestados.index');
+        Route::get('/aulas/comunicados', [AulaComunicadoController::class, 'index'])->name('aulas.comunicados.index');
+
+        Route::middleware(['permission:aulas.manage'])->group(function () {
+            Route::get('/aulas/escola/instrutores', [AulaEscolaController::class, 'instrutores'])->name('aulas.escola.instrutores');
+            Route::get('/aulas/escola', [AulaEscolaController::class, 'edit'])->name('aulas.escola.edit');
+            Route::put('/aulas/escola', [AulaEscolaController::class, 'update'])->name('aulas.escola.update');
+            Route::post('/aulas/escola/capitanias', [AulaEscolaController::class, 'storeCapitania'])->name('aulas.escola.capitanias.store');
+            Route::patch('/aulas/escola/capitanias/{capitania}', [AulaEscolaController::class, 'updateCapitania'])->name('aulas.escola.capitanias.update');
+            Route::delete('/aulas/escola/capitanias/{capitania}', [AulaEscolaController::class, 'destroyCapitania'])->name('aulas.escola.capitanias.destroy');
+            Route::post('/aulas/escola/instrutores', [EscolaInstrutorController::class, 'store'])->name('aulas.escola.instrutores.store');
+            Route::patch('/aulas/escola/instrutores/{escola_instrutor}', [EscolaInstrutorController::class, 'update'])->name('aulas.escola.instrutores.update');
+            Route::delete('/aulas/escola/instrutores/{escola_instrutor}', [EscolaInstrutorController::class, 'destroy'])->name('aulas.escola.instrutores.destroy');
+            Route::post('/aulas/atestados/duracoes', [AulaAtestadoController::class, 'storeDurations'])->name('aulas.atestados.duracoes.store');
+            Route::patch('/aulas/{aula}/comunicado-enviado', [AulaComunicadoController::class, 'markEnviado'])->name('aulas.comunicado-enviado');
+        });
+
+        Route::get('/aulas/{aula}', [AulaNauticaController::class, 'show'])->name('aulas.show');
+        Route::get('/aulas/{aula}/pdf/comunicado', [AulaNauticaPdfController::class, 'comunicado'])->name('aulas.pdf.comunicado');
+        Route::get('/aulas/{aula}/pdf/aram', [AulaNauticaPdfController::class, 'ara'])->name('aulas.pdf.ara');
+        Route::get('/aulas/{aula}/pdf/mtm', [AulaNauticaPdfController::class, 'mta'])->name('aulas.pdf.mta');
+    });
+    Route::middleware(['permission:aulas.manage'])->group(function () {
+        Route::get('/aulas/nova', [AulaNauticaController::class, 'create'])->name('aulas.create');
+        Route::post('/aulas', [AulaNauticaController::class, 'store'])->name('aulas.store');
+        Route::get('/aulas/{aula}/editar', [AulaNauticaController::class, 'edit'])->name('aulas.edit');
+        Route::patch('/aulas/{aula}', [AulaNauticaController::class, 'update'])->name('aulas.update');
+
+        Route::get('/alunos/buscar-cpf', [AlunoAjaxController::class, 'buscarCpf'])->name('alunos.buscar-cpf');
+        Route::get('/alunos/buscar-escola-instrutor-cpf', [AlunoAjaxController::class, 'buscarEscolaInstrutorCpf'])->name('alunos.buscar-escola-instrutor-cpf');
+        Route::post('/alunos/modal-store', [AlunoAjaxController::class, 'modalStore'])->name('alunos.modal-store');
+    });
+
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware(['permission:empresa.manage'])->group(function () {
             Route::get('/empresa', [EmpresaSettingsController::class, 'edit'])->name('empresa.edit');
             Route::patch('/empresa', [EmpresaSettingsController::class, 'update'])->name('empresa.update');
+            Route::prefix('empresa')->name('empresa.')->group(function () {
+                Route::resource('compromissos', EmpresaCompromissoController::class)->except(['show']);
+            });
         });
+        Route::get('/empresa/logo', [EmpresaSettingsController::class, 'logo'])->name('empresa.logo');
     });
 });
 

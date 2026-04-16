@@ -124,6 +124,11 @@ export function registerEmbarcacaoCpfSuggest(Alpine) {
                     const el = document.getElementById(clienteIdElId);
                     if (el) {
                         el.value = item.id;
+                        if (item.hashid) {
+                            el.dataset.clienteRouteKey = String(item.hashid);
+                        } else {
+                            delete el.dataset.clienteRouteKey;
+                        }
                         try {
                             el.dispatchEvent(new Event('input', { bubbles: true }));
                             el.dispatchEvent(new Event('change', { bubbles: true }));

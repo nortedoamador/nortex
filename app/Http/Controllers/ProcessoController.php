@@ -8,6 +8,8 @@ use App\Enums\TipoProcessoCategoria;
 use App\Http\Requests\StoreProcessoRequest;
 use App\Http\Requests\StoreMultiplosAnexosRequest;
 use App\Http\Requests\UpdateProcessoDocumentoRequest;
+use App\Http\Requests\UpdateProcessoProtocoloMarinhaRequest;
+use App\Http\Requests\UpdateProcessoProvaMarinhaRequest;
 use App\Http\Requests\UpdateProcessoStatusRequest;
 use App\Models\Cliente;
 use App\Models\Habilitacao;
@@ -17,22 +19,30 @@ use App\Models\ProcessoDocumento;
 use App\Models\ProcessoDocumentoAnexo;
 use App\Models\ProcessoPostIt;
 use App\Models\TipoProcesso;
+use App\Services\DashboardAgendaService;
 use App\Services\DashboardAlertasService;
+use App\Services\DashboardProvasMarinhaService;
 use App\Services\EmpresaProcessosDefaultsService;
+use App\Services\Marinha\ProcessoChecklistPreencherDeFichaService;
 use App\Services\Marinha\SyncChaAtestadoMedicoDispensaPorCnhService;
 use App\Services\Marinha\SyncChaDeclaracaoExtravioPorCategoriaService;
 use App\Services\ProcessoDocumentoAnexoService;
 use App\Services\ProcessoProgressoService;
 use App\Services\ProcessoStatusService;
 use App\Support\ChecklistDocumentoModelo;
+use App\Support\ClienteCpfSuggest;
 use App\Support\Normam211DocumentoCodigos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Js;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProcessoController extends Controller
 {
@@ -41,9 +51,12 @@ class ProcessoController extends Controller
         private ProcessoStatusService $statusService,
         private ProcessoDocumentoAnexoService $anexoService,
         private EmpresaProcessosDefaultsService $empresaProcessosDefaults,
+        private ProcessoChecklistPreencherDeFichaService $checklistFichaSync,
         private SyncChaAtestadoMedicoDispensaPorCnhService $chaAtestadoDispensaSync,
         private SyncChaDeclaracaoExtravioPorCategoriaService $chaDeclaracaoExtravioSync,
         private DashboardAlertasService $dashboardAlertas,
+        private DashboardAgendaService $dashboardAgenda,
+        private DashboardProvasMarinhaService $dashboardProvasMarinha,
     ) {}
 
     public function create(Request $request): View
@@ -65,7 +78,7 @@ class ProcessoController extends Controller
 
         $tipos->load(['documentoRegras' => fn ($q) => $q->wherePivot('empresa_id', $empresaId)->orderBy('documento_processo.ordem')]);
 
-        $clientesSuggest = $this->clientesCpfSuggest(Cliente::query()->orderBy('nome')->get());
+        $clientesSuggest = ClienteCpfSuggest::collection(Cliente::query()->orderBy('nome')->get());
 
         $tiposExigenciasJson = Js::from(
             $tipos->map(fn (PlatformTipoProcesso $t) => [
@@ -178,6 +191,96 @@ class ProcessoController extends Controller
         }
 
         return back()->with('status', __('Observações atualizadas.'));
+    }
+
+    public function updateProtocoloMarinha(UpdateProcessoProtocoloMarinhaRequest $request, Processo $processo): RedirectResponse|JsonResponse
+    {
+        $data = [
+            'marinha_protocolo_numero' => trim((string) $request->validated('marinha_protocolo_numero')),
+            'marinha_protocolo_data' => $request->validated('marinha_protocolo_data'),
+        ];
+
+        if ($request->hasFile('marinha_protocolo_anexo')) {
+            $this->deleteMarinhaProtocoloAnexoFile($processo);
+            $file = $request->file('marinha_protocolo_anexo');
+            $path = $file->store(
+                'processos/'.$processo->empresa_id.'/'.$processo->id.'/marinha-protocolo',
+                'local'
+            );
+            $data['marinha_protocolo_anexo_path'] = $path;
+            $data['marinha_protocolo_anexo_original_name'] = $file->getClientOriginalName();
+        } elseif ($request->boolean('remover_marinha_protocolo_anexo')) {
+            $this->deleteMarinhaProtocoloAnexoFile($processo);
+            $data['marinha_protocolo_anexo_path'] = null;
+            $data['marinha_protocolo_anexo_original_name'] = null;
+        }
+
+        $processo->update($data);
+        $processo->refresh();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => __('Dados de protocolo da Marinha guardados.'),
+                'falta_protocolo' => $processo->faltaIdentificacaoProtocoloMarinha(),
+                'marinha_protocolo_anexo_original_name' => $processo->marinha_protocolo_anexo_original_name,
+                'marinha_protocolo_anexo_url' => filled($processo->marinha_protocolo_anexo_path)
+                    ? route('processos.protocolo-marinha.anexo', $processo)
+                    : null,
+            ]);
+        }
+
+        return redirect()
+            ->route('processos.show', $processo)
+            ->with('status', __('Dados de protocolo da Marinha guardados.'));
+    }
+
+    public function updateProvaMarinha(UpdateProcessoProvaMarinhaRequest $request, Processo $processo): RedirectResponse
+    {
+        $processo->update([
+            'marinha_prova_data' => $request->validated('marinha_prova_data'),
+        ]);
+
+        return back()->with('status', __('Data da prova na Marinha guardada.'));
+    }
+
+    public function downloadProtocoloMarinhaAnexo(Request $request, Processo $processo): BinaryFileResponse|StreamedResponse
+    {
+        $this->authorize('view', $processo);
+
+        $path = $processo->marinha_protocolo_anexo_path;
+        abort_unless(filled($path), 404);
+        abort_unless(Storage::disk('local')->exists($path), 404);
+
+        $name = $processo->marinha_protocolo_anexo_original_name ?: 'protocolo-marinha.pdf';
+
+        if ($request->boolean('inline')) {
+            $mime = (string) (Storage::disk('local')->mimeType($path) ?: 'application/octet-stream');
+            if (str_starts_with($mime, 'image/')) {
+                $absolutePath = Storage::disk('local')->path($path);
+
+                return response()->file($absolutePath, [
+                    'Content-Type' => $mime,
+                    'Content-Disposition' => HeaderUtils::makeDisposition(
+                        HeaderUtils::DISPOSITION_INLINE,
+                        $name,
+                        pathinfo($name, PATHINFO_FILENAME) ?: 'preview'
+                    ),
+                ]);
+            }
+        }
+
+        return Storage::disk('local')->download($path, $name);
+    }
+
+    private function deleteMarinhaProtocoloAnexoFile(Processo $processo): void
+    {
+        $path = $processo->marinha_protocolo_anexo_path;
+        if (! filled($path)) {
+            return;
+        }
+        if (Storage::disk('local')->exists($path)) {
+            Storage::disk('local')->delete($path);
+        }
     }
 
     public function storePostIt(Request $request, Processo $processo): JsonResponse
@@ -786,6 +889,7 @@ class ProcessoController extends Controller
             'declaracao_anexo_3d' => (bool) ($pd->declaracao_anexo_3d ?? false),
             'url_declaracao_3d' => $urlDecl3d,
             'preenchido_via_modelo' => (bool) ($pd->preenchido_via_modelo ?? false),
+            'satisfeito_via_ficha_embarcacao' => (bool) ($pd->satisfeito_via_ficha_embarcacao ?? false),
             'url_abrir_modelo' => $urlAbrirModelo,
             'url_visualizar_modelo' => $urlVisualizarModelo,
             'data_validade_documento' => $pd->data_validade_documento?->format('Y-m-d'),
@@ -816,6 +920,7 @@ class ProcessoController extends Controller
      */
     private function jsonRespostaDocumentoChecklistAposDispensa(Processo $processo, ProcessoDocumento $documento, string $message): array
     {
+        $this->checklistFichaSync->sync($processo);
         $extraIds = $this->chaAtestadoDispensaSync->sync($processo);
         $processo->refresh();
         $documento->refresh();
@@ -865,7 +970,10 @@ class ProcessoController extends Controller
             }
         }
 
-        return view('dashboard', compact('kanban', 'metricasDashboard', 'alertasResumo'));
+        $agendaItens = $this->dashboardAgenda->proximosItens($request->user());
+        $provasMarinhaItens = $this->dashboardProvasMarinha->itens($request->user());
+
+        return view('dashboard', compact('kanban', 'metricasDashboard', 'alertasResumo', 'agendaItens', 'provasMarinhaItens'));
     }
 
     /**
@@ -1052,7 +1160,7 @@ class ProcessoController extends Controller
             ->get();
         $tiposProcessoModal->load(['documentoRegras' => fn ($q) => $q->wherePivot('empresa_id', $empresaId)->orderBy('documento_processo.ordem')]);
 
-        $clientesSuggestProcessoModal = $this->clientesCpfSuggest(Cliente::query()->orderBy('nome')->get());
+        $clientesSuggestProcessoModal = ClienteCpfSuggest::collection(Cliente::query()->orderBy('nome')->get());
 
         $viewData = array_merge(
             compact(
@@ -1177,10 +1285,21 @@ class ProcessoController extends Controller
 
         $processo->load([
             'cliente.embarcacoes',
+            'cliente.anexos',
+            'cliente.habilitacoes.anexos',
+            'embarcacao.anexos',
             'tipoProcesso.documentoRegras' => fn ($q) => $q->wherePivot('empresa_id', (int) $request->user()->empresa_id)->orderBy('documento_processo.ordem'),
             'documentosChecklist.documentoTipo',
             'documentosChecklist.anexos',
             'postIts.user:id,name',
+        ]);
+
+        $this->checklistFichaSync->sync($processo);
+        $this->chaAtestadoDispensaSync->sync($processo);
+        $processo->unsetRelation('documentosChecklist');
+        $processo->load([
+            'documentosChecklist.documentoTipo',
+            'documentosChecklist.anexos',
         ]);
 
         $progresso = $this->progresso->calcular($processo);
@@ -1207,7 +1326,6 @@ class ProcessoController extends Controller
             'processo' => $processo,
             'progresso' => $progresso,
             'motivoBloqueio' => $bloqueio,
-            'statuses' => $processo->statusesPermitidosParaAlteracao(),
             'nxPostItsCfg' => $nxPostItsCfg,
         ]);
     }
@@ -1293,6 +1411,7 @@ class ProcessoController extends Controller
             );
         }
 
+        $this->checklistFichaSync->sync($processo);
         $this->chaAtestadoDispensaSync->sync($processo);
 
         return back()->with('status', $n === 1 ? '1 arquivo enviado.' : "{$n} arquivos enviados.");
@@ -1319,6 +1438,7 @@ class ProcessoController extends Controller
             );
         }
 
+        $this->checklistFichaSync->sync($processo);
         $this->chaAtestadoDispensaSync->sync($processo);
 
         return back()->with('status', 'Anexo removido.');
@@ -1362,23 +1482,6 @@ class ProcessoController extends Controller
         ];
     }
 
-    /**
-     * @param  Collection<int, Cliente>  $clientes
-     * @return Collection<int, array{id: int, doc: string, docDigits: string, nome: string}>
-     */
-    private function clientesCpfSuggest(Collection $clientes): Collection
-    {
-        return $clientes
-            ->filter(fn (Cliente $c) => filled($c->cpf))
-            ->values()
-            ->map(fn (Cliente $c) => [
-                'id' => $c->id,
-                'doc' => $c->documentoFormatado() ?? $c->cpf,
-                'docDigits' => preg_replace('/\D/', '', (string) $c->cpf),
-                'nome' => $c->nome,
-            ]);
-    }
-
     public function updateDocumento(UpdateProcessoDocumentoRequest $request, Processo $processo, ProcessoDocumento $documento): RedirectResponse|JsonResponse
     {
         $this->authorize('updateDocumento', $processo);
@@ -1403,6 +1506,10 @@ class ProcessoController extends Controller
         ];
         if (array_key_exists('data_validade_documento', $validated)) {
             $data['data_validade_documento'] = $validated['data_validade_documento'];
+        }
+
+        if ($status === ProcessoDocumentoStatus::Pendente) {
+            $data['satisfeito_via_ficha_embarcacao'] = false;
         }
 
         if ($temModelo && ($status === ProcessoDocumentoStatus::Pendente || $status === ProcessoDocumentoStatus::Fisico)) {
@@ -1488,6 +1595,7 @@ class ProcessoController extends Controller
             );
         }
 
+        $this->checklistFichaSync->sync($processo);
         $this->chaAtestadoDispensaSync->sync($processo);
 
         return back()->with('status', 'Documento atualizado.');

@@ -357,7 +357,7 @@
                                 <select
                                     id="nx_bulk_status_destino"
                                     x-model="statusDestino"
-                                    class="min-w-[10rem] max-w-[14rem] rounded-full border border-slate-200 bg-white py-2.5 pl-3 pr-8 text-sm font-medium text-slate-800 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                                    class="min-w-[10rem] max-w-[14rem] rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-8 text-sm font-medium text-slate-800 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                                 >
                                     <option value="">{{ __('Novo status…') }}</option>
                                     @foreach ($etapas as $opt)
@@ -372,6 +372,7 @@
                                 >
                                     {{ __('Aplicar status') }}
                                 </button>
+                                <a href="{{ route('processos.kanban') }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Kanban') }}</a>
                             </div>
                         @endif
                         @if ($podeExcluirLote)

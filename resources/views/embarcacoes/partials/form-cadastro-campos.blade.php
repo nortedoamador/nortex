@@ -3,16 +3,22 @@
     /** @var string $idPrefix */
     /** @var \App\Models\Embarcacao|null $embarcacao */
     /** @var bool $incluirFotosCadastro */
+    use App\Models\Cliente;
+    use App\Support\ClienteCpfSuggest;
+
     $idPrefix = $idPrefix ?? '';
     $embarcacao = $embarcacao ?? null;
     $incluirFotosCadastro = $incluirFotosCadastro ?? true;
     $pid = fn (string $id) => $idPrefix.$id;
-    $clientesSuggest = $clientes->filter(fn ($c) => filled($c->cpf))->values()->map(fn ($c) => [
-        'id' => $c->id,
-        'doc' => $c->documentoFormatado() ?? $c->cpf,
-        'docDigits' => preg_replace('/\D/', '', (string) $c->cpf),
-        'nome' => $c->nome,
-    ]);
+    $clientesSuggest = ClienteCpfSuggest::collection($clientes->filter(fn ($c) => filled($c->cpf))->values());
+
+    $nxEmbClienteRouteKey = '';
+    if (filled(old('cliente_id')) && ctype_digit((string) old('cliente_id'))) {
+        $oc = Cliente::query()->find((int) old('cliente_id'));
+        $nxEmbClienteRouteKey = $oc ? $oc->getRouteKey() : '';
+    } elseif ($embarcacao?->cliente) {
+        $nxEmbClienteRouteKey = $embarcacao->cliente->getRouteKey();
+    }
     $nxOld = function (string $key, $default = null) use ($embarcacao) {
         $def = $default;
         if ($def === null && $embarcacao !== null) {
@@ -35,7 +41,15 @@
     $nxCpfPayloadId = 'nx-cpf-payload-'.bin2hex(random_bytes(8));
 @endphp
 
-<input type="hidden" id="{{ $pid('cliente_id') }}" name="cliente_id" value="{{ old('cliente_id', $embarcacao?->cliente_id) }}" />
+<input
+    type="hidden"
+    id="{{ $pid('cliente_id') }}"
+    name="cliente_id"
+    value="{{ old('cliente_id', $embarcacao?->cliente_id) }}"
+    @if ($nxEmbClienteRouteKey !== '')
+        data-initial-cliente-route-key="{{ $nxEmbClienteRouteKey }}"
+    @endif
+/>
 
 <textarea id="{{ $nxCpfPayloadId }}" class="hidden" readonly tabindex="-1" aria-hidden="true">@json($clientesSuggest)</textarea>
 

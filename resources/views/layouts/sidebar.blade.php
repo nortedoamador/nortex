@@ -1,6 +1,8 @@
 @php
     $u = Auth::user();
     $empresaNome = $u?->empresa?->nome;
+    $empresaLogoPath = $u?->empresa?->logo_path;
+    $empresaLogoUrl = $empresaLogoPath ? route('admin.empresa.logo') : null;
 @endphp
 
 <aside
@@ -12,11 +14,22 @@
 >
     <div class="flex h-16 shrink-0 items-center gap-2 border-b border-slate-200/80 px-4 dark:border-slate-800" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
         <a href="{{ route('dashboard') }}" class="flex items-center gap-2 min-w-0" @click="mobileOpen = false">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7l8-4z" />
-                </svg>
-            </span>
+            @if ($empresaLogoUrl)
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <img
+                        id="tenant-sidebar-logo"
+                        src="{{ $empresaLogoUrl }}"
+                        alt="{{ $empresaNome ?: 'Logo da empresa' }}"
+                        class="h-full w-full object-contain"
+                    />
+                </span>
+            @else
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V7l8-4z" />
+                    </svg>
+                </span>
+            @endif
             <span x-show="!sidebarCollapsed" x-cloak class="min-w-0 flex-1">
                 <span class="block truncate text-sm font-bold tracking-tight text-slate-900 dark:text-white">NorteX</span>
                 <span class="block truncate text-[11px] text-slate-500 dark:text-slate-400">{{ $empresaNome ?: __('Consultoria Naval') }}</span>
@@ -112,27 +125,45 @@
             </x-sidebar-nav-link>
         @endif
 
-        <div
-            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 dark:text-slate-600 cursor-not-allowed"
-            :class="sidebarCollapsed ? 'justify-center px-2' : ''"
-            title="{{ __('Módulo em desenvolvimento') }}"
-        >
-            <span class="shrink-0 flex h-5 w-5 items-center justify-center opacity-70">
-                <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.716 50.716 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm6 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm6.75 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
-            </span>
-            <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ __('Aulas') }}</span>
-        </div>
+        @if ($u->hasPermission('aulas.view'))
+            <x-sidebar-nav-link :href="route('aulas.index')" :active="request()->routeIs('aulas.*')">
+                <x-slot name="icon">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.716 50.716 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm6 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm6.75 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
+                </x-slot>
+                {{ __('Escola Náutica') }}
+            </x-sidebar-nav-link>
+        @else
+            <div
+                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                :class="sidebarCollapsed ? 'justify-center px-2' : ''"
+                title="{{ __('Módulo em desenvolvimento') }}"
+            >
+                <span class="shrink-0 flex h-5 w-5 items-center justify-center opacity-70">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.716 50.716 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm6 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm6.75 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
+                </span>
+                <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ __('Escola Náutica') }}</span>
+            </div>
+        @endif
 
-        <div
-            class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 dark:text-slate-600 cursor-not-allowed"
-            :class="sidebarCollapsed ? 'justify-center px-2' : ''"
-            title="{{ __('Módulo em desenvolvimento') }}"
-        >
-            <span class="shrink-0 flex h-5 w-5 items-center justify-center opacity-70">
-                <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
-            </span>
-            <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ __('Financeiro') }}</span>
-        </div>
+        @if ($u->hasPermission('financeiro.view'))
+            <x-sidebar-nav-link :href="route('financeiro.index')" :active="request()->routeIs('financeiro.*')">
+                <x-slot name="icon">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
+                </x-slot>
+                {{ __('Financeiro') }}
+            </x-sidebar-nav-link>
+        @else
+            <div
+                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                :class="sidebarCollapsed ? 'justify-center px-2' : ''"
+                title="{{ __('Sem acesso ao módulo financeiro') }}"
+            >
+                <span class="shrink-0 flex h-5 w-5 items-center justify-center opacity-70">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
+                </span>
+                <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ __('Financeiro') }}</span>
+            </div>
+        @endif
     </nav>
 
     <div class="mt-auto space-y-1 border-t border-slate-200/80 p-3 dark:border-slate-800">

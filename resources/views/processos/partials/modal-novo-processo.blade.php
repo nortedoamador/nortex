@@ -1,7 +1,7 @@
 {{-- Modal: $tipos (com documentoRegras), $clientesSuggest, $categoriasProcesso, $categoriaProcessoOld --}}
 @php
     /** @var \Illuminate\Support\Collection<int, \App\Models\PlatformTipoProcesso> $tipos */
-    /** @var \Illuminate\Support\Collection<int, array{id:int, doc:string, docDigits:string, nome:string}>|iterable $clientesSuggest */
+    /** @var \Illuminate\Support\Collection<int, array{id:int, hashid:string, doc:string, docDigits:string, nome:string}>|iterable $clientesSuggest */
     /** @var list<\App\Enums\TipoProcessoCategoria> $categoriasProcesso */
     /** @var string|null $categoriaProcessoOld */
     use App\Enums\TipoProcessoCategoria;
@@ -208,13 +208,15 @@
                                 embarcacoes: [],
                                 loading: false,
                                 erro: '',
-                                async loadEmbarcacoes(clienteId) {
+                                async loadEmbarcacoes() {
                                     this.embarcacoes = [];
                                     this.erro = '';
-                                    if (!clienteId) return;
+                                    const el = document.getElementById('modal_proc_cliente_id');
+                                    const routeKey = el?.dataset?.clienteRouteKey || el?.dataset?.initialClienteRouteKey || '';
+                                    if (!routeKey) return;
                                     this.loading = true;
                                     try {
-                                        const res = await fetch(@js(url('/clientes/__ID__/embarcacoes-options')).replace('__ID__', String(clienteId)), {
+                                        const res = await fetch(@js(route('clientes.embarcacoes.options', ['cliente' => '__NX_CLIENT_HASH__'])).replace('__NX_CLIENT_HASH__', routeKey), {
                                             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                                             credentials: 'same-origin',
                                         });
@@ -230,8 +232,8 @@
                                 init() {
                                     const el = document.getElementById('modal_proc_cliente_id');
                                     if (el) {
-                                        this.loadEmbarcacoes(el.value);
-                                        el.addEventListener('change', () => this.loadEmbarcacoes(el.value));
+                                        this.loadEmbarcacoes();
+                                        el.addEventListener('change', () => this.loadEmbarcacoes());
                                     }
                                 },
                             }"
@@ -266,17 +268,19 @@
                                 habilitacoes: [],
                                 loading: false,
                                 erro: '',
-                                async loadHabilitacoes(clienteId) {
+                                async loadHabilitacoes() {
                                     this.habilitacoes = [];
                                     this.erro = '';
                                     const selHab = document.getElementById('modal_proc_habilitacao_id');
                                     if (selHab) {
                                         selHab.value = '';
                                     }
-                                    if (!clienteId) return;
+                                    const el = document.getElementById('modal_proc_cliente_id');
+                                    const routeKey = el?.dataset?.clienteRouteKey || el?.dataset?.initialClienteRouteKey || '';
+                                    if (!routeKey) return;
                                     this.loading = true;
                                     try {
-                                        const res = await fetch(@js(url('/clientes/__ID__/habilitacoes-options')).replace('__ID__', String(clienteId)), {
+                                        const res = await fetch(@js(route('clientes.habilitacoes.options', ['cliente' => '__NX_CLIENT_HASH__'])).replace('__NX_CLIENT_HASH__', routeKey), {
                                             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                                             credentials: 'same-origin',
                                         });
@@ -292,8 +296,8 @@
                                 init() {
                                     const el = document.getElementById('modal_proc_cliente_id');
                                     if (el) {
-                                        this.loadHabilitacoes(el.value);
-                                        el.addEventListener('change', () => this.loadHabilitacoes(el.value));
+                                        this.loadHabilitacoes();
+                                        el.addEventListener('change', () => this.loadHabilitacoes());
                                     }
                                 },
                             }"
@@ -478,94 +482,101 @@
                                                         :href="urlAbsoluta(row.url_abrir_modelo)"
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:bg-indigo-900/30"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-900 shadow-sm hover:bg-indigo-100 dark:border-indigo-900/40 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:bg-indigo-900/30"
+                                                        title="{{ __('Abrir modelo') }}"
+                                                        aria-label="{{ __('Abrir modelo') }}"
                                                     >
-                                                        <svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                                                        {{ __('Abrir modelo') }}
+                                                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                                                     </a>
                                                     <button
                                                         type="button"
                                                         x-show="row.status === 'pendente' && (row.codigo === 'COMPROVANTE_RESIDENCIA_CEP' || row.modelo_slug === 'anexo-2g')"
                                                         x-cloak
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 shadow-sm hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-sky-900/40 dark:bg-sky-950/40 dark:text-sky-200 dark:hover:bg-sky-900/30"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-sky-200 bg-sky-50 text-sky-900 shadow-sm hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-sky-900/40 dark:bg-sky-950/40 dark:text-sky-200 dark:hover:bg-sky-900/30"
                                                         title="{{ __('Registrar declaração de residência (Anexo 2-G)') }}"
+                                                        aria-label="{{ __('Registrar declaração de residência (Anexo 2-G)') }}"
                                                         :disabled="enviandoAnexosDocId !== null || removendoAnexoId !== null || atualizandoDocStatusId !== null || !processoId"
                                                         @click="patchDocumentoStatus(row.id, 'enviado', { declaracao_residencia_2g: true })"
                                                     >
-                                                        <span x-show="atualizandoDocStatusId != row.id">{{ __('Declaração') }}</span>
-                                                        <span x-show="atualizandoDocStatusId == row.id" x-cloak>{{ __('…') }}</span>
+                                                        <svg x-show="atualizandoDocStatusId != row.id" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                                                        <svg x-show="atualizandoDocStatusId == row.id" x-cloak class="h-4 w-4 animate-spin text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         x-show="row.status === 'pendente' && (row.codigo === 'CHA_REQ_ANEXO_5H' || row.codigo === 'CHA_REQ_ANEXO_5H_OCORRENCIA' || row.modelo_slug === 'anexo-5h')"
                                                         x-cloak
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-900 shadow-sm hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-violet-200 bg-violet-50 text-violet-900 shadow-sm hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
                                                         title="{{ __('Preencher requerimento com o modelo PDF (NORMAM 211)') }}"
+                                                        aria-label="{{ __('Preencher requerimento com o modelo PDF (NORMAM 211)') }}"
                                                         :disabled="enviandoAnexosDocId !== null || removendoAnexoId !== null || atualizandoDocStatusId !== null || !processoId"
                                                         @click="patchDocumentoStatus(row.id, 'enviado', { declaracao_anexo_5h: true })"
                                                     >
-                                                        <span x-show="atualizandoDocStatusId != row.id">{{ __('Requerimento') }}</span>
-                                                        <span x-show="atualizandoDocStatusId == row.id" x-cloak>{{ __('…') }}</span>
+                                                        <svg x-show="atualizandoDocStatusId != row.id" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                                                        <svg x-show="atualizandoDocStatusId == row.id" x-cloak class="h-4 w-4 animate-spin text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         x-show="row.status === 'pendente' && (row.codigo === 'CHA_DECL_EXTRAVIO_DANO_ANEXO_5D' || row.modelo_slug === 'anexo-5d')"
                                                         x-cloak
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-900 shadow-sm hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-violet-200 bg-violet-50 text-violet-900 shadow-sm hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
                                                         title="{{ __('Preencher declaração com o modelo PDF (Anexo 5-D, NORMAM 211)') }}"
+                                                        aria-label="{{ __('Preencher declaração com o modelo PDF (Anexo 5-D, NORMAM 211)') }}"
                                                         :disabled="enviandoAnexosDocId !== null || removendoAnexoId !== null || atualizandoDocStatusId !== null || !processoId"
                                                         @click="patchDocumentoStatus(row.id, 'enviado', { declaracao_anexo_5d: true })"
                                                     >
-                                                        <span x-show="atualizandoDocStatusId != row.id">{{ __('Declaração') }}</span>
-                                                        <span x-show="atualizandoDocStatusId == row.id" x-cloak>{{ __('…') }}</span>
+                                                        <svg x-show="atualizandoDocStatusId != row.id" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                                                        <svg x-show="atualizandoDocStatusId == row.id" x-cloak class="h-4 w-4 animate-spin text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         x-show="row.status === 'pendente' && (row.codigo === 'CHA_DECL_EXTRAVIO_MTA_3D_212' || row.modelo_slug === 'anexo-3d-extravio-cha-mta-normam212')"
                                                         x-cloak
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-900 shadow-sm hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-violet-200 bg-violet-50 text-violet-900 shadow-sm hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-violet-900/40 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-900/30"
                                                         title="{{ __('Preencher declaração com o modelo PDF (Anexo 3-D, NORMAM 212)') }}"
+                                                        aria-label="{{ __('Preencher declaração com o modelo PDF (Anexo 3-D, NORMAM 212)') }}"
                                                         :disabled="enviandoAnexosDocId !== null || removendoAnexoId !== null || atualizandoDocStatusId !== null || !processoId"
                                                         @click="patchDocumentoStatus(row.id, 'enviado', { declaracao_anexo_3d: true })"
                                                     >
-                                                        <span x-show="atualizandoDocStatusId != row.id">{{ __('Declaração') }}</span>
-                                                        <span x-show="atualizandoDocStatusId == row.id" x-cloak>{{ __('…') }}</span>
+                                                        <svg x-show="atualizandoDocStatusId != row.id" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+                                                        <svg x-show="atualizandoDocStatusId == row.id" x-cloak class="h-4 w-4 animate-spin text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         x-show="row.status === 'pendente' && row.modelo_slug && row.modelo_slug !== 'anexo-2g' && row.modelo_slug !== 'anexo-5h' && row.modelo_slug !== 'anexo-5d' && row.modelo_slug !== 'anexo-3d-extravio-cha-mta-normam212'"
                                                         x-cloak
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-900 shadow-sm hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-teal-900/40 dark:bg-teal-950/40 dark:text-teal-200 dark:hover:bg-teal-900/30"
-                                                        title="{{ __('Registar que o item foi preenchido com o modelo PDF') }}"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-teal-200 bg-teal-50 text-teal-900 shadow-sm hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-teal-900/40 dark:bg-teal-950/40 dark:text-teal-200 dark:hover:bg-teal-900/30"
+                                                        title="{{ __('Conclui o item pelo preenchimento digital do modelo. Para ver o documento, use Visualizar ou Abrir modelo. Para anexar o ficheiro assinado ou entrega em papel, use Anexar ou Físico.') }}"
+                                                        aria-label="{{ __('Registar que o item foi preenchido com o modelo PDF') }}"
                                                         :disabled="enviandoAnexosDocId !== null || removendoAnexoId !== null || atualizandoDocStatusId !== null || !processoId"
                                                         @click="patchDocumentoStatus(row.id, 'enviado', { preenchido_via_modelo: true })"
                                                     >
-                                                        <span x-show="atualizandoDocStatusId != row.id">{{ __('Preencher com o modelo') }}</span>
-                                                        <span x-show="atualizandoDocStatusId == row.id" x-cloak>{{ __('…') }}</span>
+                                                        <svg x-show="atualizandoDocStatusId != row.id" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+                                                        <svg x-show="atualizandoDocStatusId == row.id" x-cloak class="h-4 w-4 animate-spin text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         x-show="row.status === 'pendente' || row.status === 'dispensado' || (row.status === 'enviado' && permiteVariosAnexosFotos(row))"
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        x-bind:title="(row.status === 'enviado' && permiteVariosAnexosFotos(row)) ? @js(__('Anexar mais')) : @js(__('Anexar'))"
+                                                        x-bind:aria-label="(row.status === 'enviado' && permiteVariosAnexosFotos(row)) ? @js(__('Anexar mais')) : @js(__('Anexar'))"
                                                         :disabled="enviandoAnexosDocId !== null || removendoAnexoId !== null || atualizandoDocStatusId !== null || !processoId"
                                                         @click="document.getElementById('nx-np-file-' + row.id)?.click()"
                                                     >
-                                                        <svg class="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.009-.01-.01m7.364-7.364L12 10.5" /></svg>
-                                                        <span x-show="enviandoAnexosDocId != row.id && !(row.status === 'enviado' && permiteVariosAnexosFotos(row))">{{ __('Anexar') }}</span>
-                                                        <span x-show="enviandoAnexosDocId != row.id && row.status === 'enviado' && permiteVariosAnexosFotos(row)" x-cloak>{{ __('Anexar mais') }}</span>
-                                                        <span x-show="enviandoAnexosDocId == row.id" x-cloak>{{ __('…') }}</span>
+                                                        <svg x-show="enviandoAnexosDocId != row.id" class="h-4 w-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.009-.01-.01m7.364-7.364L12 10.5" /></svg>
+                                                        <svg x-show="enviandoAnexosDocId == row.id" x-cloak class="h-4 w-4 shrink-0 animate-spin text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     </button>
                                                     <button
                                                         type="button"
                                                         x-show="row.status === 'pendente'"
                                                         x-cloak
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-900 shadow-sm hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/30"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-900 shadow-sm hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/30"
                                                         title="{{ __('Documento apenas físico, sem envio digital') }}"
+                                                        aria-label="{{ __('Documento apenas físico, sem envio digital') }}"
                                                         :disabled="enviandoAnexosDocId !== null || removendoAnexoId !== null || atualizandoDocStatusId !== null || !processoId"
                                                         @click="patchDocumentoStatus(row.id, 'fisico')"
                                                     >
-                                                        <span x-show="atualizandoDocStatusId != row.id">{{ __('Físico') }}</span>
-                                                        <span x-show="atualizandoDocStatusId == row.id" x-cloak>{{ __('…') }}</span>
+                                                        <svg x-show="atualizandoDocStatusId != row.id" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><path d="M14 2v6h6" /><path d="M10 9H8M16 13H8M16 17H8M16 11H8M16 15H8M13 19H8" /></svg>
+                                                        <svg x-show="atualizandoDocStatusId == row.id" x-cloak class="h-4 w-4 animate-spin text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     </button>
                                                     <a
                                                         x-show="row.status === 'enviado' && row.url_visualizar_modelo && (!row.anexos || !row.anexos.length)"
@@ -573,10 +584,11 @@
                                                         :href="urlAbsoluta(row.url_visualizar_modelo)"
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        title="{{ __('Visualizar') }}"
+                                                        aria-label="{{ __('Visualizar') }}"
                                                     >
-                                                        <svg class="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                                                        {{ __('Visualizar') }}
+                                                        <svg class="h-4 w-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                                                     </a>
                                                     <a
                                                         x-show="row.status === 'enviado' && row.anexos && row.anexos.length && !permiteVariosAnexosFotos(row)"
@@ -584,21 +596,24 @@
                                                         :href="urlAbsoluta(row.anexos[0]?.url)"
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        title="{{ __('Visualizar') }}"
+                                                        aria-label="{{ __('Visualizar') }}"
                                                     >
-                                                        <svg class="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                                                        {{ __('Visualizar') }}
+                                                        <svg class="h-4 w-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                                                     </a>
                                                     <button
                                                         type="button"
                                                         x-show="row.status === 'fisico'"
                                                         x-cloak
-                                                        class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        title="{{ __('Trocar anexo') }}"
+                                                        aria-label="{{ __('Trocar anexo') }}"
                                                         :disabled="enviandoAnexosDocId !== null || removendoAnexoId !== null || atualizandoDocStatusId !== null || !processoId"
                                                         @click="solicitarTrocarAnexoDigital(row.id)"
                                                     >
-                                                        <span x-show="atualizandoDocStatusId != row.id">{{ __('Trocar anexo') }}</span>
-                                                        <span x-show="atualizandoDocStatusId == row.id" x-cloak>{{ __('…') }}</span>
+                                                        <svg x-show="atualizandoDocStatusId != row.id" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13.5V7.5H13.5M12 5.5l2.5 2-2.5 2" /><path d="M19 10.5v6H10.5M12 15l-2.5 1.5 2.5 1.5" /></svg>
+                                                        <svg x-show="atualizandoDocStatusId == row.id" x-cloak class="h-4 w-4 animate-spin text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                     </button>
                                                 </div>
                                             </div>

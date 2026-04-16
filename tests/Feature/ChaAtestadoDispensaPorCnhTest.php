@@ -93,14 +93,6 @@ class ChaAtestadoDispensaPorCnhTest extends TestCase
 
         $this->assertSame(ProcessoDocumentoStatus::Pendente, $atestadoDoc->status);
 
-        $this->patchJson(
-            route('processos.documentos.update', [$processo, $cnhDoc]),
-            [
-                'status' => ProcessoDocumentoStatus::Pendente->value,
-                'data_validade_documento' => now()->addYear()->format('Y-m-d'),
-            ],
-        )->assertOk();
-
         $file = UploadedFile::fake()->create('cnh.pdf', 120, 'application/pdf');
         $this->post(
             route('processos.documentos.anexos.store', [$processo, $cnhDoc]),
@@ -178,19 +170,11 @@ class ChaAtestadoDispensaPorCnhTest extends TestCase
             ->where('documento_tipo_id', $atestadoTipo->id)
             ->firstOrFail();
 
-        $this->patchJson(
-            route('processos.documentos.update', [$processo, $cnhDoc]),
-            [
-                'status' => ProcessoDocumentoStatus::Pendente->value,
-                'data_validade_documento' => now()->addYear()->format('Y-m-d'),
-            ],
-        )->assertOk();
-
         $atestadoDoc->refresh();
         $this->assertSame(ProcessoDocumentoStatus::Pendente, $atestadoDoc->status);
     }
 
-    public function test_cnh_vencida_reverte_atestado_dispensado_para_pendente(): void
+    public function test_remover_anexo_cnh_reverte_atestado_dispensado_para_pendente(): void
     {
         Storage::fake('s3');
 
@@ -200,8 +184,8 @@ class ChaAtestadoDispensaPorCnhTest extends TestCase
 
         $tipo = TipoProcesso::query()->create([
             'empresa_id' => $empresa->id,
-            'nome' => 'CHA teste vencida',
-            'slug' => 'cha-teste-vencida',
+            'nome' => 'CHA teste remover cnh',
+            'slug' => 'cha-teste-remover-cnh',
             'categoria' => TipoProcessoCategoria::Cha,
         ]);
         $platformTipo = PlatformTipoProcesso::query()->create([
@@ -258,14 +242,6 @@ class ChaAtestadoDispensaPorCnhTest extends TestCase
             ->where('documento_tipo_id', $atestadoTipo->id)
             ->firstOrFail();
 
-        $this->patchJson(
-            route('processos.documentos.update', [$processo, $cnhDoc]),
-            [
-                'status' => ProcessoDocumentoStatus::Pendente->value,
-                'data_validade_documento' => now()->addYear()->format('Y-m-d'),
-            ],
-        )->assertOk();
-
         $file = UploadedFile::fake()->create('cnh.pdf', 80, 'application/pdf');
         $this->post(
             route('processos.documentos.anexos.store', [$processo, $cnhDoc]),
@@ -276,12 +252,12 @@ class ChaAtestadoDispensaPorCnhTest extends TestCase
         $atestadoDoc->refresh();
         $this->assertSame(ProcessoDocumentoStatus::Dispensado, $atestadoDoc->status);
 
-        $this->patchJson(
-            route('processos.documentos.update', [$processo, $cnhDoc]),
-            [
-                'status' => ProcessoDocumentoStatus::Enviado->value,
-                'data_validade_documento' => now()->subDay()->format('Y-m-d'),
-            ],
+        $cnhDoc->load('anexos');
+        $anexo = $cnhDoc->anexos->firstOrFail();
+        $this->delete(
+            $anexo->opaqueDestroyUrl(),
+            [],
+            ['Accept' => 'application/json'],
         )->assertOk();
 
         $atestadoDoc->refresh();

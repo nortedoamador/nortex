@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClienteAnexosRequest;
+use App\Http\Requests\StoreClienteModalRequest;
 use App\Http\Requests\StoreClienteRequest;
 use App\Http\Requests\UpdateClienteRequest;
 use App\Models\Cliente;
@@ -178,6 +179,31 @@ class ClienteController extends Controller
         return redirect()
             ->route('clientes.index')
             ->with('status', $status);
+    }
+
+    /**
+     * Cria cliente a partir da ficha completa (multipart) e devolve JSON — usado em modais (ex.: diretor da escola).
+     */
+    public function modalStore(StoreClienteModalRequest $request): JsonResponse
+    {
+        $payload = $request->safe()->except([
+            'anexo_cnh',
+            'anexo_comprovante',
+            'anexo_outro',
+            'anexo_outro_tipo',
+        ]);
+
+        $cliente = Cliente::query()->create($payload);
+        $this->armazenarAnexosDaFicha($request, $cliente);
+
+        return response()->json([
+            'ok' => true,
+            'item' => [
+                'id' => $cliente->id,
+                'nome' => (string) $cliente->nome,
+                'cpf' => (string) $cliente->cpf,
+            ],
+        ]);
     }
 
     public function show(Cliente $cliente): View

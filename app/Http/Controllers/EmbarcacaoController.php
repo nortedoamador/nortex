@@ -13,6 +13,7 @@ use App\Models\EmbarcacaoAnexo;
 use App\Models\PlatformTipoProcesso;
 use App\Models\Processo;
 use App\Services\EmbarcacaoAnexoService;
+use App\Support\ClienteCpfSuggest;
 use App\Support\EmbarcacaoFotosGaleria;
 use App\Support\EmbarcacaoTiposAnexo;
 use Illuminate\Http\JsonResponse;
@@ -413,17 +414,9 @@ class EmbarcacaoController extends Controller
                 ->get();
             $tiposProcessoModal->load(['documentoRegras' => fn ($q) => $q->wherePivot('empresa_id', $empresaId)->orderBy('documento_processo.ordem')]);
 
-            $clientesSuggestProcessoModal = Cliente::query()
-                ->orderBy('nome')
-                ->get()
-                ->filter(fn (Cliente $c) => filled($c->cpf))
-                ->values()
-                ->map(fn (Cliente $c) => [
-                    'id' => $c->id,
-                    'doc' => $c->documentoFormatado() ?? $c->cpf,
-                    'docDigits' => preg_replace('/\D/', '', (string) $c->cpf),
-                    'nome' => $c->nome,
-                ]);
+            $clientesSuggestProcessoModal = ClienteCpfSuggest::collection(
+                Cliente::query()->orderBy('nome')->get()
+            );
 
             $categoriasProcesso = TipoProcessoCategoria::cases();
             $mostrarModalNovoProcesso = $tiposProcessoModal->isNotEmpty();

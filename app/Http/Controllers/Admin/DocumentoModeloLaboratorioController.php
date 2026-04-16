@@ -78,6 +78,9 @@ class DocumentoModeloLaboratorioController extends Controller
             }
             $m = $modelosPorSlug->get($slug);
             $refCatalogo = isset($meta['referencia']) && $meta['referencia'] !== '' ? (string) $meta['referencia'] : null;
+            $globalId = isset($meta['documento_modelo_global_id']) && $meta['documento_modelo_global_id'] !== null
+                ? (int) $meta['documento_modelo_global_id']
+                : null;
             $linhasLaboratorio[] = [
                 'slug' => $slug,
                 'titulo' => $meta['titulo'],
@@ -86,6 +89,9 @@ class DocumentoModeloLaboratorioController extends Controller
                 'atualizado_em' => $m?->updated_at?->getTimestamp() ?? 0,
                 'precisa_embarcacao' => ChecklistDocumentoModelo::urlPrecisaContextoEmbarcacao($slug),
                 'tem_modelo' => $m !== null,
+                'documento_modelo_global_id' => $globalId,
+                'personalizado' => (bool) ($m?->personalizado),
+                'igual_ao_global' => $m !== null && $globalId !== null && ! $m->personalizado,
             ];
         }
         foreach ($modelosPorSlug->sortBy('titulo', SORT_NATURAL) as $m) {
@@ -98,6 +104,9 @@ class DocumentoModeloLaboratorioController extends Controller
                     'atualizado_em' => $m->updated_at?->getTimestamp() ?? 0,
                     'precisa_embarcacao' => ChecklistDocumentoModelo::urlPrecisaContextoEmbarcacao($m->slug),
                     'tem_modelo' => true,
+                    'documento_modelo_global_id' => $m->documento_modelo_global_id,
+                    'personalizado' => (bool) $m->personalizado,
+                    'igual_ao_global' => $m->documento_modelo_global_id !== null && ! $m->personalizado,
                 ];
             }
         }
@@ -161,6 +170,41 @@ class DocumentoModeloLaboratorioController extends Controller
         return redirect()
             ->to(tenant_admin_route('documento-modelos.laboratorio', $query))
             ->with('status', __('Modelo removido (:slug).', ['slug' => $slug]));
+    }
+
+    public function reporEsqueletoGlobal(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user && TenantEmpresaContext::canAccessLaboratorioPdf($user, $request), 403);
+
+        $empresaId = TenantEmpresaContext::empresaId($request);
+
+        $slugsCatalogo = array_keys(EmpresaProcessosDefaultsService::modelosPdfPadraoDefinicoes());
+
+        $request->validate([
+            'slug' => ['required', 'string', 'max:80', Rule::in($slugsCatalogo)],
+            'cliente_id' => ['nullable', 'string'],
+            'embarcacao_id' => ['nullable', 'string'],
+            'sort' => ['nullable', 'string', 'max:32'],
+            'dir' => ['nullable', 'string', 'max:4'],
+        ]);
+
+        $slug = Str::lower(trim((string) $request->input('slug')));
+
+        $empresa = Empresa::query()->findOrFail($empresaId);
+
+        $erro = app(EmpresaProcessosDefaultsService::class)->reporEsqueletoGlobalNaEmpresa($empresa, $slug);
+        if ($erro !== null) {
+            return redirect()
+                ->to(tenant_admin_route('documento-modelos.laboratorio', $this->laboratorioRedirectQuery($request)))
+                ->withErrors(['slug' => $erro]);
+        }
+
+        $query = $this->laboratorioRedirectQuery($request);
+
+        return redirect()
+            ->to(tenant_admin_route('documento-modelos.laboratorio', $query))
+            ->with('status', __('Conteúdo reposto a partir do documento automático global (:slug).', ['slug' => $slug]));
     }
 
     public function ocultarCatalogo(Request $request): RedirectResponse
@@ -255,14 +299,19 @@ class DocumentoModeloLaboratorioController extends Controller
 
         abort_unless($modelo !== null, 404);
 
-        $modelo->update([
+        $patch = [
             'conteudo' => $conteudo,
             'mapeamento_upload' => $mapeamentoUpload,
-        ]);
+        ];
+        if ($modelo->documento_modelo_global_id !== null) {
+            $patch['personalizado'] = true;
+            $patch['global_synced_at'] = null;
+        }
+        $modelo->update($patch);
 
         $empresa->removeDocumentoModeloLabSlugOculto($slug);
 
-        $diskErr = DocumentoModeloPadraoFicheiro::gravar($slug, $conteudo);
+        $diskErr = DocumentoModeloPadraoFicheiro::gravarSeModeloEmpresaSemGlobal($modelo, $conteudo);
 
         $query = $this->laboratorioRedirectQuery($request);
 
@@ -326,6 +375,9 @@ class DocumentoModeloLaboratorioController extends Controller
             'conteudo_upload_bruto' => $raw,
             'upload_mapeamento_pendente' => true,
             'mapeamento_upload' => $posUpload['mapeamento_upload'],
+            'documento_modelo_global_id' => null,
+            'personalizado' => true,
+            'global_synced_at' => null,
         ]);
 
         $query = $this->laboratorioRedirectQuery($request);

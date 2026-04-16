@@ -1,8 +1,17 @@
 @php
-    /** @var \Illuminate\Support\Collection<int, array{id:int, doc:string, docDigits:string, nome:string}>|iterable $clientesSuggest */
+    /** @var \Illuminate\Support\Collection<int, array{id:int, hashid:string, doc:string, docDigits:string, nome:string}>|iterable $clientesSuggest */
+    use App\Models\Cliente;
+
     $idPrefix = $idPrefix ?? '';
     $clientesSuggest = $clientesSuggest ?? collect();
     $htmlRequired = $htmlRequired ?? true;
+
+    $nxOldClienteRouteKey = '';
+    $nxOldClienteId = old('cliente_id');
+    if ($nxOldClienteId !== null && $nxOldClienteId !== '' && ctype_digit((string) $nxOldClienteId)) {
+        $nxOldClienteRow = Cliente::query()->find((int) $nxOldClienteId);
+        $nxOldClienteRouteKey = $nxOldClienteRow ? $nxOldClienteRow->getRouteKey() : '';
+    }
 
     $cpfCampoInicial = old('cpf');
     if ($cpfCampoInicial !== null && $cpfCampoInicial !== '') {
@@ -19,7 +28,15 @@
     $nxCpfPayloadId = 'nx-cpf-payload-'.bin2hex(random_bytes(8));
 @endphp
 
-<input type="hidden" id="{{ $idPrefix }}cliente_id" name="cliente_id" value="{{ old('cliente_id') }}" />
+<input
+    type="hidden"
+    id="{{ $idPrefix }}cliente_id"
+    name="cliente_id"
+    value="{{ old('cliente_id') }}"
+    @if ($nxOldClienteRouteKey !== '')
+        data-initial-cliente-route-key="{{ $nxOldClienteRouteKey }}"
+    @endif
+/>
 
 {{-- Textarea (não <script>): JSON em <script> pode corromper o DOM; @json já escapa < --}}
 <textarea

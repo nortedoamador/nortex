@@ -100,6 +100,11 @@ class Empresa extends Model
         return $this->hasMany(Processo::class);
     }
 
+    public function compromissosAgenda(): HasMany
+    {
+        return $this->hasMany(EmpresaCompromisso::class);
+    }
+
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);

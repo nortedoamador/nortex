@@ -50,7 +50,7 @@
                     </a>
                 @endif
                 <a href="{{ tenant_admin_route('documento-modelos.laboratorio', $labQuery) }}" class="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
-                    {{ __('Laboratório') }}
+                    {{ __('Documentos automatizados') }}
                 </a>
                 @if ($urlPreviewHtml)
                     <a href="{{ $urlPreviewHtml }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">

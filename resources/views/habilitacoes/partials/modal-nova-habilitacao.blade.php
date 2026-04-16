@@ -1,7 +1,7 @@
 {{-- Modal: Alpine.store('novaHabilitacao'); $clientes + $clientesSuggest --}}
 @php
     /** @var \Illuminate\Support\Collection<int, \App\Models\Cliente> $clientes */
-    /** @var \Illuminate\Support\Collection<int, array{id:int, doc:string, docDigits:string, nome:string}> $clientesSuggest */
+    /** @var \Illuminate\Support\Collection<int, array{id:int, hashid:string, doc:string, docDigits:string, nome:string}> $clientesSuggest */
 @endphp
 
 <div

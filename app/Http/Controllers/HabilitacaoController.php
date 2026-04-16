@@ -9,6 +9,7 @@ use App\Models\Cliente;
 use App\Models\Habilitacao;
 use App\Models\HabilitacaoAnexo;
 use App\Services\HabilitacaoAnexoService;
+use App\Support\ClienteCpfSuggest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -88,18 +89,9 @@ class HabilitacaoController extends Controller
             ? Cliente::query()->orderBy('nome')->get()
             : collect();
 
-        $clientesSuggest = Cliente::query()
-            ->orderBy('nome')
-            ->get()
-            ->filter(fn (Cliente $c) => filled($c->cpf))
-            ->values()
-            ->map(fn (Cliente $c) => [
-                'id' => $c->id,
-                'doc' => $c->documentoFormatado() ?? $c->cpf,
-                'docDigits' => preg_replace('/\D/', '', (string) $c->cpf),
-                'nome' => $c->nome,
-            ])
-            ->values();
+        $clientesSuggest = ClienteCpfSuggest::collection(
+            Cliente::query()->orderBy('nome')->get()
+        )->values();
 
         $categoriasCha = Habilitacao::CATEGORIAS_CHA;
         $jurisdicoesCha = Habilitacao::JURISDICOES;
@@ -151,15 +143,7 @@ class HabilitacaoController extends Controller
 
         $clientes = Cliente::query()->orderBy('nome')->get();
 
-        $clientesSuggest = $clientes
-            ->filter(fn (Cliente $c) => filled($c->cpf))
-            ->values()
-            ->map(fn (Cliente $c) => [
-                'id' => $c->id,
-                'doc' => $c->documentoFormatado() ?? $c->cpf,
-                'docDigits' => preg_replace('/\D/', '', (string) $c->cpf),
-                'nome' => $c->nome,
-            ]);
+        $clientesSuggest = ClienteCpfSuggest::collection($clientes);
 
         return view('habilitacoes.create', compact('clientes', 'clientesSuggest'));
     }
@@ -181,15 +165,7 @@ class HabilitacaoController extends Controller
 
         $clientes = Cliente::query()->orderBy('nome')->get();
 
-        $clientesSuggest = $clientes
-            ->filter(fn (Cliente $c) => filled($c->cpf))
-            ->values()
-            ->map(fn (Cliente $c) => [
-                'id' => $c->id,
-                'doc' => $c->documentoFormatado() ?? $c->cpf,
-                'docDigits' => preg_replace('/\D/', '', (string) $c->cpf),
-                'nome' => $c->nome,
-            ]);
+        $clientesSuggest = ClienteCpfSuggest::collection($clientes);
 
         return view('habilitacoes.edit', compact('habilitacao', 'clientes', 'clientesSuggest'));
     }

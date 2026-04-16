@@ -13,6 +13,7 @@ use App\Models\Role;
 use App\Models\TipoProcesso;
 use App\Models\User;
 use App\Observers\ModelActivityObserver;
+use App\Support\TenantHashids;
 use App\Policies\ClientePolicy;
 use App\Policies\EmbarcacaoPolicy;
 use App\Policies\HabilitacaoPolicy;
@@ -31,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         require_once app_path('helpers.php');
+
+        $this->app->singleton(TenantHashids::class);
     }
 
     /**

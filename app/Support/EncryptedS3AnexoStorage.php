@@ -26,6 +26,15 @@ final class EncryptedS3AnexoStorage
         return $path;
     }
 
+    /** Grava conteúdo já em claro (ex.: cópia a partir da ficha do cliente) cifrado no disco. */
+    public static function storeEncryptedPlainContents(string $dir, string $plainContents): string
+    {
+        $path = trim($dir, '/').'/'.Str::uuid()->toString().'.enc';
+        Storage::disk(self::DISK)->put($path, FileEncryption::encrypt($plainContents));
+
+        return $path;
+    }
+
     public static function isEncryptedDisk(string $disk): bool
     {
         return $disk === self::DISK;

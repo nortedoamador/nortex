@@ -116,12 +116,12 @@ final class HabilitacaoChaProcessosTemplateService
         ];
         $cnhComValidade = [
             'codigo' => ChaChecklistDocumentoCodigos::CNH_COM_VALIDADE,
-            'nome' => 'CNH: anexe a cópia e informe a data de validade. Com CNH válida e anexada, o atestado médico/psicofísico é dispensado automaticamente. Sem CNH, use o documento de identidade (RG) e envie o atestado na linha seguinte.',
+            'nome' => 'CNH: cópia na ficha do cliente é usada automaticamente neste processo, ou anexe outra. Com CNH no processo ou na ficha, o atestado médico/psicofísico é dispensado automaticamente. Sem CNH, use o documento de identidade (RG) e envie o atestado na linha seguinte.',
             'obrigatorio' => false,
         ];
         $atestadoMedicoPsicofisico = [
             'codigo' => ChaChecklistDocumentoCodigos::ATESTADO_MEDICO_PSICOFISICO,
-            'nome' => 'Atestado médico/psicofísico (emitido há menos de 1 ano). Obrigatório quando não houver CNH válida anexada ou quando a validade da CNH não dispensar o atestado.',
+            'nome' => 'Atestado médico/psicofísico (emitido há menos de 1 ano). Obrigatório quando não houver CNH anexada (processo ou ficha do cliente).',
         ];
         $cnhOuRgSimples = [
             'codigo' => 'CHA_CNH_OU_RG',

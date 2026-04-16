@@ -112,7 +112,7 @@ final class DashboardAlertasService
                 'tipo' => 'cha_validade',
                 'titulo' => __('CHA a vencer'),
                 'detalhe' => ($h->cliente?->nome ?? __('Cliente')).' — '.__('validade :d', ['d' => $h->data_validade?->format('d/m/Y') ?? '—']),
-                'href' => $h->cliente_id ? route('clientes.show', $h->cliente_id) : null,
+                'href' => $h->cliente ? route('clientes.show', $h->cliente) : null,
                 'severidade' => 'amber',
             ];
         }
@@ -131,7 +131,7 @@ final class DashboardAlertasService
                 'tipo' => 'cha_vencida',
                 'titulo' => __('CHA vencida'),
                 'detalhe' => ($h->cliente?->nome ?? __('Cliente')).' — '.__('desde :d', ['d' => $h->data_validade?->format('d/m/Y') ?? '—']),
-                'href' => $h->cliente_id ? route('clientes.show', $h->cliente_id) : null,
+                'href' => $h->cliente ? route('clientes.show', $h->cliente) : null,
                 'severidade' => 'red',
             ];
         }

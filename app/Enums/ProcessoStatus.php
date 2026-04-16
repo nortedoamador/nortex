@@ -114,6 +114,24 @@ enum ProcessoStatus: string
         };
     }
 
+    /**
+     * Cor do ícone de etapa (traço) no select personalizado — alinhado à referência visual por fase.
+     */
+    public function uiStatusSelectIconClass(): string
+    {
+        return match ($this) {
+            self::EmMontagem => 'text-[#c9a227] dark:text-[#e8c547]',
+            self::AProtocolar => 'text-[#7c3aed] dark:text-[#a78bfa]',
+            self::Protocolado => 'text-[#2563eb] dark:text-[#60a5fa]',
+            self::EmAndamento => 'text-[#0891b2] dark:text-[#22d3ee]',
+            self::EmExigencia => 'text-[#ea580c] dark:text-[#fb923c]',
+            self::AguardandoProva => 'text-[#737373] dark:text-[#a3a3a3]',
+            self::Indeferido => 'text-[#dc2626] dark:text-[#f87171]',
+            self::ADisposicao => 'text-[#16a34a] dark:text-[#4ede80]',
+            self::Concluido => 'text-[#15803d] dark:text-[#4ade80]',
+        };
+    }
+
     /** Ponto colorido no cabeçalho da coluna Kanban (uma cor por fase). */
     public function uiKanbanColumnDotClass(): string
     {
@@ -199,75 +217,65 @@ enum ProcessoStatus: string
     }
 
     /**
-     * Estilo inline para cada &lt;option&gt; do select nativo (lista aberta: Chrome, Edge, Firefox).
-     * Usa uiBrandHex() e o mesmo contraste de texto que o avatar da lista.
+     * Estilo inline para cada &lt;option&gt; do select nativo (lista aberta).
+     * Fundo neutro e texto legível — evita o “arco-íris” por opção (melhor leitura e WCAG).
      */
     public function uiNativeSelectOptionStyle(): string
     {
-        $fg = match ($this) {
-            self::EmMontagem,
-            self::EmAndamento,
-            self::AguardandoProva,
-            self::Concluido => '#18181b',
-            default => '#ffffff',
-        };
-
-        return 'background-color: '.$this->uiBrandHex().'; color: '.$fg.'; font-weight: 600;';
+        return 'background-color: #ffffff; color: #0f172a; font-weight: 500;';
     }
 
     /**
-     * Anel 1px na cor do status (padding do wrapper). O contorno não depende da borda do &lt;select&gt; (evita @tailwindcss/forms).
+     * Contorno do controlo de etapa na lista: cartão neutro com barra lateral na cor institucional do status.
      */
     public function uiListSelectChromeWrapClass(): string
     {
-        return match ($this) {
-            self::EmMontagem => 'inline-flex max-w-full rounded-full bg-[#F2C94C] p-px shadow-sm transition-all hover:brightness-95',
-            self::AProtocolar => 'inline-flex max-w-full rounded-full bg-[#9B51E0] p-px shadow-sm transition-all hover:brightness-95',
-            self::Protocolado => 'inline-flex max-w-full rounded-full bg-[#2F80ED] p-px shadow-sm transition-all hover:brightness-95',
-            self::EmAndamento => 'inline-flex max-w-full rounded-full bg-[#56CCF2] p-px shadow-sm transition-all hover:brightness-95',
-            self::EmExigencia => 'inline-flex max-w-full rounded-full bg-[#F2994A] p-px shadow-sm transition-all hover:brightness-95',
-            self::AguardandoProva => 'inline-flex max-w-full rounded-full bg-[#BDBDBD] p-px shadow-sm transition-all hover:brightness-95',
-            self::Indeferido => 'inline-flex max-w-full rounded-full bg-[#EB5757] p-px shadow-sm transition-all hover:brightness-95',
-            self::ADisposicao => 'inline-flex max-w-full rounded-full bg-[#27AE60] p-px shadow-sm transition-all hover:brightness-95',
-            self::Concluido => 'inline-flex max-w-full rounded-full bg-[#6FCF97] p-px shadow-sm transition-all hover:brightness-95',
+        $accent = match ($this) {
+            self::EmMontagem => 'border-l-[#F2C94C]',
+            self::AProtocolar => 'border-l-[#9B51E0]',
+            self::Protocolado => 'border-l-[#2F80ED]',
+            self::EmAndamento => 'border-l-[#56CCF2]',
+            self::EmExigencia => 'border-l-[#F2994A]',
+            self::AguardandoProva => 'border-l-[#9e9e9e]',
+            self::Indeferido => 'border-l-[#EB5757]',
+            self::ADisposicao => 'border-l-[#27AE60]',
+            self::Concluido => 'border-l-[#6FCF97]',
         };
+
+        return 'relative inline-flex w-full max-w-full items-center rounded-xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.04] transition-colors hover:border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:ring-white/[0.06] dark:hover:border-slate-500 border-l-[3px] '.$accent;
     }
 
-    /** Interior: sem borda (anel = wrap). Classes extras no &lt;select&gt; vêm da view + CSS nx-processo-list-status. */
+    /** Interior do trigger / select: tipografia alinhada ao resto da app (sem fundo por status). */
     public function uiListSelectClasses(): string
     {
-        return match ($this) {
-            self::EmMontagem => 'rounded-full bg-[#F2C94C]/14 text-zinc-900 shadow-none hover:bg-[#F2C94C]/22 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#F2C94C]/40 focus-visible:ring-inset dark:bg-[#F2C94C]/16 dark:text-zinc-50 dark:hover:bg-[#F2C94C]/24',
-            self::AProtocolar => 'rounded-full bg-[#9B51E0]/12 text-zinc-900 shadow-none hover:bg-[#9B51E0]/20 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#9B51E0]/45 focus-visible:ring-inset dark:bg-[#9B51E0]/18 dark:text-zinc-50 dark:hover:bg-[#9B51E0]/26',
-            self::Protocolado => 'rounded-full bg-[#2F80ED]/12 text-zinc-900 shadow-none hover:bg-[#2F80ED]/20 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#2F80ED]/45 focus-visible:ring-inset dark:bg-[#2F80ED]/18 dark:text-zinc-50 dark:hover:bg-[#2F80ED]/26',
-            self::EmAndamento => 'rounded-full bg-[#56CCF2]/18 text-zinc-900 shadow-none hover:bg-[#56CCF2]/28 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#56CCF2]/45 focus-visible:ring-inset dark:bg-[#56CCF2]/20 dark:text-zinc-50 dark:hover:bg-[#56CCF2]/30',
-            self::EmExigencia => 'rounded-full bg-[#F2994A]/14 text-zinc-900 shadow-none hover:bg-[#F2994A]/22 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#F2994A]/45 focus-visible:ring-inset dark:bg-[#F2994A]/18 dark:text-zinc-50 dark:hover:bg-[#F2994A]/26',
-            self::AguardandoProva => 'rounded-full bg-[#BDBDBD]/28 text-zinc-900 shadow-none hover:bg-[#BDBDBD]/40 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#9e9e9e]/50 focus-visible:ring-inset dark:bg-[#BDBDBD]/32 dark:text-zinc-100 dark:hover:bg-[#BDBDBD]/45',
-            self::Indeferido => 'rounded-full bg-[#EB5757]/12 text-zinc-900 shadow-none hover:bg-[#EB5757]/20 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#EB5757]/45 focus-visible:ring-inset dark:bg-[#EB5757]/18 dark:text-zinc-50 dark:hover:bg-[#EB5757]/26',
-            self::ADisposicao => 'rounded-full bg-[#27AE60]/12 text-zinc-900 shadow-none hover:bg-[#27AE60]/20 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#27AE60]/45 focus-visible:ring-inset dark:bg-[#27AE60]/18 dark:text-zinc-50 dark:hover:bg-[#27AE60]/26',
-            self::Concluido => 'rounded-full bg-[#6FCF97]/18 text-zinc-900 shadow-none hover:bg-[#6FCF97]/28 focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-[#6FCF97]/45 focus-visible:ring-inset dark:bg-[#6FCF97]/22 dark:text-zinc-50 dark:hover:bg-[#6FCF97]/32',
-        };
+        return 'bg-transparent text-sm font-medium leading-snug text-slate-800 shadow-none focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-indigo-500/25 focus-visible:ring-inset dark:text-slate-100';
     }
 
-    /** Cor da seta (mesma família do anel / texto). */
+    /** Cor da seta do dropdown (neutra; uma só seta na view). */
     public function uiListSelectChevronClass(): string
     {
-        return match ($this) {
-            self::EmMontagem => 'text-[#a67f0a] dark:text-[#f5e6a8]',
-            self::AProtocolar => 'text-[#6b2d9e] dark:text-[#d4b8f0]',
-            self::Protocolado => 'text-[#1a5cb8] dark:text-[#a8c8f8]',
-            self::EmAndamento => 'text-[#1a7a9e] dark:text-[#b8e8fa]',
-            self::EmExigencia => 'text-[#b86b1a] dark:text-[#fad4a8]',
-            self::AguardandoProva => 'text-[#616161] dark:text-[#e0e0e0]',
-            self::Indeferido => 'text-[#c0392b] dark:text-[#f5b8b8]',
-            self::ADisposicao => 'text-[#1e8449] dark:text-[#a8e6c4]',
-            self::Concluido => 'text-[#2d8f56] dark:text-[#0d3d22]',
-        };
+        return 'text-slate-400 dark:text-slate-500';
     }
 
     /** Conteúdo interior da pílula só leitura (alinhado ao select da lista de processos). */
     public function uiListReadonlyPillClasses(): string
     {
-        return 'block w-full min-w-0 whitespace-normal px-4 py-3 text-left text-sm font-semibold leading-snug '.$this->uiListSelectClasses();
+        return 'block w-full min-w-0 whitespace-normal py-2.5 pl-3 pr-10 text-left '.$this->uiListSelectClasses();
+    }
+
+    /**
+     * Etapas em que a ficha deve registar número e data de protocolo da Marinha.
+     */
+    public function exigeDadosProtocoloMarinha(): bool
+    {
+        return match ($this) {
+            self::Protocolado,
+            self::EmAndamento,
+            self::EmExigencia,
+            self::AguardandoProva,
+            self::Indeferido,
+            self::ADisposicao => true,
+            default => false,
+        };
     }
 }
