@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-BpHftMCx.css",
+    "file": "assets/app-_WweUnVQ.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -18,7 +18,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-C8Eo8ti1.js",
+    "file": "assets/app-BVsovT1L.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -27,7 +27,7 @@
     ]
   },
   "resources/js/auth-nortex.js": {
-    "file": "assets/auth-nortex-Co87nPOI.js",
+    "file": "assets/auth-nortex-Cj-Q-xQo.js",
     "name": "auth-nortex",
     "src": "resources/js/auth-nortex.js",
     "isEntry": true
