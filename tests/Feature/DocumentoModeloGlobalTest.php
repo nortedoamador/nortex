@@ -188,4 +188,63 @@ class DocumentoModeloGlobalTest extends TestCase
             ->assertOk()
             ->assertSee('preview-global', false);
     }
+
+    public function test_platform_elimina_global_com_vinculos_descola_copias_empresa(): void
+    {
+        $empresa = Empresa::factory()->create();
+        $global = DocumentoModeloGlobal::query()->create([
+            'slug' => 'teste-delete-global-descola',
+            'titulo' => 'Teste descola',
+            'referencia' => null,
+            'conteudo' => '<p>tmp</p>',
+        ]);
+        app(EmpresaProcessosDefaultsService::class)->garantirModeloGlobalNaEmpresa($empresa, $global);
+
+        $admin = User::factory()->platformAdmin()->create();
+
+        $this->actingAs($admin)
+            ->from(route('platform.cadastros.documentos-automatizados.edit', $global))
+            ->delete(route('platform.cadastros.documentos-automatizados.destroy', $global))
+            ->assertRedirect(route('platform.cadastros.documentos-automatizados.index'));
+
+        $this->assertNull(DocumentoModeloGlobal::query()->where('slug', 'teste-delete-global-descola')->first());
+
+        $modelo = DocumentoModelo::query()
+            ->withoutGlobalScope('empresa')
+            ->where('empresa_id', $empresa->id)
+            ->where('slug', 'teste-delete-global-descola')
+            ->first();
+        $this->assertNotNull($modelo);
+        $this->assertNull($modelo->documento_modelo_global_id);
+    }
+
+    public function test_platform_elimina_global_e_apaga_copias_empresa_quando_solicitado(): void
+    {
+        $empresa = Empresa::factory()->create();
+        $global = DocumentoModeloGlobal::query()->create([
+            'slug' => 'teste-delete-global-copias',
+            'titulo' => 'Teste cópias',
+            'referencia' => null,
+            'conteudo' => '<p>tmp</p>',
+        ]);
+        app(EmpresaProcessosDefaultsService::class)->garantirModeloGlobalNaEmpresa($empresa, $global);
+
+        $admin = User::factory()->platformAdmin()->create();
+
+        $this->actingAs($admin)
+            ->from(route('platform.cadastros.documentos-automatizados.edit', $global))
+            ->delete(route('platform.cadastros.documentos-automatizados.destroy', $global), [
+                'apagar_copias_empresa' => '1',
+            ])
+            ->assertRedirect(route('platform.cadastros.documentos-automatizados.index'));
+
+        $this->assertNull(DocumentoModeloGlobal::query()->where('slug', 'teste-delete-global-copias')->first());
+        $this->assertNull(
+            DocumentoModelo::query()
+                ->withoutGlobalScope('empresa')
+                ->where('empresa_id', $empresa->id)
+                ->where('slug', 'teste-delete-global-copias')
+                ->first()
+        );
+    }
 }

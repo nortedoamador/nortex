@@ -147,13 +147,16 @@ final class Normam211212TemplateVars
             filled($c->bairro) ? (string) $c->bairro : null,
             trim(implode(' / ', array_filter([(string) ($c->cidade ?? ''), (string) ($c->uf ?? '')]))),
             $c->cepFormatado() ?? ($c->cep !== null && $c->cep !== '' ? (string) $c->cep : null),
-        ])->filter(static fn ($v) => filled($v))->implode(' — ');
+        ])->filter(static fn ($v) => filled($v))->implode(', ');
 
-        $telefone_email_linha = collect([$telefone, $celular, $email])
-            ->map(static fn ($v) => is_string($v) ? trim($v) : '')
-            ->filter()
-            ->unique()
-            ->implode(' — ');
+        $celTrim = trim((string) $celular);
+        $telTrim = trim((string) $telefone);
+        $telefoneOuCelular = $celTrim !== '' ? $celTrim : $telTrim;
+        $emailTrim = trim((string) $email);
+
+        $telefone_email_linha = collect([$telefoneOuCelular, $emailTrim])
+            ->filter(static fn ($v) => $v !== '')
+            ->implode(', ');
 
         $chaRegistro = Habilitacao::query()
             ->where('empresa_id', $c->empresa_id)

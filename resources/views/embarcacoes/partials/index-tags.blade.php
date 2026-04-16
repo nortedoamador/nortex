@@ -13,6 +13,7 @@
     $filtroInscAtivo = $eInsc !== $eSin;
     $filtroAliAtivo = $eAli !== $eSal;
     $filtroVigAtivo = $eVig !== $eVen;
+    $inscricaoVigenciaAtiva = is_string($inscricaoVigencia ?? null) ? trim((string) $inscricaoVigencia) : '';
     $nFiltros = 0;
     if ($tipoAtivo !== '') {
         $nFiltros++;
@@ -36,6 +37,9 @@
         $nFiltros++;
     }
     if ($filtroVigAtivo) {
+        $nFiltros++;
+    }
+    if ($inscricaoVigenciaAtiva !== '') {
         $nFiltros++;
     }
 @endphp
@@ -129,6 +133,27 @@
                 >
                     {{ __('Validade da inscrição') }}: {{ $eVig ? __('Em vigor') : __('Vencida') }}
                     <span class="text-slate-400 dark:text-slate-500">×</span>
+                </button>
+            @endif
+            @if ($inscricaoVigenciaAtiva === 'proximos_30')
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900 ring-1 ring-inset ring-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-100 dark:ring-amber-900/50"
+                    @click="$dispatch('nx-embarcacoes-remove-filter', { key: 'inscricao_vigencia' })"
+                    title="{{ __('Remover filtro') }}"
+                >
+                    {{ __('TIE a vencer (30 dias)') }}
+                    <span class="text-amber-600 dark:text-amber-300">×</span>
+                </button>
+            @elseif ($inscricaoVigenciaAtiva === 'vencida')
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-100 dark:ring-red-900/50"
+                    @click="$dispatch('nx-embarcacoes-remove-filter', { key: 'inscricao_vigencia' })"
+                    title="{{ __('Remover filtro') }}"
+                >
+                    {{ __('TIE vencido') }}
+                    <span class="text-red-500 dark:text-red-300">×</span>
                 </button>
             @endif
         </div>

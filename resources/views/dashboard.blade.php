@@ -37,6 +37,27 @@
             </div>
         </div>
 
+        @php
+            $planoAtivo = $planoAtivo ?? true;
+        @endphp
+
+        @if (! $planoAtivo)
+            <div class="rounded-2xl border border-amber-300/80 bg-amber-50 p-6 shadow-sm dark:border-amber-800 dark:bg-amber-950/30 sm:p-8">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-white">{{ __('Sem plano ativo') }}</h2>
+                <p class="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
+                    {{ __('Para utilizar a plataforma é necessário um plano ativo. Na área Planos pode escolher o plano Essencial ou Completo e concluir o pagamento de forma segura pelo Stripe.') }}
+                </p>
+                <div class="mt-6">
+                    <a
+                        href="{{ route('planos.index') }}"
+                        class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950"
+                    >
+                        {{ __('Ir para Planos') }}
+                    </a>
+                </div>
+            </div>
+        @else
+
         @if (! empty($metricasDashboard))
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 @php
@@ -103,7 +124,9 @@
                 $nxHrefHab = Auth::user()->hasPermission('habilitacoes.view')
                     ? route('habilitacoes.index')
                     : route('clientes.index');
-                $nxHrefTie = route('embarcacoes.index');
+                $nxHrefTie = Auth::user()->hasPermission('embarcacoes.view')
+                    ? route('embarcacoes.index', ['inscricao_vigencia' => 'proximos_30'])
+                    : route('clientes.index');
                 $nxHrefPendencias = route('processos.index');
             @endphp
             <section class="rounded-2xl border border-amber-200/80 bg-amber-50/50 p-5 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20 sm:p-6">
@@ -148,6 +171,11 @@
                                 {{ trans_choice(':count TIE a vencer|:count TIEs a vencer', $nxAr['tie_vencendo'], ['count' => $nxAr['tie_vencendo']]) }}
                             </p>
                             <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ __('Próximos 30 dias') }}</p>
+                            @if (($nxAr['tie_vencidas'] ?? 0) > 0)
+                                <p class="mt-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                                    {{ trans_choice(':count TIE vencido|:count TIEs vencidos', $nxAr['tie_vencidas'], ['count' => $nxAr['tie_vencidas']]) }}
+                                </p>
+                            @endif
                         </div>
                     </a>
                     <a href="{{ $nxHrefPendencias }}" class="group flex min-h-[5.5rem] overflow-hidden rounded-xl border border-amber-100/90 bg-white/95 shadow-sm transition hover:border-amber-200 hover:shadow dark:border-slate-700/80 dark:bg-slate-900/80 dark:hover:border-amber-900/60">
@@ -370,5 +398,6 @@
                 </ul>
             </div>
         </div>
+        @endif
     </div>
 </x-app-layout>

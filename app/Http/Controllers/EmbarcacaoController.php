@@ -45,6 +45,10 @@ class EmbarcacaoController extends Controller
         $embSal = $request->boolean('emb_sal');
         $embVig = $request->boolean('emb_vig');
         $embVen = $request->boolean('emb_ven');
+        $inscricaoVigencia = trim((string) $request->query('inscricao_vigencia', ''));
+        if (! in_array($inscricaoVigencia, ['proximos_30', 'vencida'], true)) {
+            $inscricaoVigencia = '';
+        }
         $perPage = (int) $request->query('per_page', 5);
         $allowedPerPage = [5, 10, 20, 50];
         if (! in_array($perPage, $allowedPerPage, true)) {
@@ -119,7 +123,15 @@ class EmbarcacaoController extends Controller
             }
         }
 
-        if ($embVig !== $embVen) {
+        if ($inscricaoVigencia === 'proximos_30') {
+            $hoje = now()->startOfDay();
+            $limite = $hoje->copy()->addDays(30);
+            $query->whereNotNull('inscricao_data_vencimento')
+                ->whereBetween('inscricao_data_vencimento', [$hoje, $limite]);
+        } elseif ($inscricaoVigencia === 'vencida') {
+            $query->whereNotNull('inscricao_data_vencimento')
+                ->whereDate('inscricao_data_vencimento', '<', now()->toDateString());
+        } elseif ($embVig !== $embVen) {
             $today = now()->startOfDay();
             if ($embVig) {
                 $query->whereNotNull('inscricao_data_vencimento')
@@ -185,7 +197,7 @@ class EmbarcacaoController extends Controller
             ->values()
             ->all();
 
-        $temFiltroEmb = $embInsc !== $embSin || $embAli !== $embSal || $embVig !== $embVen;
+        $temFiltroEmb = $embInsc !== $embSin || $embAli !== $embSal || $embVig !== $embVen || $inscricaoVigencia !== '';
 
         if ($request->wantsJson()) {
             $countText = $busca !== '' || $tipo !== '' || $atividade !== '' || $construtor !== '' || $anoConstrucao !== '' || $numeroMotor !== '' || $temFiltroEmb
@@ -208,6 +220,7 @@ class EmbarcacaoController extends Controller
                     'embSal',
                     'embVig',
                     'embVen',
+                    'inscricaoVigencia',
                 ))->render(),
                 'list_html' => view('embarcacoes.partials.index-list', compact(
                     'embarcacoes',
@@ -237,6 +250,7 @@ class EmbarcacaoController extends Controller
             'embSal',
             'embVig',
             'embVen',
+            'inscricaoVigencia',
             'perPage',
             'tipos',
             'atividades',

@@ -81,6 +81,7 @@ class DashboardAgendaService
         $data = $c->data instanceof Carbon ? $c->data : Carbon::parse($c->data);
         [$badge, $tone] = match ($c->tipo) {
             'marinha_atendimento' => [__('Atendimento na Marinha'), 'violet'],
+            'outro' => [filled($c->tipo_custom) ? (string) $c->tipo_custom : __('Outro'), 'slate'],
             default => [__('Reunião'), 'indigo'],
         };
 

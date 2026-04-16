@@ -13,12 +13,12 @@
             {{ __('Concluir assinatura') }}
         </h1>
         <p class="nx-auth-muted" style="text-align:center;margin:0 0 1rem;font-size:0.95rem;line-height:1.5;">
-            {{ __('A organização :empresa está criada. Para aceder ao sistema é necessário pagar o plano Completo (R$ 497 / mês) no Stripe.', ['empresa' => $empresa->nome]) }}
+            {{ __('A organização :empresa está criada. Para aceder ao sistema é necessário concluir a assinatura (Essencial ou Completo) na área Planos ou abaixo no Stripe.', ['empresa' => $empresa->nome]) }}
         </p>
 
         @if (! $checkoutReady)
             <div class="nx-auth-alert nx-auth-alert--animate" role="alert" style="margin-bottom:1rem;">
-                <span>{{ __('O checkout não está configurado (STRIPE_PRICE_FULL e chave Stripe). Contacte o suporte.') }}</span>
+                <span>{{ __('O checkout não está configurado (STRIPE_PRICE_FULL / STRIPE_PRICE_BASIC e chave Stripe). Contacte o suporte.') }}</span>
             </div>
         @endif
 

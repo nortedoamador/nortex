@@ -6,9 +6,19 @@ use App\Models\Cliente;
 use App\Models\DocumentoModelo;
 use App\Models\DocumentoTipo;
 use App\Models\Embarcacao;
+use App\Models\EmpresaCompromisso;
+use App\Models\AulaNautica;
+use App\Models\FinanceiroAdminDiretoLancamento;
+use App\Models\FinanceiroAulaLancamento;
+use App\Models\FinanceiroDespesaLancamento;
+use App\Models\FinanceiroLoteEngenharia;
+use App\Models\FinanceiroLoteEngenhariaItem;
+use App\Models\FinanceiroLoteParceria;
+use App\Models\FinanceiroLoteParceriaItem;
 use App\Models\Habilitacao;
 use App\Models\Processo;
 use App\Models\ProcessoDocumento;
+use App\Models\ProcessoPostIt;
 use App\Models\Role;
 use App\Models\TipoProcesso;
 use App\Models\User;
@@ -21,7 +31,9 @@ use App\Policies\ProcessoPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -57,8 +69,28 @@ class AppServiceProvider extends ServiceProvider
         Habilitacao::observe($auditObserver);
         Processo::observe($auditObserver);
         ProcessoDocumento::observe($auditObserver);
+        ProcessoPostIt::observe($auditObserver);
         TipoProcesso::observe($auditObserver);
         DocumentoTipo::observe($auditObserver);
         DocumentoModelo::observe($auditObserver);
+        EmpresaCompromisso::observe($auditObserver);
+        AulaNautica::observe($auditObserver);
+        FinanceiroAulaLancamento::observe($auditObserver);
+        FinanceiroAdminDiretoLancamento::observe($auditObserver);
+        FinanceiroDespesaLancamento::observe($auditObserver);
+        FinanceiroLoteEngenharia::observe($auditObserver);
+        FinanceiroLoteEngenhariaItem::observe($auditObserver);
+        FinanceiroLoteParceria::observe($auditObserver);
+        FinanceiroLoteParceriaItem::observe($auditObserver);
+
+        View::composer('layouts.sidebar', function (\Illuminate\View\View $view): void {
+            $u = Auth::user();
+            $tenantPlanoAtivo = true;
+            if ($u && $u->empresa_id) {
+                $u->loadMissing('empresa');
+                $tenantPlanoAtivo = (bool) ($u->empresa && $u->empresa->assinaturaPlataformaAtiva());
+            }
+            $view->with('tenantPlanoAtivo', $tenantPlanoAtivo);
+        });
     }
 }

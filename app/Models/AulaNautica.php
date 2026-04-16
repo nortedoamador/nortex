@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToEmpresa;
 use App\Models\Concerns\UsesHashidsRouteKey;
 use App\Support\TenantHashids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class AulaNautica extends Model
@@ -34,6 +35,11 @@ class AulaNautica extends Model
         'hora_fim' => 'string',
         'comunicado_enviado_em' => 'datetime',
     ];
+
+    public function empresa(): BelongsTo
+    {
+        return $this->belongsTo(Empresa::class);
+    }
 
     /** @return BelongsToMany<Cliente> */
     public function alunos(): BelongsToMany

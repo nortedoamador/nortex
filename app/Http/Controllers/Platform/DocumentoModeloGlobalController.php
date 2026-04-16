@@ -10,6 +10,7 @@ use App\Services\DocumentoModeloGlobalPropagationService;
 use App\Services\EmpresaProcessosDefaultsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -119,24 +120,37 @@ class DocumentoModeloGlobalController extends Controller
             ->with('status', __('Documento automático global atualizado. Use «Propagar» para sincronizar empresas não personalizadas.'));
     }
 
-    public function destroy(DocumentoModeloGlobal $documento_modelo_global): RedirectResponse
+    public function destroy(Request $request, DocumentoModeloGlobal $documento_modelo_global): RedirectResponse
     {
+        $apagarCopias = $request->boolean('apagar_copias_empresa');
+
         $refs = (int) DocumentoModelo::query()
             ->withoutGlobalScope('empresa')
             ->where('documento_modelo_global_id', $documento_modelo_global->id)
             ->count();
 
-        if ($refs > 0) {
-            return redirect()
-                ->route('platform.cadastros.documentos-automatizados.index')
-                ->withErrors(['delete' => __('Não é possível eliminar: existem :n modelo(s) de empresa ligados.', ['n' => $refs])]);
-        }
+        DB::transaction(function () use ($documento_modelo_global, $apagarCopias): void {
+            if ($apagarCopias) {
+                DocumentoModelo::query()
+                    ->withoutGlobalScope('empresa')
+                    ->where('documento_modelo_global_id', $documento_modelo_global->id)
+                    ->delete();
+            }
 
-        $documento_modelo_global->delete();
+            $documento_modelo_global->delete();
+        });
+
+        if ($apagarCopias && $refs > 0) {
+            $msg = __('Documento global eliminado permanentemente; removidos também :n registo(s) de modelo nas empresas.', ['n' => $refs]);
+        } elseif ($refs > 0) {
+            $msg = __('Documento global eliminado permanentemente. Os :n modelo(s) de empresa mantêm o conteúdo local; o vínculo ao global foi removido.', ['n' => $refs]);
+        } else {
+            $msg = __('Documento automático global eliminado permanentemente.');
+        }
 
         return redirect()
             ->route('platform.cadastros.documentos-automatizados.index')
-            ->with('status', __('Documento automático global eliminado.'));
+            ->with('status', $msg);
     }
 
     public function propagar(Request $request, DocumentoModeloGlobal $documento_modelo_global, DocumentoModeloGlobalPropagationService $propagation): RedirectResponse

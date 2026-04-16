@@ -1,6 +1,7 @@
 @php
     /** @var \App\Models\EscolaNautica $escola */
     /** @var string|null $empresaCnpj */
+    /** @var bool $temInstrutoresEtn */
     use App\Support\DocumentoBrasil;
     use Illuminate\Support\Str;
     $cnpjDigits = $empresaCnpj ? DocumentoBrasil::apenasDigitos((string) $empresaCnpj) : '';
@@ -14,6 +15,11 @@
         'representante_funcao', 'representante_posto', 'representante_nome',
     ]);
     $editarCapitaniasInicial = ! $temCapitanias || $capitaniaCamposErro;
+    $passo1Completo = $nomeEscolaTrim !== '' && $escola->diretor_cliente_id !== null && $cnpjDigits !== '';
+    $passo2Completo = $temCapitanias;
+    $passo3Completo = $temInstrutoresEtn;
+    $passo4Completo = $planoTreinamentoCompleto;
+    $passoAtivo = ! $passo1Completo ? 1 : (! $passo2Completo ? 2 : (! $passo3Completo ? 3 : (! $passo4Completo ? 4 : null)));
 @endphp
 
 <x-app-layout :title="__('Escola Náutica — Perfil')">
@@ -23,19 +29,34 @@
 
     <x-escola-hub-frame>
         <div class="mb-6 flex flex-col gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-            <p class="text-sm text-slate-500 dark:text-slate-400">{{ __('Perfil da escola — identificação, diretor e capitanias') }}</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">{{ __('Ficha da escola — checklist obrigatório em quatro passos') }}</p>
             @include('aulas.partials.hub-turbo-back')
         </div>
 
-        <div class="mx-auto max-w-5xl space-y-8">
+        <div class="mx-auto max-w-5xl space-y-6">
             @if (session('status'))
                 <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200">
                     {{ session('status') }}
                 </div>
             @endif
 
+            <div class="rounded-xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/40">
+                <h2 class="text-base font-bold tracking-tight text-slate-900 dark:text-white">{{ __('Checklist obrigatório') }}</h2>
+                <p class="mt-1 text-xs text-slate-600 dark:text-slate-400">{{ __('Conclua os quatro passos para a escola estar apta a registar aulas e emitir atestados conforme a NORMAM.') }}</p>
+            </div>
+
+            <div class="relative rounded-xl bg-slate-100/70 p-3 dark:bg-slate-800/40 sm:p-5">
+                <div class="pointer-events-none absolute left-5 top-10 bottom-10 z-0 w-px -translate-x-1/2 bg-slate-200 dark:bg-slate-600 sm:left-[1.375rem] sm:top-12 sm:bottom-12" aria-hidden="true"></div>
+                <ol class="relative z-[1] m-0 list-none space-y-0 p-0" role="list">
+                <li class="flex gap-x-4 sm:gap-x-5">
+                    @include('aulas.escola.partials.checklist-rail-marker', [
+                        'numero' => 1,
+                        'completo' => $passo1Completo,
+                        'ativo' => $passoAtivo === 1,
+                    ])
+                    <div class="min-w-0 flex-1 pb-10 sm:pb-12">
             <div
-                class="w-full border border-slate-200/80 bg-white shadow-sm transition-[padding,border-radius] dark:border-slate-800 dark:bg-slate-900"
+                class="@if (! $passo1Completo) rounded-2xl border border-red-300/80 bg-gradient-to-br from-red-200/90 via-red-100/95 to-red-50 shadow-sm dark:border-red-800/50 dark:from-red-950/80 dark:via-red-950/55 dark:to-slate-900 @else w-full border border-slate-200/80 bg-white shadow-sm transition-[padding,border-radius] dark:border-slate-800 dark:bg-slate-900 @endif @if ($passoAtivo === 1) ring-2 ring-indigo-500/80 ring-offset-2 ring-offset-white dark:ring-indigo-400/70 dark:ring-offset-slate-900 @endif"
                 x-data="{
                     perfilCompleto: @js($perfilEscolaCompleto),
                     editando: @js($editarPerfilInicial),
@@ -60,23 +81,14 @@
                 }"
                 :class="perfilCompleto && !editando ? 'rounded-lg p-4' : 'rounded-2xl p-6'"
             >
-                <h3
-                    class="flex items-center gap-2 font-semibold text-slate-900 dark:text-white"
-                    :class="perfilCompleto && !editando ? 'text-sm text-slate-600 dark:text-slate-300' : 'text-sm'"
-                >
-                    <span>{{ __('Identificação da escola') }}</span>
-                    <span
-                        x-show="perfilCompleto"
-                        x-cloak
-                        class="inline-flex shrink-0 text-emerald-600 dark:text-emerald-400"
-                        title="{{ __('Cadastro completo') }}"
-                    >
-                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                        <span class="sr-only">{{ __('Cadastro completo') }}</span>
-                    </span>
-                </h3>
+                <div class="mb-4 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between @if (! $passo1Completo) border-red-300/50 dark:border-red-800/50 @else border-slate-200 dark:border-slate-700 @endif">
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400">{{ __('Passo 1 — obrigatório') }}</p>
+                        <p class="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">{{ __('Identificação da escola') }}</p>
+                    </div>
+                    @include('aulas.escola.partials.checklist-passo-status-badge', ['completo' => $passo1Completo])
+                </div>
+                <h3 class="sr-only">{{ __('Identificação da escola') }}</h3>
 
                 <div
                     x-show="perfilCompleto && !editando"
@@ -91,9 +103,13 @@
                         <span class="font-medium text-slate-700 dark:text-slate-300">{{ __('CNPJ') }}</span>
                         {{ $cnpjDisplay !== '' ? $cnpjDisplay : '—' }}
                     </p>
-                    <p class="line-clamp-2" title="{{ $escola->diretor?->nome }} {{ $escola->diretor?->cpf }}">
+                    <p class="line-clamp-2" title="{{ $escola->diretor?->nome }}">
                         <span class="font-medium text-slate-700 dark:text-slate-300">{{ __('Diretor') }}</span>
-                        {{ $escola->diretor?->nome ?? '—' }}@if (filled($escola->diretor?->cpf))<span class="text-slate-500"> — {{ $escola->diretor->cpf }}</span>@endif
+                        {{ $escola->diretor?->nome ?? '—' }}
+                    </p>
+                    <p class="truncate" title="{{ $escola->diretor?->cpf }}">
+                        <span class="font-medium text-slate-700 dark:text-slate-300">{{ __('CPF do diretor') }}</span>
+                        {{ $escola->diretor?->cpfFormatado() ?? ($escola->diretor?->cpf ?? '—') }}
                     </p>
                 </div>
 
@@ -193,7 +209,7 @@
                             x-cloak
                             @click="editando = true"
                         >
-                            {{ __('Editar') }}
+                            {{ __('Editar identificação') }}
                         </button>
                         <button
                             type="button"
@@ -210,9 +226,17 @@
                     </div>
                 </form>
             </div>
-
+                    </div>
+                </li>
+                <li class="flex gap-x-4 sm:gap-x-5">
+                    @include('aulas.escola.partials.checklist-rail-marker', [
+                        'numero' => 2,
+                        'completo' => $passo2Completo,
+                        'ativo' => $passoAtivo === 2,
+                    ])
+                    <div class="min-w-0 flex-1 pb-10 sm:pb-12">
             <div
-                class="w-full border border-slate-200/80 bg-white shadow-sm transition-[padding,border-radius] dark:border-slate-800 dark:bg-slate-900"
+                class="@if (! $passo2Completo) rounded-2xl border border-red-300/80 bg-gradient-to-br from-red-200/90 via-red-100/95 to-red-50 shadow-sm dark:border-red-800/50 dark:from-red-950/80 dark:via-red-950/55 dark:to-slate-900 @else w-full border border-slate-200/80 bg-white shadow-sm transition-[padding,border-radius] dark:border-slate-800 dark:bg-slate-900 @endif @if ($passoAtivo === 2) ring-2 ring-indigo-500/80 ring-offset-2 ring-offset-white dark:ring-indigo-400/70 dark:ring-offset-slate-900 @endif"
                 x-data="{
                     temCapitanias: @json($temCapitanias),
                     editandoCapitanias: @json($editarCapitaniasInicial),
@@ -225,23 +249,14 @@
                 }"
                 :class="temCapitanias && !editandoCapitanias ? 'rounded-lg p-4' : 'rounded-2xl p-6'"
             >
-                <h3
-                    class="flex items-center gap-2 font-semibold text-slate-900 dark:text-white text-sm"
-                    :class="temCapitanias && !editandoCapitanias ? 'text-slate-600 dark:text-slate-300' : ''"
-                >
-                    <span>{{ __('Jurisdição das aulas') }}</span>
-                    <span
-                        x-show="temCapitanias"
-                        x-cloak
-                        class="inline-flex shrink-0 text-emerald-600 dark:text-emerald-400"
-                        title="{{ __('Cadastro completo') }}"
-                    >
-                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                        <span class="sr-only">{{ __('Cadastro completo') }}</span>
-                    </span>
-                </h3>
+                <div class="mb-4 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between @if (! $passo2Completo) border-red-300/50 dark:border-red-800/50 @else border-slate-200 dark:border-slate-700 @endif">
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400">{{ __('Passo 2 — obrigatório') }}</p>
+                        <p class="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">{{ __('Jurisdição das aulas') }}</p>
+                    </div>
+                    @include('aulas.escola.partials.checklist-passo-status-badge', ['completo' => $passo2Completo])
+                </div>
+                <h3 class="sr-only">{{ __('Jurisdição das aulas') }}</h3>
                 <p
                     class="mt-1 text-xs text-slate-500 dark:text-slate-400"
                     x-show="!temCapitanias || editandoCapitanias"
@@ -251,14 +266,14 @@
                 </p>
 
                 <div
-                    class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/50 dark:bg-red-950/35"
+                    class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800/60 dark:bg-amber-950/35"
                     :class="temCapitanias && !editandoCapitanias ? 'mt-3' : 'mt-4'"
                     role="note"
                 >
-                    <p class="text-sm font-semibold text-red-950 dark:text-red-100">
+                    <p class="text-sm font-semibold text-amber-950 dark:text-amber-100">
                         {{ __('Importante') }}
                     </p>
-                    <p class="mt-1 text-sm leading-snug text-red-900/90 dark:text-red-100/90">
+                    <p class="mt-1 text-sm leading-snug text-amber-900/95 dark:text-amber-100/90">
                         {{ __('As informações inseridas aqui constarão no comunicado de aula.') }}
                     </p>
                 </div>
@@ -367,9 +382,24 @@
                     </div>
                 </div>
             </div>
-
-            <div class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ __('Associar instrutor') }}</h3>
+                    </div>
+                </li>
+                <li class="flex gap-x-4 sm:gap-x-5">
+                    @include('aulas.escola.partials.checklist-rail-marker', [
+                        'numero' => 3,
+                        'completo' => $passo3Completo,
+                        'ativo' => $passoAtivo === 3,
+                    ])
+                    <div class="min-w-0 flex-1 pb-10 sm:pb-12">
+            <div class="rounded-2xl p-6 shadow-sm @if (! $passo3Completo) border border-red-300/80 bg-gradient-to-br from-red-200/90 via-red-100/95 to-red-50 dark:border-red-800/50 dark:from-red-950/80 dark:via-red-950/55 dark:to-slate-900 @else border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 @endif @if ($passoAtivo === 3) ring-2 ring-indigo-500/80 ring-offset-2 ring-offset-white dark:ring-indigo-400/70 dark:ring-offset-slate-900 @endif">
+                <div class="mb-4 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between @if (! $passo3Completo) border-red-300/50 dark:border-red-800/50 @else border-slate-200 dark:border-slate-700 @endif">
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400">{{ __('Passo 3 — obrigatório') }}</p>
+                        <p class="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">{{ __('Associar instrutor') }}</p>
+                    </div>
+                    @include('aulas.escola.partials.checklist-passo-status-badge', ['completo' => $passo3Completo])
+                </div>
+                <h3 class="sr-only">{{ __('Associar instrutor') }}</h3>
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ __('Pesquise por CPF ou cadastre um novo cliente. Com um CPF completo e um único resultado, a associação é feita automaticamente.') }}</p>
 
                 <div
@@ -403,12 +433,18 @@
                         </div>
                         <div
                             x-show="open"
+                            x-ref="sugPanel"
                             x-cloak
                             class="max-h-56 overflow-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-xl dark:border-slate-700 dark:bg-slate-900"
                             :style="panelStyle"
                         >
                             <template x-for="(s, idx) in sugestões" :key="s.id">
-                                <button type="button" class="flex w-full flex-col px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800" :class="idx === highlighted ? 'bg-slate-50 dark:bg-slate-800' : ''" @mousedown.prevent="pick(s)">
+                                <button
+                                    type="button"
+                                    class="flex w-full flex-col px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                                    :class="idx === highlighted ? 'bg-slate-50 dark:bg-slate-800' : ''"
+                                    @mousedown.prevent.stop="pick(s)"
+                                >
                                     <span class="font-medium text-slate-900 dark:text-white" x-text="s.nome"></span>
                                     <span class="text-xs text-slate-500" x-text="s.cpf"></span>
                                 </button>
@@ -428,41 +464,72 @@
                     <a href="{{ route('aulas.escola.instrutores', ['sub' => 'resumo']) }}" data-turbo-frame="nx-escola-hub" data-turbo-action="advance" class="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Ver lista e carteiras CHA dos instrutores') }}</a>
                 </p>
             </div>
-
-            <div class="rounded-2xl border border-red-300/80 bg-gradient-to-br from-red-200/90 via-red-100/95 to-red-50 p-4 shadow-sm dark:border-red-800/50 dark:from-red-950/80 dark:via-red-950/55 dark:to-slate-900 sm:p-5">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-md shadow-red-600/30 dark:bg-red-500 dark:shadow-red-900/40" aria-hidden="true">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A9 9 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A9 9 0 0 0 18 18a8.963 8.963 0 0 0-6-2.292m0-14.25v14.25" />
-                        </svg>
-                    </span>
-                    <div class="min-w-0 flex-1 space-y-1">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <h2 class="text-sm font-bold uppercase tracking-wide text-red-950 dark:text-red-50">{{ __('Plano de treinamento') }}</h2>
-                            @if ($planoTreinamentoCompleto)
-                                <span class="inline-flex shrink-0 text-emerald-600 dark:text-emerald-400" role="img" title="{{ __('Plano ARA e MTA: todas as durações estão definidas.') }}" aria-label="{{ __('Plano ARA e MTA: todas as durações estão definidas.') }}">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
-                                </span>
-                            @else
-                                <span class="inline-flex shrink-0 text-red-600 dark:text-red-400" role="img" title="{{ __('Faltam durações em ARA ou MTA: conclua o plano para emitir atestados.') }}" aria-label="{{ __('Faltam durações em ARA ou MTA: conclua o plano para emitir atestados.') }}">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                    </svg>
-                                </span>
-                            @endif
-                            <span class="inline-flex items-center rounded-full border border-amber-300/90 bg-amber-100/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-100">{{ __('Obrigatório') }}</span>
+                    </div>
+                </li>
+                <li class="flex gap-x-4 sm:gap-x-5">
+                    @include('aulas.escola.partials.checklist-rail-marker', [
+                        'numero' => 4,
+                        'completo' => $passo4Completo,
+                        'ativo' => $passoAtivo === 4,
+                    ])
+                    <div class="min-w-0 flex-1 pb-2">
+            @if ($passo4Completo)
+                <div class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 @if ($passoAtivo === 4) ring-2 ring-indigo-500/80 ring-offset-2 ring-offset-white dark:ring-indigo-400/70 dark:ring-offset-slate-900 @endif">
+                    <div class="mb-4 flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between">
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400">{{ __('Passo 4 — obrigatório') }}</p>
+                            <p class="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">{{ __('Plano de treinamento') }}</p>
                         </div>
-                        <p class="text-xs leading-relaxed text-red-950/90 dark:text-red-100/90">
-                            {{ __('A empresa deve definir as durações em minutos de cada conteúdo para poder gerar atestados de aula. São dois programas NORMAM distintos: ARA (Arrais-Amador) e MTA (Motonauta).') }}
-                        </p>
+                        @include('aulas.escola.partials.checklist-passo-status-badge', ['completo' => true])
+                    </div>
+                    <p class="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                        {{ __('Plano de treinamento OBRIGATÓRIO. A empresa deve definir as durações em minutos de cada conteúdo para poder gerar atestados de aula. São dois programas NORMAM distintos: ARA (Arrais-Amador) e MTA (Motonauta).') }}
+                    </p>
+                    <div class="mt-4 space-y-2 border-t border-slate-200 pt-4 dark:border-slate-700">
+                        <p class="text-[11px] font-medium uppercase tracking-wide text-slate-600 dark:text-slate-400">{{ __('Clique para configurar') }}</p>
+                        <div class="flex flex-wrap gap-2">
+                            <x-escola-nav-pill :href="route('aulas.atestados.index', ['tab' => 'ara'])" :active="false">{{ __('ARA — Arrais-Amador') }}</x-escola-nav-pill>
+                            <x-escola-nav-pill :href="route('aulas.atestados.index', ['tab' => 'mta'])" :active="false">{{ __('MTA — Motonauta') }}</x-escola-nav-pill>
+                        </div>
                     </div>
                 </div>
-                <div class="mt-4 flex flex-wrap gap-2 border-t border-red-300/60 pt-4 dark:border-red-800/50">
-                    <x-escola-nav-pill :href="route('aulas.atestados.index', ['tab' => 'ara'])" :active="false">{{ __('ARA — Arrais-Amador') }}</x-escola-nav-pill>
-                    <x-escola-nav-pill :href="route('aulas.atestados.index', ['tab' => 'mta'])" :active="false">{{ __('MTA — Motonauta') }}</x-escola-nav-pill>
+            @else
+                <div class="rounded-2xl border border-red-300/80 bg-gradient-to-br from-red-200/90 via-red-100/95 to-red-50 p-4 shadow-sm dark:border-red-800/50 dark:from-red-950/80 dark:via-red-950/55 dark:to-slate-900 sm:p-5 @if ($passoAtivo === 4) ring-2 ring-indigo-500/80 ring-offset-2 ring-offset-white dark:ring-indigo-400/70 dark:ring-offset-slate-900 @endif">
+                    <div class="flex flex-col gap-4 border-b border-red-300/50 pb-4 dark:border-red-800/50">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-bold uppercase tracking-wide text-red-700 dark:text-red-300">{{ __('Passo 4 — obrigatório') }}</p>
+                                <h2 class="mt-0.5 text-sm font-bold uppercase tracking-wide text-red-950 dark:text-red-50">{{ __('Plano de treinamento') }}</h2>
+                                <div class="mt-2 flex flex-col gap-2">
+                                    @include('aulas.escola.partials.checklist-passo-status-badge', ['completo' => false])
+                                </div>
+                            </div>
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center self-start rounded-xl bg-red-600 text-white shadow-md shadow-red-600/30 dark:bg-red-500 dark:shadow-red-900/40 sm:mt-0" aria-hidden="true">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+                        <div class="min-w-0 flex-1 space-y-1">
+                            <p class="text-xs font-semibold leading-relaxed text-red-950/90 dark:text-red-100/90">
+                                {{ __('Plano de treinamento OBRIGATÓRIO. A empresa deve definir as durações em minutos de cada conteúdo para poder gerar atestados de aula. São dois programas NORMAM distintos: ARA (Arrais-Amador) e MTA (Motonauta).') }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-4 space-y-2 border-t border-red-300/60 pt-4 dark:border-red-800/50">
+                        <p class="text-[11px] font-medium uppercase tracking-wide text-red-900/80 dark:text-red-200/90">{{ __('Clique para configurar') }}</p>
+                        <div class="flex flex-wrap gap-2">
+                            <x-escola-nav-pill :href="route('aulas.atestados.index', ['tab' => 'ara'])" :active="false">{{ __('ARA — Arrais-Amador') }}</x-escola-nav-pill>
+                            <x-escola-nav-pill :href="route('aulas.atestados.index', ['tab' => 'mta'])" :active="false">{{ __('MTA — Motonauta') }}</x-escola-nav-pill>
+                        </div>
+                    </div>
                 </div>
+            @endif
+                    </div>
+                </li>
+            </ol>
             </div>
         </div>
 

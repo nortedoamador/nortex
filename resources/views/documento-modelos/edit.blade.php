@@ -28,6 +28,12 @@
                 @if (! empty($conteudoFicheiroDivergeDaBd))
                     <div class="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
                         <span class="text-xs font-medium">{{ __('O ficheiro em disco e o conteúdo na base de dados estão diferentes.') }}</span>
+                        <form method="POST" action="{{ tenant_doc_modelo_route('sync-disco-bd', ['modelo' => $modelo]) }}" class="inline">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900/50">
+                                {{ __('Ler :slug → BD', ['slug' => $modelo->slug.'.blade.php']) }}
+                            </button>
+                        </form>
                         <form method="POST" action="{{ tenant_doc_modelo_route('sync-padrao-disco', ['modelo' => $modelo]) }}" class="inline">
                             @csrf
                             <button type="submit" class="inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900/50">

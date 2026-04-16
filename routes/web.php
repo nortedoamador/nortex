@@ -34,6 +34,7 @@ use App\Http\Controllers\Platform\DashboardController as PlatformDashboardContro
 use App\Http\Controllers\Platform\EmpresaAdminUserController as PlatformEmpresaAdminUserController;
 use App\Http\Controllers\Platform\EmpresaController as PlatformEmpresaController;
 use App\Http\Controllers\Platform\ImpersonateController as PlatformImpersonateController;
+use App\Http\Controllers\Platform\MaintenanceController as PlatformMaintenanceController;
 use App\Http\Controllers\Platform\SubscriptionAdminController;
 use App\Http\Controllers\Platform\TipoProcessoController as PlatformTipoProcessoController;
 use App\Http\Controllers\Platform\TipoServicoController as PlatformTipoServicoController;
@@ -42,6 +43,7 @@ use App\Http\Controllers\ProcessoController;
 use App\Http\Controllers\ProcessoDocumentoAnexoFileController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PendingSubscriptionCheckoutController;
+use App\Http\Controllers\PlanosController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SubscriptionSignupController;
 use App\Models\Empresa;
@@ -122,13 +124,6 @@ Route::get('/', function () {
             return redirect()->route('platform.dashboard');
         }
 
-        if ($user->empresa_id) {
-            $user->loadMissing('empresa');
-            if ($user->empresa && $user->empresa->pagamento_inicial_pendente) {
-                return redirect()->route('assinatura.pagamento-pendente');
-            }
-        }
-
         return redirect()->route('dashboard');
     }
 
@@ -139,12 +134,51 @@ Route::get('/dashboard', [ProcessoController::class, 'dashboard'])
     ->middleware(['auth', 'verified', 'tenant.empresa'])
     ->name('dashboard');
 
+Route::middleware(['auth', 'verified', 'tenant.empresa'])->group(function () {
+    Route::get('/planos', [PlanosController::class, 'index'])->name('planos.index');
+    Route::post('/planos/checkout', [PlanosController::class, 'checkout'])
+        ->middleware('throttle:6,1')
+        ->name('planos.checkout');
+});
+
+// Debug temporário Kanban (sessão 33fe27)
+Route::middleware('auth')->get('/__nx_dbg', function (\Illuminate\Http\Request $request) {
+    $payload = [
+        'sessionId' => '33fe27',
+        'runId' => (string) $request->query('runId', 'pre-fix'),
+        'hypothesisId' => (string) $request->query('hid', 'X'),
+        'location' => (string) $request->query('loc', 'web.php:/__nx_dbg'),
+        'message' => (string) $request->query('msg', ''),
+        'data' => null,
+        'timestamp' => (int) $request->query('ts', (int) round(microtime(true) * 1000)),
+    ];
+    $dataRaw = $request->query('data');
+    if (is_string($dataRaw) && $dataRaw !== '') {
+        try {
+            $decoded = json_decode($dataRaw, true, 512, JSON_THROW_ON_ERROR);
+            if (is_array($decoded)) {
+                // Remove valores muito grandes acidentalmente.
+                $payload['data'] = array_slice($decoded, 0, 50, true);
+            }
+        } catch (\Throwable) {
+            $payload['data'] = ['_parse' => 'failed'];
+        }
+    }
+    @file_put_contents(
+        base_path('debug-33fe27.log'),
+        json_encode($payload, JSON_UNESCAPED_UNICODE).PHP_EOL,
+        FILE_APPEND
+    );
+
+    return response()->json(['ok' => true]);
+})->name('nx.dbg');
+
 Route::get('/clientes/{cliente}/embarcacoes-options', [ClienteController::class, 'embarcacoesOptions'])
-    ->middleware(['auth', 'verified', 'tenant.empresa'])
+    ->middleware(['auth', 'verified', 'tenant.empresa', 'tenant.subscription'])
     ->name('clientes.embarcacoes.options');
 
 Route::get('/clientes/{cliente}/habilitacoes-options', [ClienteController::class, 'habilitacoesOptions'])
-    ->middleware(['auth', 'verified', 'tenant.empresa'])
+    ->middleware(['auth', 'verified', 'tenant.empresa', 'tenant.subscription'])
     ->name('clientes.habilitacoes.options');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -154,6 +188,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('platform')->name('platform.')->middleware('platform.admin')->group(function () {
         Route::get('/', PlatformDashboardController::class)->name('dashboard');
+        Route::post('/manutencao', [PlatformMaintenanceController::class, 'update'])
+            ->middleware('throttle:6,1')
+            ->name('maintenance.update');
         Route::get('/assinaturas/cadastro-manual', [SubscriptionAdminController::class, 'manualCreate'])->name('assinaturas.manual');
         Route::post('/assinaturas/cadastro-manual', [SubscriptionAdminController::class, 'manualStore'])
             ->middleware('throttle:20,1')
@@ -258,6 +295,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/tipos-processo', [PlatformTipoProcessoController::class, 'store'])->name('tipos-processo.store');
             Route::get('/tipos-processo/{tipo_processo}/editar', [PlatformTipoProcessoController::class, 'edit'])->name('tipos-processo.edit');
             Route::patch('/tipos-processo/{tipo_processo}', [PlatformTipoProcessoController::class, 'update'])->name('tipos-processo.update');
+                Route::post('/tipos-processo/bulk', [PlatformTipoProcessoController::class, 'bulk'])->name('tipos-processo.bulk');
 
             Route::get('/tipos-servico', [PlatformTipoServicoController::class, 'index'])->name('tipos-servico.index');
             Route::get('/tipos-servico/criar', [PlatformTipoServicoController::class, 'create'])->name('tipos-servico.create');
@@ -294,7 +332,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/platform/impersonate/stop', [PlatformImpersonateController::class, 'stop'])->name('platform.impersonate.stop');
 });
 
-Route::middleware(['auth', 'tenant.empresa', 'permission:usuarios.manage'])->group(function () {
+Route::middleware(['auth', 'tenant.empresa', 'tenant.subscription', 'permission:usuarios.manage'])->group(function () {
     Route::get('/equipe', [EquipeController::class, 'index'])->name('equipe.index');
     Route::get('/equipe/registos/exportar', [EquipeController::class, 'exportLogs'])->name('equipe.logs.export');
     Route::get('/equipe/criar', [EquipeController::class, 'create'])->name('equipe.create');
@@ -305,7 +343,7 @@ Route::middleware(['auth', 'tenant.empresa', 'permission:usuarios.manage'])->gro
     Route::delete('/equipe/{usuario}', [EquipeController::class, 'destroy'])->name('equipe.destroy');
 });
 
-Route::middleware(['auth', 'tenant.empresa'])->group(function () {
+Route::middleware(['auth', 'tenant.empresa', 'tenant.subscription'])->group(function () {
     Route::middleware(['permission:financeiro.view'])->group(function () {
         Route::prefix('financeiro')->name('financeiro.')->group(function () {
             Route::get('/', [FinanceiroController::class, 'index'])->name('index');
@@ -447,6 +485,7 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
         Route::post('/documento-modelos/{modelo}/duplicar', [DocumentoModeloController::class, 'duplicate'])->name('documento-modelos.duplicate');
         Route::post('/documento-modelos/{modelo}/restaurar-padrao', [DocumentoModeloController::class, 'restoreDefault'])->name('documento-modelos.restore-default');
         Route::post('/documento-modelos/{modelo}/sincronizar-ficheiro-padrao', [DocumentoModeloController::class, 'syncPadraoParaDisco'])->name('documento-modelos.sync-padrao-disco');
+        Route::post('/documento-modelos/{modelo}/sincronizar-ficheiro-para-bd', [DocumentoModeloController::class, 'syncDiscoParaBd'])->name('documento-modelos.sync-disco-bd');
         Route::post('/documento-modelos/{modelo}/confirmar-mapeamento-upload', [DocumentoModeloController::class, 'confirmarMapeamentoUpload'])->name('documento-modelos.confirmar-mapeamento-upload');
         Route::patch('/documento-modelos/{modelo}', [DocumentoModeloController::class, 'update'])->name('documento-modelos.update');
     });
@@ -477,7 +516,7 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
 
         Route::get('/aulas/{aula}', [AulaNauticaController::class, 'show'])->name('aulas.show');
         Route::get('/aulas/{aula}/pdf/comunicado', [AulaNauticaPdfController::class, 'comunicado'])->name('aulas.pdf.comunicado');
-        Route::get('/aulas/{aula}/pdf/aram', [AulaNauticaPdfController::class, 'ara'])->name('aulas.pdf.ara');
+        Route::get('/aulas/{aula}/pdf/ara/{aluno}', [AulaNauticaPdfController::class, 'ara'])->name('aulas.pdf.ara');
         Route::get('/aulas/{aula}/pdf/mtm', [AulaNauticaPdfController::class, 'mta'])->name('aulas.pdf.mta');
     });
     Route::middleware(['permission:aulas.manage'])->group(function () {
@@ -500,6 +539,9 @@ Route::middleware(['auth', 'tenant.empresa'])->group(function () {
             });
         });
         Route::get('/empresa/logo', [EmpresaSettingsController::class, 'logo'])->name('empresa.logo');
+        Route::get('/auditoria', [AuditoriaController::class, 'index'])
+            ->middleware(['permission:auditoria.view'])
+            ->name('auditoria.index');
     });
 });
 

@@ -23,14 +23,17 @@ use App\Services\DashboardAgendaService;
 use App\Services\DashboardAlertasService;
 use App\Services\DashboardProvasMarinhaService;
 use App\Services\EmpresaProcessosDefaultsService;
+use App\Services\Marinha\EmbarcacaoChecklistAnexosRulesService;
 use App\Services\Marinha\ProcessoChecklistPreencherDeFichaService;
 use App\Services\Marinha\SyncChaAtestadoMedicoDispensaPorCnhService;
 use App\Services\Marinha\SyncChaDeclaracaoExtravioPorCategoriaService;
 use App\Services\ProcessoDocumentoAnexoService;
 use App\Services\ProcessoProgressoService;
 use App\Services\ProcessoStatusService;
+use App\Services\StripeBillingSyncService;
 use App\Support\ChecklistDocumentoModelo;
 use App\Support\ClienteCpfSuggest;
+use App\Support\EmbarcacaoTipoServicoCatalogo;
 use App\Support\Normam211DocumentoCodigos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +43,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Js;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Stripe\Checkout\Session as StripeCheckoutSession;
+use Stripe\Stripe;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -57,6 +62,7 @@ class ProcessoController extends Controller
         private DashboardAlertasService $dashboardAlertas,
         private DashboardAgendaService $dashboardAgenda,
         private DashboardProvasMarinhaService $dashboardProvasMarinha,
+        private StripeBillingSyncService $stripeBillingSync,
     ) {}
 
     public function create(Request $request): View
@@ -825,6 +831,51 @@ class ProcessoController extends Controller
         return $url;
     }
 
+    private function resolverModeloSlugChecklist(Processo $processo, ProcessoDocumento $pd): string
+    {
+        $slugBase = (string) ($pd->documentoTipo?->modeloSlugParaRender() ?? '');
+        $codigo = (string) ($pd->documentoTipo?->codigo ?? '');
+
+        $processo->loadMissing('embarcacao');
+        if (! $processo->embarcacao) {
+            return $slugBase;
+        }
+
+        $slugs = app(EmbarcacaoChecklistAnexosRulesService::class)->resolver($processo->embarcacao);
+
+        // 1) Identificar qual anexo deve ser usado (requerimento / BADE-BSADE / residência)
+        if ($codigo === 'TIE_REQ_INTERESSADO'
+            || $codigo === 'TIE_REQ_INTERESSADO_ANEXO_2C_211'
+            || $codigo === 'REQ_NORMAM_2C'
+            || $codigo === 'TIE_REQ_INTERESSADO_ANEXO_2A_212') {
+            return $slugs['requerimento_slug'];
+        }
+
+        if (in_array($codigo, [
+            'TIE_BSADE_211_2B_DUAS_VIAS',
+            'BSADE_NORMAM_2D',
+            'TIE_BADE',
+            'TIE_BADE_OU_BSADE',
+            'TIE_BADE_OU_BSADE_ATUALIZADO',
+            'TIE_BADE_OU_BSADE_SE_ALTERACAO',
+            Normam211DocumentoCodigos::TIE_BDMOTO_212_2B,
+            Normam211DocumentoCodigos::TIE_BDMOTO_SE_ALTERACAO,
+        ], true)) {
+            return $slugs['bade_bsade_slug'];
+        }
+
+        if ($codigo === Normam211DocumentoCodigos::COMPROVANTE_RESIDENCIA_CEP
+            || $codigo === 'TIE_COMPROVANTE_RESID_ATUAL_OU_DECL'
+            || $codigo === 'TIE_COMPROVANTE_RESIDENCIA'
+            || $codigo === 'TIE_COMPROVANTE_RESID_90_OU_DECL'
+            || $codigo === 'TIE_COMPROVANTE_RESID_212_1C'
+            || $codigo === Normam211DocumentoCodigos::CHA_COMPROVANTE_RESIDENCIA_212_1C_LEGACY) {
+            return $slugs['declaracao_residencia_slug'];
+        }
+
+        return $slugBase;
+    }
+
     private function mapearLinhaChecklistModal(Processo $processo, ProcessoDocumento $pd): array
     {
         $tipoDoc = $processo->tipoProcesso?->documentoRegras
@@ -832,7 +883,7 @@ class ProcessoController extends Controller
         $obr = $tipoDoc ? (bool) $tipoDoc->pivot->obrigatorio : true;
 
         $codigo = (string) ($pd->documentoTipo?->codigo ?? '');
-        $slugRender = (string) ($pd->documentoTipo?->modeloSlugParaRender() ?? '');
+        $slugRender = $this->resolverModeloSlugChecklist($processo, $pd);
 
         $urlAbrirModelo = null;
         if ($processo->cliente && $slugRender !== '') {
@@ -956,8 +1007,31 @@ class ProcessoController extends Controller
         return $payload;
     }
 
-    public function dashboard(Request $request): View
+    public function dashboard(Request $request): View|RedirectResponse
     {
+        $sessionId = $request->query('session_id');
+        $voltouDoCheckout = is_string($sessionId) && $sessionId !== '';
+
+        if ($voltouDoCheckout && is_string(config('services.stripe.secret')) && config('services.stripe.secret') !== '') {
+            try {
+                Stripe::setApiKey((string) config('services.stripe.secret'));
+                $session = StripeCheckoutSession::retrieve($sessionId);
+                $this->stripeBillingSync->syncFromCheckoutSession($session);
+            } catch (\Throwable) {
+                // Webhook ou nova tentativa pode sincronizar depois.
+            }
+        }
+
+        if ($voltouDoCheckout) {
+            $request->user()->unsetRelation('empresa');
+            $request->user()->loadMissing('empresa');
+            if ($request->user()->empresa !== null && $request->user()->empresa->assinaturaPlataformaAtiva()) {
+                return redirect()
+                    ->route('dashboard')
+                    ->with('status', __('Plano ativo. Pode utilizar todos os módulos.'));
+            }
+        }
+
         $kanban = null;
         $metricasDashboard = [];
         $alertasResumo = null;
@@ -970,10 +1044,14 @@ class ProcessoController extends Controller
             }
         }
 
+        $request->user()->loadMissing('empresa');
+        $planoAtivo = $request->user()->empresa !== null
+            && $request->user()->empresa->assinaturaPlataformaAtiva();
+
         $agendaItens = $this->dashboardAgenda->proximosItens($request->user());
         $provasMarinhaItens = $this->dashboardProvasMarinha->itens($request->user());
 
-        return view('dashboard', compact('kanban', 'metricasDashboard', 'alertasResumo', 'agendaItens', 'provasMarinhaItens'));
+        return view('dashboard', compact('kanban', 'metricasDashboard', 'alertasResumo', 'agendaItens', 'provasMarinhaItens', 'planoAtivo'));
     }
 
     /**
@@ -1332,6 +1410,40 @@ class ProcessoController extends Controller
 
     public function updateStatus(UpdateProcessoStatusRequest $request, Processo $processo): RedirectResponse|JsonResponse
     {
+        // #region agent log (kanban updateStatus)
+        $nxKanbanLog = static function (string $hypothesisId, string $message, array $data = []): void {
+            try {
+                $payload = [
+                    'sessionId' => '33fe27',
+                    'runId' => 'pre-fix',
+                    'hypothesisId' => $hypothesisId,
+                    'location' => 'app/Http/Controllers/ProcessoController.php:updateStatus',
+                    'message' => $message,
+                    'data' => $data,
+                    'timestamp' => (int) round(microtime(true) * 1000),
+                ];
+                @file_put_contents(
+                    base_path('debug-33fe27.log'),
+                    json_encode($payload, JSON_UNESCAPED_UNICODE).PHP_EOL,
+                    FILE_APPEND
+                );
+            } catch (\Throwable) {
+                // no-op
+            }
+        };
+        // #endregion
+
+        $nxKanbanLog('S', 'updateStatus entry', [
+            'processo_id' => (int) $processo->id,
+            'user_id' => (int) ($request->user()?->id ?? 0),
+            'wants_json' => (bool) $request->wantsJson(),
+            'expects_json' => (bool) $request->expectsJson(),
+            'accept' => (string) $request->header('Accept', ''),
+            'content_type' => (string) $request->header('Content-Type', ''),
+            'method' => (string) $request->method(),
+            'has_confirmar' => $request->has('confirmar_ciencia_pendencias_documentais'),
+        ]);
+
         $this->authorize('updateStatus', $processo);
 
         $processo->loadMissing('tipoProcesso');
@@ -1340,8 +1452,15 @@ class ProcessoController extends Controller
 
         $confirmarCiencia = $request->boolean('confirmar_ciencia_pendencias_documentais');
 
+        $nxKanbanLog('S', 'validated status', [
+            'from' => (string) ($processo->status?->value ?? ''),
+            'to' => (string) $novo->value,
+            'confirmar_ciencia' => (bool) $confirmarCiencia,
+        ]);
+
         if (! $processo->aceitaDestinoStatus($novo)) {
             $msg = ProcessoStatus::mensagemTipoNaoAceitaAguardandoProva();
+            $nxKanbanLog('S', 'aceitaDestinoStatus=false', ['message' => $msg]);
 
             if ($request->wantsJson()) {
                 return response()->json(['message' => $msg], 422);
@@ -1352,6 +1471,7 @@ class ProcessoController extends Controller
 
         if (! $this->statusService->podeAlterarStatus($processo, $novo, $confirmarCiencia)) {
             $msg = $this->statusService->motivoBloqueio($processo) ?? 'Não é possível alterar o status.';
+            $nxKanbanLog('S', 'podeAlterarStatus=false', ['message' => $msg]);
 
             if ($request->wantsJson()) {
                 return response()->json(['message' => $msg], 422);
@@ -1361,6 +1481,7 @@ class ProcessoController extends Controller
         }
 
         $processo->update(['status' => $novo]);
+        $nxKanbanLog('S', 'status updated', ['status' => (string) $novo->value]);
 
         if ($request->wantsJson()) {
             return response()->json([
@@ -1456,10 +1577,24 @@ class ProcessoController extends Controller
     {
         $servicosPorCategoria = collect(TipoProcessoCategoria::cases())
             ->mapWithKeys(function (TipoProcessoCategoria $c) use ($tipos) {
+                $tiposFiltrados = $tipos
+                    ->filter(fn (PlatformTipoProcesso $t) => $t->categoria === $c);
+
+                // Para categoria "embarcação", oculta serviços conforme catálogo (lista fornecida pelo cliente).
+                if ($c === TipoProcessoCategoria::Embarcacao) {
+                    $ocultar = collect(EmbarcacaoTipoServicoCatalogo::listaOrdenada())
+                        ->pluck('slug')
+                        ->map(fn ($s) => (string) $s)
+                        ->filter()
+                        ->all();
+
+                    $tiposFiltrados = $tiposFiltrados
+                        ->filter(fn (PlatformTipoProcesso $t) => ! in_array((string) ($t->slug ?? ''), $ocultar, true));
+                }
+
                 return [
-                    $c->value => $tipos
-                        ->filter(fn (PlatformTipoProcesso $t) => $t->categoria === $c)
-                        ->sortBy('nome', SORT_NATURAL | SORT_FLAG_CASE)
+                    $c->value => $tiposFiltrados
+                        ->sortBy(fn (PlatformTipoProcesso $t) => [(int) ($t->ordem ?? 0), (string) ($t->nome ?? '')])
                         ->map(fn (PlatformTipoProcesso $t) => ['id' => $t->id, 'nome' => $t->nome])
                         ->values()
                         ->all(),

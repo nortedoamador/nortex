@@ -244,6 +244,31 @@ class DocumentoModeloController extends Controller
         return back()->with('status', __('Ficheiro :path actualizado com o conteúdo guardado na base de dados.', ['path' => $modelo->slug.'.blade.php']));
     }
 
+    public function syncDiscoParaBd(Request $request, ?Empresa $empresa = null, DocumentoModelo $modelo): RedirectResponse
+    {
+        $user = auth()->user();
+        abort_unless($user && TenantEmpresaContext::canEditDocumentoModeloConteudo($user, $request), 403);
+
+        $empresaId = TenantEmpresaContext::empresaId($request);
+        abort_unless((int) $modelo->empresa_id === $empresaId, 404);
+
+        if ($modelo->documento_modelo_global_id !== null) {
+            return back()->withErrors(['conteudo' => __('Este modelo é global; não é sincronizado a partir do ficheiro padrão do sistema.')]);
+        }
+
+        $noDisco = DocumentoModeloSincroniaDiscoBd::lerConteudoFicheiroPadrao((string) $modelo->slug);
+        if ($noDisco === null) {
+            return back()->withErrors(['conteudo' => __('Não existe ficheiro padrão legível para este slug (:s).', ['s' => $modelo->slug])]);
+        }
+
+        $actualizou = DocumentoModeloSincroniaDiscoBd::aplicar($modelo);
+        if (! $actualizou) {
+            return back()->with('status', __('A base de dados já estava sincronizada com o ficheiro em disco.'));
+        }
+
+        return back()->with('status', __('Base de dados actualizada a partir do ficheiro :path.', ['path' => $modelo->slug.'.blade.php']));
+    }
+
     public function update(Request $request, ?Empresa $empresa = null, DocumentoModelo $modelo): RedirectResponse
     {
         $user = auth()->user();

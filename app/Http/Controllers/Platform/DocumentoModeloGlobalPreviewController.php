@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Cliente;
 use App\Models\DocumentoModeloGlobal;
 use App\Models\Embarcacao;
+use App\Models\Empresa;
+use App\Support\AulaNauticaAraPdfData;
+use App\Support\DocumentoModeloTemplateAliases;
 use App\Support\Normam211212TemplateVars;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -51,18 +54,32 @@ class DocumentoModeloGlobalPreviewController extends Controller
         $print = $request->boolean('print', false);
 
         $normam = Normam211212TemplateVars::variablesFor($cliente, $embarcacao);
+        $empresa = Empresa::query()->find((int) $validated['empresa_id']);
+        if ($empresa !== null) {
+            $normam = array_merge($normam, DocumentoModeloTemplateAliases::paraEmpresaCliente($empresa, $cliente, $normam));
+        }
 
         $clienteSlug = Str::slug((string) ($cliente->nome ?? ''), '_');
         $clienteSlug = $clienteSlug !== '' ? $clienteSlug : 'cliente';
         $baseName = $slug.'_'.$clienteSlug;
 
         $preamble = "@php\nextract(\$__documento_modelo_vars ?? [], EXTR_SKIP);\n@endphp\n";
-        $html = Blade::render($preamble.$global->conteudo, array_merge($normam, [
+        $hoje = now();
+        $mergeData = array_merge($normam, [
             '__documento_modelo_vars' => $normam,
+            'empresa' => $empresa,
             'cliente' => $cliente,
             'embarcacao' => $embarcacao,
-            'hoje' => now(),
-        ]));
+            'hoje' => $hoje,
+        ]);
+        if ($slug === 'atestado-ara') {
+            $mergeData['araPdf'] = AulaNauticaAraPdfData::buildPreviewForCliente(
+                $cliente,
+                (int) $validated['empresa_id'],
+                $hoje
+            );
+        }
+        $html = Blade::render($preamble.$global->conteudo, $mergeData);
 
         if ($format === 'pdf') {
             $opts = new Options();

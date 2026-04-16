@@ -24,14 +24,14 @@
                 class="nx-auth-interactive"
                 style="display:block;text-align:center;text-decoration:none;padding:0.85rem 1rem;border-radius:0.75rem;font-weight:600;background:var(--nx-auth-blue);color:#fff;box-shadow:0 4px 16px rgba(0,174,239,0.35);{{ $basicReady ? '' : 'opacity:0.5;pointer-events:none;' }}"
             >
-                Essencial — R$ 297 / mês <span style="display:block;font-size:0.8rem;font-weight:500;opacity:0.9;">Sem módulo financeiro</span>
+                Essencial — R$ {{ number_format($displayBasicaBrl, 0, ',', '.') }} / mês <span style="display:block;font-size:0.8rem;font-weight:500;opacity:0.9;">Sem módulo financeiro</span>
             </a>
             <a
                 href="{{ route('assinatura.create', ['plan' => 'completa']) }}"
                 class="nx-auth-interactive"
                 style="display:block;text-align:center;text-decoration:none;padding:0.85rem 1rem;border-radius:0.75rem;font-weight:600;background:var(--nx-auth-blue);color:#fff;box-shadow:0 4px 16px rgba(0,174,239,0.35);{{ $fullReady ? '' : 'opacity:0.5;pointer-events:none;' }}"
             >
-                Completo — R$ 497 / mês <span style="display:block;font-size:0.8rem;font-weight:500;opacity:0.9;">Inclui financeiro</span>
+                Completo — R$ {{ number_format($displayCompletaBrl, 0, ',', '.') }} / mês <span style="display:block;font-size:0.8rem;font-weight:500;opacity:0.9;">Inclui financeiro</span>
             </a>
         </div>
 

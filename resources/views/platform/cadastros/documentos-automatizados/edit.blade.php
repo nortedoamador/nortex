@@ -98,12 +98,33 @@
             </form>
         </div>
 
-        @if ($refsEmpresa === 0)
-            <form method="POST" action="{{ route('platform.cadastros.documentos-automatizados.destroy', $modelo) }}" onsubmit="return confirm(@js(__('Eliminar este documento global?')))">
+        <div class="rounded-2xl border border-red-200/80 bg-red-50/50 p-6 dark:border-red-900/40 dark:bg-red-950/20">
+            <h3 class="text-sm font-semibold text-red-900 dark:text-red-200">{{ __('Eliminar permanentemente') }}</h3>
+            <p class="mt-1 text-xs text-red-800/90 dark:text-red-300/90">
+                @if ($refsEmpresa > 0)
+                    {{ __('Existem :n modelo(s) de empresa ligados a este global. Pode eliminar só o registo global (as empresas mantêm uma cópia local e perdem o vínculo) ou apagar também todas as cópias nas empresas.', ['n' => $refsEmpresa]) }}
+                @else
+                    {{ __('Não há modelos de empresa ligados; o registo global será removido da base de dados.') }}
+                @endif
+            </p>
+            <form
+                method="POST"
+                action="{{ route('platform.cadastros.documentos-automatizados.destroy', $modelo) }}"
+                class="mt-4 space-y-3"
+                onsubmit="const c = this.querySelector('input[name=apagar_copias_empresa]'); return confirm(c && c.checked ? @js(__('Isto remove o documento global e TODAS as cópias nas empresas. Continuar?')) : @js(__('Eliminar permanentemente este documento global?')));"
+            >
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-500 dark:text-red-400">{{ __('Eliminar global') }}</button>
+                @if ($refsEmpresa > 0)
+                    <label class="flex cursor-pointer items-start gap-2 text-sm text-red-900 dark:text-red-200">
+                        <input type="checkbox" name="apagar_copias_empresa" value="1" class="mt-1 rounded border-red-300 text-red-700" />
+                        <span>{{ __('Apagar também todos os modelos de empresa com este slug (irreversível).') }}</span>
+                    </label>
+                @endif
+                <button type="submit" class="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-950/60">
+                    {{ __('Eliminar global permanentemente') }}
+                </button>
             </form>
-        @endif
+        </div>
     </div>
 </x-platform-layout>

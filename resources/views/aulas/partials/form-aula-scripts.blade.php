@@ -678,7 +678,9 @@
 
                 pick(it) {
                     if (!it || !it.id) return;
-                    this.pickedId = String(it.id);
+                    clearTimeout(this._blurTimeout);
+                    const idStr = String(it.id);
+                    this.pickedId = idStr;
                     this.chaNumero = '';
                     this.chaCategoria = '';
                     this.chaDataEmissao = '';
@@ -689,11 +691,30 @@
                     this.open = false;
                     this.highlighted = -1;
                     this.panelStyle = '';
-                    this.$nextTick(() => this.enviarFormAssociar());
+                    this.$nextTick(() => {
+                        const form = this.$refs.addForm;
+                        if (form instanceof HTMLFormElement) {
+                            const hid = form.querySelector('input[name="cliente_id"]');
+                            if (hid instanceof HTMLInputElement) {
+                                hid.value = idStr;
+                            }
+                        }
+                        this.enviarFormAssociar();
+                    });
                 },
 
                 onBlur() {
-                    setTimeout(() => { this.open = false; this.panelStyle = ''; }, 150);
+                    clearTimeout(this._blurTimeout);
+                    this._blurTimeout = setTimeout(() => {
+                        const panel = this.$refs.sugPanel;
+                        const ae = document.activeElement;
+                        if (panel && ae && panel.contains(ae)) {
+                            return;
+                        }
+                        this.open = false;
+                        this.highlighted = -1;
+                        this.panelStyle = '';
+                    }, 220);
                 },
 
                 onKeydown(e) {

@@ -88,7 +88,6 @@
             </label>
 
             <a class="nx-auth-link nx-auth-link-center nx-auth-interactive" href="{{ route('register') }}" data-nx-spa-link>Criar conta</a>
-            <a class="nx-auth-link nx-auth-link-center nx-auth-interactive" href="{{ route('assinatura.index') }}" data-nx-spa-link>Assinar plano (pagamento)</a>
         </div>
 
         <div class="nx-auth-step nx-auth-step--2" id="nx-login-step2" @if(!$showPasswordStep) hidden @endif>

@@ -26,7 +26,7 @@
                 @if (auth()->user()?->hasPermission('aulas.view'))
                     <div class="flex items-center gap-2">
                         <a href="{{ route('aulas.pdf.comunicado', $aula) }}" data-turbo="false" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white">{{ __('Comunicado') }}</a>
-                        <a href="{{ route('aulas.pdf.ara', $aula) }}" data-turbo="false" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white">{{ __('ARA') }}</a>
+                        <a href="{{ route('aulas.show', $aula) }}" data-turbo-frame="nx-escola-hub" data-turbo-action="advance" class="text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white">{{ __('ARA') }}</a>
                         <a href="{{ route('aulas.pdf.mta', $aula) }}" data-turbo="false" target="_blank" rel="noopener noreferrer" class="text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white">{{ __('MTA') }}</a>
                     </div>
                 @endif

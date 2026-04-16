@@ -214,9 +214,9 @@
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-3 align-top text-sm">
                                         <div class="flex flex-col gap-2">
-                                            @if (Auth::user()->hasPermission('clientes.manage') && $dm)
+                                            @if ($dm && \App\Support\TenantEmpresaContext::canEditDocumentoModeloConteudo(auth()->user(), request()))
                                                 <a
-                                                    href="{{ route('documento-modelos.edit', $dm) }}"
+                                                    href="{{ tenant_doc_modelo_route('edit', ['modelo' => $dm]) }}"
                                                     class="text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
                                                 >{{ __('Editar no gestor') }}</a>
                                             @endif

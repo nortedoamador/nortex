@@ -15,6 +15,7 @@ class EmpresaCompromisso extends Model
     protected $fillable = [
         'empresa_id',
         'tipo',
+        'tipo_custom',
         'titulo',
         'data',
         'hora_inicio',
@@ -33,5 +34,22 @@ class EmpresaCompromisso extends Model
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    /**
+     * Rótulo do tipo para listagens (inclui texto livre em «outro»).
+     */
+    public function getTipoLabelAttribute(): string
+    {
+        if ($this->tipo === 'outro' && filled($this->tipo_custom)) {
+            return (string) $this->tipo_custom;
+        }
+
+        return match ($this->tipo) {
+            'reuniao' => __('Reunião'),
+            'marinha_atendimento' => __('Atendimento na Marinha'),
+            'outro' => __('Outro'),
+            default => (string) ($this->tipo ?? ''),
+        };
     }
 }

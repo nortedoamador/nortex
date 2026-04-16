@@ -8,6 +8,7 @@ use App\Models\Embarcacao;
 use App\Models\Empresa;
 use App\Services\EmpresaProcessosDefaultsService;
 use App\Support\DocumentoModeloSincroniaDiscoBd;
+use App\Support\DocumentoModeloTemplateAliases;
 use App\Support\Normam211212TemplateVars;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -59,6 +60,10 @@ class DocumentoModeloRenderController extends Controller
         $print = $request->boolean('print', false);
 
         $normam = Normam211212TemplateVars::variablesFor($cliente, $embarcacao);
+        $empresa = Empresa::query()->find($cliente->empresa_id);
+        if ($empresa !== null) {
+            $normam = array_merge($normam, DocumentoModeloTemplateAliases::paraEmpresaCliente($empresa, $cliente, $normam));
+        }
 
         $clienteSlug = Str::slug((string) ($cliente->nome ?? ''), '_');
         $clienteSlug = $clienteSlug !== '' ? $clienteSlug : 'cliente';
@@ -69,6 +74,7 @@ class DocumentoModeloRenderController extends Controller
         $preamble = "@php\nextract(\$__documento_modelo_vars ?? [], EXTR_SKIP);\n@endphp\n";
         $html = Blade::render($preamble.$modelo->conteudo, array_merge($normam, [
             '__documento_modelo_vars' => $normam,
+            'empresa' => $empresa,
             'cliente' => $cliente,
             'embarcacao' => $embarcacao,
             'hoje' => now(),

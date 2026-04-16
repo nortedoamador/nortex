@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PlatformTipoProcesso;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -94,6 +95,73 @@ class TipoProcessoController extends Controller
         return redirect()
             ->route('platform.cadastros.tipos-processo.index')
             ->with('status', __('Tipo atualizado.'));
+    }
+
+    public function bulk(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'action' => ['required', 'string', Rule::in([
+                'activate_selected',
+                'deactivate_selected',
+                'delete_selected',
+                'activate_all',
+                'deactivate_all',
+            ])],
+            'ids' => ['nullable', 'array'],
+            'ids.*' => ['integer', 'min:1'],
+            'q' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $action = (string) $data['action'];
+        $ids = array_values(array_unique(array_map('intval', $data['ids'] ?? [])));
+        $q = trim((string) ($data['q'] ?? ''));
+
+        $baseQuery = PlatformTipoProcesso::query();
+        if ($q !== '') {
+            $termo = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $q).'%';
+            $baseQuery->where(function ($qq) use ($termo) {
+                $qq->where('nome', 'like', $termo)
+                    ->orWhere('slug', 'like', $termo)
+                    ->orWhere('categoria', 'like', $termo);
+            });
+        }
+
+        if (in_array($action, ['activate_selected', 'deactivate_selected', 'delete_selected'], true) && $ids === []) {
+            return redirect()
+                ->route('platform.cadastros.tipos-processo.index', array_filter(['q' => $q]))
+                ->withErrors(['bulk' => __('Selecione pelo menos um item.')]);
+        }
+
+        $query = match ($action) {
+            'activate_selected', 'deactivate_selected', 'delete_selected' => $baseQuery->whereKey($ids),
+            default => $baseQuery,
+        };
+
+        $affected = 0;
+
+        if ($action === 'activate_selected' || $action === 'activate_all') {
+            $affected = $query->update(['ativo' => true, 'updated_at' => now()]);
+            return redirect()
+                ->route('platform.cadastros.tipos-processo.index', array_filter(['q' => $q]))
+                ->with('status', trans_choice('{1} :count item ativado.|[2,*] :count itens ativados.', $affected, ['count' => $affected]));
+        }
+
+        if ($action === 'deactivate_selected' || $action === 'deactivate_all') {
+            $affected = $query->update(['ativo' => false, 'updated_at' => now()]);
+            return redirect()
+                ->route('platform.cadastros.tipos-processo.index', array_filter(['q' => $q]))
+                ->with('status', trans_choice('{1} :count item desativado.|[2,*] :count itens desativados.', $affected, ['count' => $affected]));
+        }
+
+        // delete_selected
+        DB::transaction(function () use ($query, &$affected) {
+            $affected = (int) $query->count();
+            $query->delete();
+        });
+
+        return redirect()
+            ->route('platform.cadastros.tipos-processo.index', array_filter(['q' => $q]))
+            ->with('status', trans_choice('{1} :count item excluído permanentemente.|[2,*] :count itens excluídos permanentemente.', $affected, ['count' => $affected]));
     }
 }
 

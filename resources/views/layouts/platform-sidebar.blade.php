@@ -9,6 +9,11 @@
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
     ]"
 >
+    @if (\App\Support\PlatformMaintenance::enabled())
+        <div class="border-b border-amber-200/80 bg-amber-50 px-3 py-2 text-[11px] font-semibold leading-snug text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/50 dark:text-amber-100" x-show="!sidebarCollapsed" x-cloak>
+            {{ __('Manutenção ativa') }}
+        </div>
+    @endif
     <div class="flex h-16 shrink-0 items-center gap-2 border-b border-slate-200/80 px-4 dark:border-slate-800" :class="sidebarCollapsed ? 'justify-center px-2' : ''">
         <a href="{{ route('platform.dashboard') }}" class="flex min-w-0 items-center gap-2" @click="mobileOpen = false">
             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/30">

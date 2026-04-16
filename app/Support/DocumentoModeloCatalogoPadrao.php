@@ -75,6 +75,46 @@ final class DocumentoModeloCatalogoPadrao
                 'relativePath' => 'views/documento-modelos/defaults/anexo-2h-normam211.blade.php',
                 'referencia' => 'NORMAM-211/DPC',
             ],
+            'anexo-2a-normam211' => [
+                'titulo' => 'ANEXO 2-A - BADE/BSADE (NORMAM 211)',
+                'relativePath' => 'views/documento-modelos/defaults/anexo-2a-normam211.blade.php',
+                'referencia' => 'NORMAM-211/DPC',
+            ],
+            'anexo-2e-normam201' => [
+                'titulo' => 'ANEXO 2-E - Requerimento (NORMAM 201)',
+                'relativePath' => 'views/documento-modelos/defaults/anexo-2e-normam201.blade.php',
+                'referencia' => 'NORMAM-201/DPC',
+            ],
+            'anexo-2b-bade-normam201' => [
+                'titulo' => 'ANEXO 2-B - BADE (NORMAM 201)',
+                'relativePath' => 'views/documento-modelos/defaults/anexo-2b-bade-normam201.blade.php',
+                'referencia' => 'NORMAM-201/DPC',
+            ],
+            'anexo-2p-normam201' => [
+                'titulo' => 'ANEXO 2-P - Declaração de residência (NORMAM 201)',
+                'relativePath' => 'views/documento-modelos/defaults/anexo-2p-normam201.blade.php',
+                'referencia' => 'NORMAM-201/DPC',
+            ],
+            'anexo-2f-normam202' => [
+                'titulo' => 'ANEXO 2-F - Requerimento (NORMAM 202)',
+                'relativePath' => 'views/documento-modelos/defaults/anexo-2f-normam202.blade.php',
+                'referencia' => 'NORMAM-202/DPC',
+            ],
+            'anexo-2e-normam202' => [
+                'titulo' => 'ANEXO 2-E - BADE/BSADE (NORMAM 202)',
+                'relativePath' => 'views/documento-modelos/defaults/anexo-2e-normam202.blade.php',
+                'referencia' => 'NORMAM-202/DPC',
+            ],
+            'anexo-2b-bade-normam202' => [
+                'titulo' => 'ANEXO 2-B - BADE (NORMAM 202)',
+                'relativePath' => 'views/documento-modelos/defaults/anexo-2b-bade-normam202.blade.php',
+                'referencia' => 'NORMAM-202/DPC',
+            ],
+            'anexo-2p-normam202' => [
+                'titulo' => 'ANEXO 2-P - Declaração de residência (NORMAM 202)',
+                'relativePath' => 'views/documento-modelos/defaults/anexo-2p-normam202.blade.php',
+                'referencia' => 'NORMAM-202/DPC',
+            ],
         ];
     }
 

@@ -19,6 +19,7 @@
         dragCienciaTexto: '',
         dragCienciaTitulo: '',
         startDrag(e) {
+            if (typeof window.__nxKanbanDbg === 'function') { window.__nxKanbanDbg('A', 'startDrag called', { podeMover: this.podeMover, hasDataTransfer: !!e?.dataTransfer, tag: e?.currentTarget?.tagName, draggable: e?.currentTarget?.getAttribute?.('draggable') }); }
             if (!this.podeMover) {
                 e.preventDefault();
                 return;
@@ -32,6 +33,7 @@
             this.dragCienciaFrase = el.dataset.cienciaFrasePendentes || '';
             this.dragCienciaTexto = el.dataset.cienciaTextoSecundario || '';
             this.dragCienciaTitulo = el.dataset.cienciaTitulo || '';
+            if (typeof window.__nxKanbanDbg === 'function') { window.__nxKanbanDbg('A', 'startDrag dataset captured', { dragId: this.dragId, dragStatusAtual: this.dragStatusAtual, dragDocsPendentes: this.dragDocsPendentes, hasDragUrl: !!this.dragUrl }); }
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', this.dragId);
             el.classList.add('opacity-50', 'ring-2', 'ring-indigo-400');
@@ -51,6 +53,7 @@
             }
         },
         async dropOnColumn(novoStatus) {
+            if (typeof window.__nxKanbanDbg === 'function') { window.__nxKanbanDbg('B', 'dropOnColumn called', { podeMover: this.podeMover, novoStatus, dragStatusAtual: this.dragStatusAtual, hasDragUrl: !!this.dragUrl, dragId: this.dragId, dragDocsPendentes: this.dragDocsPendentes }); }
             if (!this.podeMover || !this.dragUrl) {
                 this.dragUrl = null;
                 return;
@@ -81,6 +84,7 @@
                     ok = window.confirm(this.dragCienciaFrase + '\n\n' + (this.dragCienciaTexto || @json($nxCienciaTextoSecundarioKanban)));
                 }
                 if (!ok) {
+                    if (typeof window.__nxKanbanDbg === 'function') { window.__nxKanbanDbg('B', 'user cancelled ciencia confirm', { novoStatus, dragStatusAtual: this.dragStatusAtual, dragId: this.dragId }); }
                     this.dragUrl = null;
                     this.dragId = null;
                     this.dragStatusAtual = null;
@@ -93,13 +97,15 @@
                 }
                 confirmarCiencia = true;
             }
-            const token = document.querySelector('meta[name=csrf-token]').getAttribute('content');
+            const tokenEl = document.querySelector('meta[name=csrf-token]');
+            const token = tokenEl ? tokenEl.getAttribute('content') : null;
+            if (typeof window.__nxKanbanDbg === 'function') { window.__nxKanbanDbg('C', 'csrf token lookup', { hasMeta: !!tokenEl, hasToken: !!token, confirmarCiencia }); }
             const res = await fetch(this.dragUrl, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': token,
+                    'X-CSRF-TOKEN': token || '',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
                 credentials: 'same-origin',
@@ -108,6 +114,7 @@
                     confirmar_ciencia_pendencias_documentais: confirmarCiencia,
                 }),
             });
+            if (typeof window.__nxKanbanDbg === 'function') { window.__nxKanbanDbg('D', 'fetch response', { ok: res.ok, status: res.status, redirected: res.redirected, contentType: res.headers?.get?.('content-type') || null }); }
             this.dragUrl = null;
             this.dragId = null;
             this.dragStatusAtual = null;
@@ -125,6 +132,7 @@
                 const data = await res.json();
                 msg = data.message || data.errors?.status?.[0] || msg;
             } catch (_) {}
+            if (typeof window.__nxKanbanDbg === 'function') { window.__nxKanbanDbg('E', 'non-ok response parsed', { msg, status: res.status }); }
             if (window.Swal) {
                 const d = document.documentElement.classList.contains('dark');
                 await window.Swal.fire({
@@ -263,3 +271,21 @@
         </div>
     </div>
 </div>
+
+<script>
+// #region agent log (kanban)
+window.__nxKanbanDbg = function (hypothesisId, message, data) {
+  try {
+    const qs = new URLSearchParams({
+      runId: 'pre-fix',
+      hid: String(hypothesisId || 'X'),
+      loc: 'resources/views/processos/partials/kanban-board.blade.php',
+      msg: String(message || ''),
+      data: JSON.stringify(data || {}),
+      ts: String(Date.now()),
+    });
+    fetch('/__nx_dbg?' + qs.toString(), { credentials: 'same-origin' }).catch(()=>{});
+  } catch (_) {}
+}
+// #endregion
+</script>

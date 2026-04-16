@@ -4,6 +4,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | ARA — Anexo 5-E (PDF): nome do diretor / responsável
+    |--------------------------------------------------------------------------
+    |
+    | Preencha aqui ou ligue `AulaNauticaAraPdfData::resolveDiretorNome` a um
+    | campo da empresa quando existir na base.
+    |
+    */
+    'ara_pdf_diretor_nome' => env('NORTEX_ARA_PDF_DIRETOR_NOME', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Antivírus (ClamAV) — desligado por padrão
     |--------------------------------------------------------------------------
     |

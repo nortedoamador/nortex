@@ -17,15 +17,23 @@ class Empresa extends Model
 
     protected $fillable = [
         'nome',
+        'nome_fantasia',
         'slug',
         'cnpj',
         'uf',
+        'cidade',
+        'cep',
+        'endereco',
+        'numero',
+        'complemento',
+        'bairro',
         'ativo',
         'acesso_plataforma_ate',
         'pagamento_inicial_pendente',
         'email_contato',
         'telefone',
         'logo_path',
+        'texto_procuracao_procuradores',
         'plan_id',
         'plan_overrides',
         'stripe_customer_id',
@@ -108,6 +116,63 @@ class Empresa extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * Subscrição Stripe válida para usar os módulos do tenant (preços configurados em STRIPE_PRICE_FULL e/ou STRIPE_PRICE_BASIC).
+     */
+    public function assinaturaPlataformaAtiva(): bool
+    {
+        if ($this->pagamento_inicial_pendente) {
+            return false;
+        }
+
+        $configuredPriceIds = self::normalizedStripePriceIdsForTenantSubscription();
+        $anyPriceConfigured = $configuredPriceIds !== [];
+        $enforce = (bool) config('services.stripe.enforce_subscription', false);
+
+        $noStripe = $this->stripe_customer_id === null && $this->stripe_subscription_id === null;
+
+        // Sem nenhum preço no .env: mantém legado (dev / instalações antigas sem billing).
+        if (! $anyPriceConfigured && ! $enforce && $noStripe) {
+            return true;
+        }
+
+        // Com pelo menos um preço configurado: é obrigatório ter subscrição Stripe válida para um desses preços.
+        if ($anyPriceConfigured && $noStripe) {
+            return false;
+        }
+
+        if (! in_array($this->stripe_subscription_status, ['active', 'trialing'], true)) {
+            return false;
+        }
+
+        if (! $anyPriceConfigured) {
+            return true;
+        }
+
+        $current = $this->stripe_current_price_id;
+
+        return is_string($current) && in_array($current, $configuredPriceIds, true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function normalizedStripePriceIdsForTenantSubscription(): array
+    {
+        $out = [];
+        foreach (['price_full', 'price_basic'] as $key) {
+            $raw = config('services.stripe.'.$key);
+            if (is_string($raw)) {
+                $t = trim($raw);
+                if ($t !== '') {
+                    $out[] = $t;
+                }
+            }
+        }
+
+        return array_values(array_unique($out));
     }
 
     /**

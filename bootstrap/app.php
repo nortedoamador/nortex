@@ -13,9 +13,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'tenant.empresa' => \App\Http\Middleware\EnsureTenantEmpresa::class,
+            'tenant.subscription' => \App\Http\Middleware\EnsureTenantSubscription::class,
             'permission' => \App\Http\Middleware\EnsurePermission::class,
             'permission.any' => \App\Http\Middleware\EnsureAnyPermission::class,
             'platform.admin' => \App\Http\Middleware\EnsurePlatformAdmin::class,
+        ]);
+        $middleware->appendToGroup('web', [
+            \App\Http\Middleware\CheckPlatformMaintenance::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

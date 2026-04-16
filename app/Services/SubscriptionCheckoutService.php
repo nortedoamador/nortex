@@ -27,11 +27,13 @@ class SubscriptionCheckoutService
         User $owner,
         string $planSlug,
         string $customerEmail,
+        ?string $successUrl = null,
+        ?string $cancelUrl = null,
     ): Session {
         $priceId = $this->priceIdForPlan($planSlug);
 
-        $successUrl = route('assinatura.sucesso', [], true).'?session_id={CHECKOUT_SESSION_ID}';
-        $cancelUrl = route('assinatura.cancelado', [], true).'?plan='.rawurlencode($planSlug);
+        $successUrl ??= route('assinatura.sucesso', [], true).'?session_id={CHECKOUT_SESSION_ID}';
+        $cancelUrl ??= route('assinatura.cancelado', [], true).'?plan='.rawurlencode($planSlug);
 
         return Session::create([
             'mode' => 'subscription',

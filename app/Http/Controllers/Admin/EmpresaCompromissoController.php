@@ -16,6 +16,7 @@ class EmpresaCompromissoController extends Controller
         return [
             'reuniao' => __('Reunião'),
             'marinha_atendimento' => __('Atendimento na Marinha'),
+            'outro' => __('Outro'),
         ];
     }
 
@@ -49,6 +50,13 @@ class EmpresaCompromissoController extends Controller
         $data = $this->validated($request);
         EmpresaCompromisso::query()->create($data);
 
+        if ($request->input('return_to') === 'empresa_agenda') {
+            return redirect()
+                ->route('admin.empresa.edit')
+                ->with('status', __('Compromisso criado.'))
+                ->with('aba_empresa', 'agenda');
+        }
+
         return redirect()
             ->route('admin.empresa.compromissos.index')
             ->with('status', __('Compromisso criado.'));
@@ -68,6 +76,13 @@ class EmpresaCompromissoController extends Controller
     public function update(Request $request, EmpresaCompromisso $compromisso): RedirectResponse
     {
         $compromisso->update($this->validated($request));
+
+        if ($request->input('return_to') === 'empresa_agenda') {
+            return redirect()
+                ->route('admin.empresa.edit')
+                ->with('status', __('Compromisso atualizado.'))
+                ->with('aba_empresa', 'agenda');
+        }
 
         return redirect()
             ->route('admin.empresa.compromissos.index')
@@ -90,8 +105,9 @@ class EmpresaCompromissoController extends Controller
     {
         $tiposPermitidos = array_keys($this->tipos());
 
-        return $request->validate([
+        $data = $request->validate([
             'tipo' => ['required', 'string', Rule::in($tiposPermitidos)],
+            'tipo_custom' => ['nullable', 'string', 'max:128', 'required_if:tipo,outro'],
             'titulo' => ['required', 'string', 'max:255'],
             'data' => ['required', 'date'],
             'hora_inicio' => ['nullable', 'date_format:H:i'],
@@ -99,5 +115,13 @@ class EmpresaCompromissoController extends Controller
             'local' => ['nullable', 'string', 'max:255'],
             'observacoes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        if (($data['tipo'] ?? '') !== 'outro') {
+            $data['tipo_custom'] = null;
+        } elseif (isset($data['tipo_custom'])) {
+            $data['tipo_custom'] = trim((string) $data['tipo_custom']);
+        }
+
+        return $data;
     }
 }

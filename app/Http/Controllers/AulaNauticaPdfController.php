@@ -3,15 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\AulaNautica;
+use App\Models\Cliente;
 use App\Models\EmpresaAtestadoNormamDuracao;
-use App\Models\EscolaNautica;
 use App\Support\AulaCurriculoNormam;
+use App\Support\AulaNauticaAraPdfData;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Blade;
 
 class AulaNauticaPdfController extends Controller
 {
@@ -20,32 +20,40 @@ class AulaNauticaPdfController extends Controller
         $this->assertEmpresa($request, $aula);
         $aula->load(['alunos', 'instrutores']);
 
-        return $this->renderPdf('aulas.pdf.comunicado', ['aula' => $aula], 'comunicado_de_aula');
+        return $this->renderPdf('aulas.pdf.comunicado', $aula, 'comunicado_de_aula');
     }
 
-    public function ara(Request $request, AulaNautica $aula): Response
+    public function ara(Request $request, AulaNautica $aula, Cliente $aluno): Response
     {
         $this->assertEmpresa($request, $aula);
-        $aula->load(['alunos', 'escolaInstrutores.cliente']);
+        abort_unless(
+            $aula->alunos()->whereKey($aluno->getKey())->exists(),
+            404
+        );
 
-        $escola = EscolaNautica::query()
+        $aula->load([
+            'empresa',
+            'escolaInstrutores.cliente',
+            'instrutores',
+        ]);
+
+        $duracoes = EmpresaAtestadoNormamDuracao::query()
             ->where('empresa_id', $aula->empresa_id)
-            ->with('diretor')
-            ->first();
-
-        $duracoesMap = EmpresaAtestadoNormamDuracao::query()
             ->where('programa', AulaCurriculoNormam::PROGRAMA_ARA)
             ->get()
             ->keyBy('item_key');
 
-        $curriculoAra = AulaCurriculoNormam::itensAra();
+        $araPdf = AulaNauticaAraPdfData::build($aula, $aluno, $duracoes);
 
-        return $this->renderPdf('aulas.pdf.ara', [
-            'aula' => $aula,
-            'escola' => $escola,
-            'duracoesMap' => $duracoesMap,
-            'curriculoAra' => $curriculoAra,
-        ], 'atestado_ara');
+        return $this->renderPdf(
+            'aulas.pdf.ara',
+            $aula,
+            'atestado_ara',
+            [
+                'aluno' => $aluno,
+                'araPdf' => $araPdf,
+            ]
+        );
     }
 
     public function mta(Request $request, AulaNautica $aula): Response
@@ -53,7 +61,7 @@ class AulaNauticaPdfController extends Controller
         $this->assertEmpresa($request, $aula);
         $aula->load(['alunos', 'instrutores']);
 
-        return $this->renderPdf('aulas.pdf.mta', ['aula' => $aula], 'atestado_mta');
+        return $this->renderPdf('aulas.pdf.mta', $aula, 'atestado_mta');
     }
 
     private function assertEmpresa(Request $request, AulaNautica $aula): void
@@ -62,16 +70,11 @@ class AulaNauticaPdfController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $extraViewData
      */
-    private function renderPdf(string $view, array $data, string $baseFileName): Response
+    private function renderPdf(string $view, AulaNautica $aula, string $baseFileName, array $extraViewData = []): Response
     {
-        $aula = $data['aula'] ?? null;
-        if (! $aula instanceof AulaNautica) {
-            throw new \InvalidArgumentException('renderPdf espera chave "aula" com AulaNautica.');
-        }
-
-        $html = Blade::render(view($view, $data)->render(), $data);
+        $html = view($view, array_merge(compact('aula'), $extraViewData))->render();
 
         $opts = new Options();
         $opts->set('isRemoteEnabled', true);
@@ -87,7 +90,13 @@ class AulaNauticaPdfController extends Controller
 
         $suffix = Str::slug((string) $aula->numero_oficio, '_');
         $suffix = $suffix !== '' ? $suffix : (string) $aula->id;
-        $fileName = $baseFileName.'_'.$suffix.'.pdf';
+        $fileName = $baseFileName.'_'.$suffix;
+        if (isset($extraViewData['aluno']) && $extraViewData['aluno'] instanceof Cliente) {
+            /** @var Cliente $aluno */
+            $aluno = $extraViewData['aluno'];
+            $fileName .= '_'.preg_replace('/[^a-zA-Z0-9_-]+/', '_', (string) $aluno->getRouteKey());
+        }
+        $fileName .= '.pdf';
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
@@ -95,4 +104,3 @@ class AulaNauticaPdfController extends Controller
         ]);
     }
 }
-

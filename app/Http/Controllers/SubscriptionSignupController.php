@@ -28,6 +28,8 @@ class SubscriptionSignupController extends Controller
         return view('subscription.index', [
             'basicReady' => $this->checkout->planConfigured('basica'),
             'fullReady' => $this->checkout->planConfigured('completa'),
+            'displayBasicaBrl' => (int) config('services.stripe.plan_basica_display_brl', 297),
+            'displayCompletaBrl' => (int) config('services.stripe.plan_completa_display_brl', 497),
         ]);
     }
 
@@ -47,7 +49,9 @@ class SubscriptionSignupController extends Controller
         return view('subscription.form', [
             'plan' => $plan,
             'planLabel' => $plan === 'completa' ? __('Completo (com financeiro)') : __('Essencial (sem financeiro)'),
-            'planPrice' => $plan === 'completa' ? '497' : '297',
+            'planPrice' => (string) ($plan === 'completa'
+                ? config('services.stripe.plan_completa_display_brl', 497)
+                : config('services.stripe.plan_basica_display_brl', 297)),
         ]);
     }
 

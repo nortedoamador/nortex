@@ -43,11 +43,6 @@ class EnsureTenantEmpresa
                 return $next($request);
             }
 
-            if ($empresa->pagamento_inicial_pendente
-                && ! $request->routeIs('assinatura.pagamento-pendente', 'assinatura.pagamento-pendente.checkout')) {
-                return redirect()->route('assinatura.pagamento-pendente');
-            }
-
             return $next($request);
         }
 

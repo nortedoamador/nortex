@@ -33,7 +33,7 @@
                                         <span class="block text-xs text-slate-500">{{ \Illuminate\Support\Str::substr((string) $c->hora_inicio, 0, 5) }}@if (filled($c->hora_fim))–{{ \Illuminate\Support\Str::substr((string) $c->hora_fim, 0, 5) }}@endif</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{{ $tipos[$c->tipo] ?? $c->tipo }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">{{ $c->tipo_label }}</td>
                                 <td class="px-4 py-3 text-sm text-slate-800 dark:text-slate-200">{{ $c->titulo }}</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                                     <a href="{{ route('admin.empresa.compromissos.edit', $c) }}" class="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">{{ __('Editar') }}</a>

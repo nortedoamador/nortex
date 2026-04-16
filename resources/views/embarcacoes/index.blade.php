@@ -7,9 +7,9 @@
                     <span
                         class="inline-flex w-fit max-w-[200px] shrink-0 items-center justify-center truncate rounded-full border border-emerald-300/90 bg-brand-softer px-3 py-1.5 text-center text-xs font-semibold text-fg-brand-strong shadow-sm ring-1 ring-emerald-200/80 dark:border-emerald-700/80 dark:bg-brand-softer-dark dark:text-fg-brand-strong-dark dark:ring-emerald-800/80"
                         x-data
-                        x-text="$store?.nxEmbarcacoes?.countText ?? @js((($busca ?? '') !== '' || ($tipo ?? '') !== '' || ($atividade ?? '') !== '' || ($construtor ?? '') !== '' || ($anoConstrucao ?? '') !== '' || ($numeroMotor ?? '') !== '' || (($embInsc ?? false) !== ($embSin ?? false)) || (($embAli ?? false) !== ($embSal ?? false)) || (($embVig ?? false) !== ($embVen ?? false)) ? trans_choice('{0} Nenhum resultado|{1} :count resultado encontrado|[2,*] :count resultados encontrados', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()]) : trans_choice('{0} Nenhuma embarcação cadastrada|{1} :count cadastrada|[2,*] :count cadastradas', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()])))"
+                        x-text="$store?.nxEmbarcacoes?.countText ?? @js((($busca ?? '') !== '' || ($tipo ?? '') !== '' || ($atividade ?? '') !== '' || ($construtor ?? '') !== '' || ($anoConstrucao ?? '') !== '' || ($numeroMotor ?? '') !== '' || (($embInsc ?? false) !== ($embSin ?? false)) || (($embAli ?? false) !== ($embSal ?? false)) || (($embVig ?? false) !== ($embVen ?? false)) || (($inscricaoVigencia ?? '') !== '') ? trans_choice('{0} Nenhum resultado|{1} :count resultado encontrado|[2,*] :count resultados encontrados', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()]) : trans_choice('{0} Nenhuma embarcação cadastrada|{1} :count cadastrada|[2,*] :count cadastradas', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()])))"
                     >
-                        @if (($busca ?? '') !== '' || ($tipo ?? '') !== '' || ($atividade ?? '') !== '' || ($construtor ?? '') !== '' || ($anoConstrucao ?? '') !== '' || ($numeroMotor ?? '') !== '' || (($embInsc ?? false) !== ($embSin ?? false)) || (($embAli ?? false) !== ($embSal ?? false)) || (($embVig ?? false) !== ($embVen ?? false)))
+                        @if (($busca ?? '') !== '' || ($tipo ?? '') !== '' || ($atividade ?? '') !== '' || ($construtor ?? '') !== '' || ($anoConstrucao ?? '') !== '' || ($numeroMotor ?? '') !== '' || (($embInsc ?? false) !== ($embSin ?? false)) || (($embAli ?? false) !== ($embSal ?? false)) || (($embVig ?? false) !== ($embVen ?? false)) || (($inscricaoVigencia ?? '') !== ''))
                             {{ trans_choice('{0} Nenhum resultado|{1} :count resultado encontrado|[2,*] :count resultados encontrados', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()]) }}
                         @else
                             {{ trans_choice('{0} Nenhuma embarcação cadastrada|{1} :count cadastrada|[2,*] :count cadastradas', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()]) }}
@@ -62,6 +62,7 @@
                         emb_sal: @js((bool)($embSal ?? false)),
                         emb_vig: @js((bool)($embVig ?? false)),
                         emb_ven: @js((bool)($embVen ?? false)),
+                        inscricao_vigencia: @js((string)($inscricaoVigencia ?? '')),
                         sugestoesBusca: @js($sugestoesBuscaEmbarcacao ?? []),
                         construtores: @js($construtoresOptions ?? []),
                     },
@@ -80,6 +81,7 @@
                         || (($embInsc ?? false) !== ($embSin ?? false))
                         || (($embAli ?? false) !== ($embSal ?? false))
                         || (($embVig ?? false) !== ($embVen ?? false))
+                        || (($inscricaoVigencia ?? '') !== '')
                         || ((int)($perPage ?? 5)) !== 5;
                 @endphp
 
@@ -214,6 +216,7 @@
                     emb_sal: initial.emb_sal ?? false,
                     emb_vig: initial.emb_vig ?? false,
                     emb_ven: initial.emb_ven ?? false,
+                    inscricao_vigencia: initial.inscricao_vigencia ?? '',
                 },
                 sugestoesBusca: Array.isArray(initial.sugestoesBusca) ? initial.sugestoesBusca : [],
                 construtoresAll: Array.isArray(initial.construtores) ? initial.construtores : [],
@@ -236,6 +239,7 @@
                         'embSal' => $embSal ?? false,
                         'embVig' => $embVig ?? false,
                         'embVen' => $embVen ?? false,
+                        'inscricaoVigencia' => $inscricaoVigencia ?? '',
                     ])->render()),
                     list: @js(view('embarcacoes.partials.index-list', [
                         'embarcacoes' => $embarcacoes,
@@ -251,7 +255,7 @@
                 aborter: null,
                 init() {
                     Alpine.store('nxEmbarcacoes').countText = @js(
-                        ($busca ?? '') !== '' || ($tipo ?? '') !== '' || ($atividade ?? '') !== '' || ($construtor ?? '') !== '' || ($anoConstrucao ?? '') !== '' || ($numeroMotor ?? '') !== '' || (($embInsc ?? false) !== ($embSin ?? false)) || (($embAli ?? false) !== ($embSal ?? false)) || (($embVig ?? false) !== ($embVen ?? false))
+                        ($busca ?? '') !== '' || ($tipo ?? '') !== '' || ($atividade ?? '') !== '' || ($construtor ?? '') !== '' || ($anoConstrucao ?? '') !== '' || ($numeroMotor ?? '') !== '' || (($embInsc ?? false) !== ($embSin ?? false)) || (($embAli ?? false) !== ($embSal ?? false)) || (($embVig ?? false) !== ($embVen ?? false)) || (($inscricaoVigencia ?? '') !== '')
                             ? trans_choice('{0} Nenhum resultado|{1} :count resultado encontrado|[2,*] :count resultados encontrados', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()])
                             : trans_choice('{0} Nenhuma embarcação cadastrada|{1} :count cadastrada|[2,*] :count cadastradas', (int) $embarcacoes->total(), ['count' => $embarcacoes->total()])
                     );
@@ -266,6 +270,7 @@
                     if (this.state.emb_insc !== this.state.emb_sin) n++;
                     if (this.state.emb_ali !== this.state.emb_sal) n++;
                     if (this.state.emb_vig !== this.state.emb_ven) n++;
+                    if ((this.state.inscricao_vigencia || '').trim() !== '') n++;
                     return n;
                 },
                 embBuscaMatches() {
@@ -399,6 +404,9 @@
                         this.state.emb_vig = false;
                         this.state.emb_ven = false;
                     }
+                    if (key === 'inscricao_vigencia') {
+                        this.state.inscricao_vigencia = '';
+                    }
                     this.apply();
                 },
                 reset() {
@@ -414,6 +422,7 @@
                     this.state.emb_sal = false;
                     this.state.emb_vig = false;
                     this.state.emb_ven = false;
+                    this.state.inscricao_vigencia = '';
                     this.state.per_page = 5;
                     this.apply();
                 },
@@ -431,6 +440,8 @@
                     if (this.state.emb_sal) p.set('emb_sal', '1');
                     if (this.state.emb_vig) p.set('emb_vig', '1');
                     if (this.state.emb_ven) p.set('emb_ven', '1');
+                    const iv = (this.state.inscricao_vigencia || '').trim();
+                    if (iv === 'proximos_30' || iv === 'vencida') p.set('inscricao_vigencia', iv);
                     if (this.state.per_page && Number(this.state.per_page) !== 5) p.set('per_page', String(this.state.per_page));
                     return p;
                 },

@@ -20,6 +20,7 @@ final class DashboardAlertasService
      *     habilitacoes_vencendo: int,
      *     habilitacoes_vencidas: int,
      *     tie_vencendo: int,
+     *     tie_vencidas: int,
      *     docs_pendentes: int
      * }
      */
@@ -49,6 +50,12 @@ final class DashboardAlertasService
             ->where('empresa_id', $empresaId)
             ->whereNotNull('inscricao_data_vencimento')
             ->whereBetween('inscricao_data_vencimento', [$hoje, $limite])
+            ->count();
+
+        $nTieVencida = Embarcacao::query()
+            ->where('empresa_id', $empresaId)
+            ->whereNotNull('inscricao_data_vencimento')
+            ->whereDate('inscricao_data_vencimento', '<', $hoje)
             ->count();
 
         $nDocs = ProcessoDocumento::query()
@@ -84,6 +91,7 @@ final class DashboardAlertasService
             'habilitacoes_vencendo' => $nHabVencendo,
             'habilitacoes_vencidas' => $nHabVencida,
             'tie_vencendo' => $nTieVencendo,
+            'tie_vencidas' => $nTieVencida,
             'docs_pendentes' => $nDocsPendentes,
         ];
     }
@@ -132,6 +140,46 @@ final class DashboardAlertasService
                 'titulo' => __('CHA vencida'),
                 'detalhe' => ($h->cliente?->nome ?? __('Cliente')).' — '.__('desde :d', ['d' => $h->data_validade?->format('d/m/Y') ?? '—']),
                 'href' => $h->cliente ? route('clientes.show', $h->cliente) : null,
+                'severidade' => 'red',
+            ];
+        }
+
+        $tieVencendo = Embarcacao::query()
+            ->where('empresa_id', $empresaId)
+            ->whereNotNull('inscricao_data_vencimento')
+            ->whereBetween('inscricao_data_vencimento', [$hoje, $limite])
+            ->with('cliente:id,nome')
+            ->orderBy('inscricao_data_vencimento')
+            ->limit(8)
+            ->get();
+
+        foreach ($tieVencendo as $emb) {
+            $nomeEmb = is_string($emb->nome) && $emb->nome !== '' ? $emb->nome : __('Embarcação');
+            $alertas[] = [
+                'tipo' => 'tie_validade',
+                'titulo' => __('TIE a vencer'),
+                'detalhe' => $nomeEmb.' — '.__('venc. :d', ['d' => $emb->inscricao_data_vencimento?->format('d/m/Y') ?? '—']),
+                'href' => route('embarcacoes.show', $emb),
+                'severidade' => 'amber',
+            ];
+        }
+
+        $tieVencida = Embarcacao::query()
+            ->where('empresa_id', $empresaId)
+            ->whereNotNull('inscricao_data_vencimento')
+            ->whereDate('inscricao_data_vencimento', '<', $hoje)
+            ->with('cliente:id,nome')
+            ->orderByDesc('inscricao_data_vencimento')
+            ->limit(5)
+            ->get();
+
+        foreach ($tieVencida as $emb) {
+            $nomeEmb = is_string($emb->nome) && $emb->nome !== '' ? $emb->nome : __('Embarcação');
+            $alertas[] = [
+                'tipo' => 'tie_vencida',
+                'titulo' => __('TIE vencido'),
+                'detalhe' => $nomeEmb.' — '.__('desde :d', ['d' => $emb->inscricao_data_vencimento?->format('d/m/Y') ?? '—']),
+                'href' => route('embarcacoes.show', $emb),
                 'severidade' => 'red',
             ];
         }

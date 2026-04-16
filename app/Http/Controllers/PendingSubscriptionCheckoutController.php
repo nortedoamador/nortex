@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\SubscriptionCheckoutService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Validation\Rule;
 
 class PendingSubscriptionCheckoutController extends Controller
 {
@@ -13,7 +13,7 @@ class PendingSubscriptionCheckoutController extends Controller
         private SubscriptionCheckoutService $checkout,
     ) {}
 
-    public function show(Request $request): View|RedirectResponse
+    public function show(Request $request): RedirectResponse
     {
         $user = $request->user();
         $user->loadMissing('empresa');
@@ -22,14 +22,7 @@ class PendingSubscriptionCheckoutController extends Controller
             abort(403);
         }
 
-        if (! $empresa->pagamento_inicial_pendente) {
-            return redirect()->route('dashboard');
-        }
-
-        return view('subscription.pagamento-pendente', [
-            'empresa' => $empresa,
-            'checkoutReady' => $this->checkout->planConfigured('completa'),
-        ]);
+        return redirect()->route('planos.index');
     }
 
     public function startCheckout(Request $request): RedirectResponse
@@ -41,35 +34,41 @@ class PendingSubscriptionCheckoutController extends Controller
             abort(403);
         }
 
-        if (! $empresa->pagamento_inicial_pendente) {
-            return redirect()->route('dashboard');
-        }
+        $validated = $request->validate([
+            'plan' => ['sometimes', 'string', Rule::in(['basica', 'completa'])],
+        ]);
+        $plan = $validated['plan'] ?? 'completa';
 
-        if (! $this->checkout->planConfigured('completa')) {
+        if (! $this->checkout->planConfigured($plan)) {
             return redirect()
-                ->route('assinatura.pagamento-pendente')
+                ->route('planos.index')
                 ->withErrors(['checkout' => __('O pagamento online não está disponível no momento.')]);
         }
 
         $email = is_string($user->email) ? strtolower(trim($user->email)) : '';
 
+        $successUrl = route('dashboard', [], true).'?session_id={CHECKOUT_SESSION_ID}';
+        $cancelUrl = route('planos.index', [], true);
+
         try {
             $session = $this->checkout->createSubscriptionCheckoutSession(
                 $empresa,
                 $user,
-                'completa',
+                $plan,
                 $email,
+                $successUrl,
+                $cancelUrl,
             );
         } catch (\Throwable) {
             return redirect()
-                ->route('assinatura.pagamento-pendente')
+                ->route('planos.index')
                 ->withErrors(['checkout' => __('Não foi possível iniciar o pagamento. Tente novamente.')]);
         }
 
         $url = is_string($session->url ?? null) ? $session->url : '';
         if ($url === '') {
             return redirect()
-                ->route('assinatura.pagamento-pendente')
+                ->route('planos.index')
                 ->withErrors(['checkout' => __('Resposta inválida do serviço de pagamento.')]);
         }
 

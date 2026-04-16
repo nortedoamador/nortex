@@ -499,8 +499,38 @@
                     <ul class="divide-y divide-slate-100 dark:divide-slate-800">
                         @foreach ($documentosOrdenados as $doc)
                             @php
-                                $slugModelo = (string) ($doc->documentoTipo?->modeloSlugParaRender() ?? '');
                                 $codigoTipo = (string) ($doc->documentoTipo?->codigo ?? '');
+                                $slugModelo = (string) ($doc->documentoTipo?->modeloSlugParaRender() ?? '');
+
+                                if ($processo->embarcacao) {
+                                    $nxRegras = app(\App\Services\Marinha\EmbarcacaoChecklistAnexosRulesService::class)->resolver($processo->embarcacao);
+
+                                    if ($codigoTipo === 'TIE_REQ_INTERESSADO'
+                                        || $codigoTipo === 'TIE_REQ_INTERESSADO_ANEXO_2C_211'
+                                        || $codigoTipo === 'REQ_NORMAM_2C'
+                                        || $codigoTipo === 'TIE_REQ_INTERESSADO_ANEXO_2A_212') {
+                                        $slugModelo = (string) ($nxRegras['requerimento_slug'] ?? $slugModelo);
+                                    } elseif (in_array($codigoTipo, [
+                                        'TIE_BSADE_211_2B_DUAS_VIAS',
+                                        'BSADE_NORMAM_2D',
+                                        'TIE_BADE',
+                                        'TIE_BADE_OU_BSADE',
+                                        'TIE_BADE_OU_BSADE_ATUALIZADO',
+                                        'TIE_BADE_OU_BSADE_SE_ALTERACAO',
+                                        \App\Support\Normam211DocumentoCodigos::TIE_BDMOTO_212_2B,
+                                        \App\Support\Normam211DocumentoCodigos::TIE_BDMOTO_SE_ALTERACAO,
+                                    ], true)) {
+                                        $slugModelo = (string) ($nxRegras['bade_bsade_slug'] ?? $slugModelo);
+                                    } elseif ($codigoTipo === \App\Support\Normam211DocumentoCodigos::COMPROVANTE_RESIDENCIA_CEP
+                                        || $codigoTipo === 'TIE_COMPROVANTE_RESID_ATUAL_OU_DECL'
+                                        || $codigoTipo === 'TIE_COMPROVANTE_RESIDENCIA'
+                                        || $codigoTipo === 'TIE_COMPROVANTE_RESID_90_OU_DECL'
+                                        || $codigoTipo === 'TIE_COMPROVANTE_RESID_212_1C'
+                                        || $codigoTipo === \App\Support\Normam211DocumentoCodigos::CHA_COMPROVANTE_RESIDENCIA_212_1C_LEGACY) {
+                                        $slugModelo = (string) ($nxRegras['declaracao_residencia_slug'] ?? $slugModelo);
+                                    }
+                                }
+
                                 $isResidenciaItem = $codigoTipo === \App\Support\Normam211DocumentoCodigos::COMPROVANTE_RESIDENCIA_CEP
                                     || $slugModelo === 'anexo-2g';
                                 $isAnexo5hItem = \App\Support\Normam211DocumentoCodigos::isDeclaracaoAnexo5h($codigoTipo !== '' ? $codigoTipo : null)

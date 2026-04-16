@@ -30,8 +30,9 @@ class AulaEscolaController extends Controller
         $empresaCnpj = $user->empresa?->cnpj;
         $ufs = BrasilEstados::options();
         $planoTreinamentoCompleto = EmpresaAtestadoNormamDuracao::planoTreinamentoNormamCompleto();
+        $temInstrutoresEtn = EscolaInstrutor::query()->where('empresa_id', $user->empresa_id)->exists();
 
-        return view('aulas.escola.edit', compact('escola', 'empresaCnpj', 'ufs', 'planoTreinamentoCompleto'));
+        return view('aulas.escola.edit', compact('escola', 'empresaCnpj', 'ufs', 'planoTreinamentoCompleto', 'temInstrutoresEtn'));
     }
 
     public function instrutores(Request $request): View

@@ -31,16 +31,24 @@ export function initClienteFichaGeo(root) {
     /** @type {Map<string, string[]>} */
     const ibgeMunicipiosCache = new Map();
 
+    const idCep = root.dataset.geoCep || 'cep';
+    const idEndereco = root.dataset.geoEndereco || 'endereco';
+    const idBairro = root.dataset.geoBairro || 'bairro';
+    const idComplemento = root.dataset.geoComplemento || '';
+
     const ufSel = root.querySelector('#uf');
     const cidadeSel = root.querySelector('#cidade');
     const naturalidadeSel = root.querySelector('#naturalidade');
     const cpfInput = root.querySelector('#cpf');
-    const cepInput = root.querySelector('#cep');
-    const enderecoInput = root.querySelector('#endereco');
+    const cepInput = root.querySelector(`#${idCep}`);
+    const enderecoInput = root.querySelector(`#${idEndereco}`);
     const orgaoSel = root.querySelector('#orgao_emissor');
     const nacSel = root.querySelector('#nacionalidade');
-    const bairroSel = root.querySelector('#bairro');
+    /** @type {HTMLSelectElement|HTMLInputElement|null} */
+    const bairroSel = root.querySelector(`#${idBairro}`);
+    const complementoInput = idComplemento ? root.querySelector(`#${idComplemento}`) : null;
     const bairroOutro = root.querySelector('#bairro_outro');
+    const bairroIsSelect = bairroSel instanceof HTMLSelectElement;
     const docIdTipo = () => root.querySelector('input[name="documento_identidade_tipo"]:checked')?.value || 'cnh';
 
     function tipoDocumento() {
@@ -154,9 +162,14 @@ export function initClienteFichaGeo(root) {
         if (!v) {
             return;
         }
-        for (let i = 0; i < bairroSel.options.length; i += 1) {
-            if (bairroSel.options[i].value === v) {
-                bairroSel.selectedIndex = i;
+        if (bairroSel instanceof HTMLInputElement) {
+            bairroSel.value = v;
+            return;
+        }
+        const sel = bairroSel;
+        for (let i = 0; i < sel.options.length; i += 1) {
+            if (sel.options[i].value === v) {
+                sel.selectedIndex = i;
                 if (bairroOutro) {
                     bairroOutro.classList.add('hidden');
                     bairroOutro.value = '';
@@ -164,14 +177,14 @@ export function initClienteFichaGeo(root) {
                 return;
             }
         }
-        const outroOpt = Array.from(bairroSel.options).find((o) => o.value === '__outro');
+        const outroOpt = Array.from(sel.options).find((o) => o.value === '__outro');
         const opt = document.createElement('option');
         opt.value = v;
         opt.textContent = v;
         if (outroOpt) {
-            bairroSel.insertBefore(opt, outroOpt);
+            sel.insertBefore(opt, outroOpt);
         } else {
-            bairroSel.appendChild(opt);
+            sel.appendChild(opt);
         }
         opt.selected = true;
         if (bairroOutro) {
@@ -182,13 +195,13 @@ export function initClienteFichaGeo(root) {
 
     function cleanupBairroHidden() {
         root.querySelectorAll('input[data-bairro-hidden="1"]').forEach((el) => el.remove());
-        if (bairroSel && !bairroSel.hasAttribute('name')) {
+        if (bairroIsSelect && bairroSel && !bairroSel.hasAttribute('name')) {
             bairroSel.setAttribute('name', 'bairro');
         }
     }
 
     function resetBairroOptions() {
-        if (!bairroSel) {
+        if (!bairroIsSelect || !bairroSel) {
             return;
         }
         const keep = bairroSel.value;
@@ -252,6 +265,12 @@ export function initClienteFichaGeo(root) {
                 if (enderecoInput && data.logradouro) {
                     enderecoInput.value = data.logradouro;
                 }
+                if (complementoInput && data.complemento) {
+                    const c = String(data.complemento).trim();
+                    if (c && !String(complementoInput.value || '').trim()) {
+                        complementoInput.value = c;
+                    }
+                }
                 setBairroOpcao(data.bairro);
             } catch {
                 /* rede / CORS */
@@ -259,22 +278,24 @@ export function initClienteFichaGeo(root) {
         })();
     });
 
-    bairroSel?.addEventListener('change', () => {
-        cleanupBairroHidden();
-        if (!bairroOutro || !bairroSel) {
-            return;
-        }
-        if (bairroSel.value === '__outro') {
-            bairroOutro.classList.remove('hidden');
-            bairroOutro.focus();
-        } else {
-            bairroOutro.classList.add('hidden');
-            bairroOutro.value = '';
-        }
-    });
+    if (bairroIsSelect) {
+        bairroSel.addEventListener('change', () => {
+            cleanupBairroHidden();
+            if (!bairroOutro || !bairroSel) {
+                return;
+            }
+            if (bairroSel.value === '__outro') {
+                bairroOutro.classList.remove('hidden');
+                bairroOutro.focus();
+            } else {
+                bairroOutro.classList.add('hidden');
+                bairroOutro.value = '';
+            }
+        });
+    }
 
     root.addEventListener('submit', (e) => {
-        if (!bairroSel || bairroSel.value !== '__outro') {
+        if (!bairroIsSelect || !bairroSel || bairroSel.value !== '__outro') {
             return;
         }
         const t = (bairroOutro?.value || '').trim();

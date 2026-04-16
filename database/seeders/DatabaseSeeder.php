@@ -28,6 +28,18 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
+        $priceFull = config('services.stripe.price_full');
+        if (is_string($priceFull) && $priceFull !== '') {
+            $empresa->forceFill([
+                'pagamento_inicial_pendente' => false,
+                'stripe_customer_id' => 'cus_nortex_local',
+                'stripe_subscription_id' => 'sub_nortex_local',
+                'stripe_subscription_status' => 'active',
+                'stripe_current_price_id' => $priceFull,
+                'stripe_subscription_cancel_at_period_end' => false,
+            ])->save();
+        }
+
         $user = User::query()->firstOrCreate(
             ['email' => 'admin@nortex.local'],
             [

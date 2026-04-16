@@ -65,6 +65,13 @@
                 @endisset
 
                 <main>
+                    @if (session('status'))
+                        <div class="mx-auto max-w-[1600px] px-4 pt-4 sm:px-6 lg:px-8">
+                            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200">
+                                {{ session('status') }}
+                            </div>
+                        </div>
+                    @endif
                     {{ $slot }}
                 </main>
             </div>

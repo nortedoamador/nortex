@@ -3,7 +3,11 @@
 namespace App\Services;
 
 use App\Models\ActivityLog;
+use App\Models\FinanceiroLoteEngenhariaItem;
+use App\Models\FinanceiroLoteParceriaItem;
 use App\Models\ProcessoDocumento;
+use App\Models\ProcessoPostIt;
+use App\Support\TenantEmpresaContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
@@ -27,9 +31,20 @@ final class ActivityLogService
             return;
         }
 
+        // Em rotas "admin desta empresa" dentro da plataforma, não expor a identidade
+        // do administrador da plataforma nos logs visíveis ao tenant.
+        $userId = (int) $user->id;
+        if (
+            TenantEmpresaContext::isPlatformEmpresaAdminRoute()
+            && ($user->is_platform_admin ?? false)
+            && (int) ($user->empresa_id ?? 0) !== $eid
+        ) {
+            $userId = 0;
+        }
+
         ActivityLog::query()->create([
             'empresa_id' => $eid,
-            'user_id' => $user->id,
+            'user_id' => $userId > 0 ? $userId : null,
             'action' => $action,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
@@ -65,6 +80,18 @@ final class ActivityLogService
 
         if ($model instanceof ProcessoDocumento) {
             return $model->processo()->value('empresa_id');
+        }
+
+        if ($model instanceof ProcessoPostIt) {
+            return $model->processo()->value('empresa_id');
+        }
+
+        if ($model instanceof FinanceiroLoteEngenhariaItem) {
+            return $model->lote()->value('empresa_id');
+        }
+
+        if ($model instanceof FinanceiroLoteParceriaItem) {
+            return $model->lote()->value('empresa_id');
         }
 
         return null;

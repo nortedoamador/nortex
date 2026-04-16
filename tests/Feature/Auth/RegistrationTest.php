@@ -19,10 +19,12 @@ class RegistrationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_register_redireciona_para_checkout_quando_stripe_completo_configurado(): void
+    public function test_register_redireciona_para_checkout_quando_enforce_e_stripe_configurados(): void
     {
+        Config::set('services.stripe.enforce_subscription', true);
         Config::set('services.stripe.secret', 'sk_test_fake');
         Config::set('services.stripe.price_full', 'price_test_full');
+        Config::set('services.stripe.price_basic', '');
 
         $checkoutUrl = 'https://checkout.stripe.test/session-registo';
 
@@ -53,10 +55,12 @@ class RegistrationTest extends TestCase
         ]);
     }
 
-    public function test_register_falha_quando_plano_completo_nao_configurado(): void
+    public function test_register_falha_quando_enforce_true_sem_stripe_completo(): void
     {
+        Config::set('services.stripe.enforce_subscription', true);
         Config::set('services.stripe.secret', '');
         Config::set('services.stripe.price_full', '');
+        Config::set('services.stripe.price_basic', '');
 
         $response = $this->post('/register', [
             'empresa_nome' => 'Empresa X',
@@ -68,5 +72,53 @@ class RegistrationTest extends TestCase
 
         $this->assertGuest();
         $response->assertSessionHasErrors('empresa_nome');
+    }
+
+    public function test_register_vai_ao_dashboard_sem_stripe_quando_enforce_false(): void
+    {
+        Config::set('services.stripe.enforce_subscription', false);
+        Config::set('services.stripe.secret', '');
+        Config::set('services.stripe.price_full', '');
+        Config::set('services.stripe.price_basic', '');
+
+        $response = $this->post('/register', [
+            'empresa_nome' => 'Empresa Local',
+            'name' => 'User Local',
+            'email' => 'local@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('empresas', [
+            'nome' => 'Empresa Local',
+            'pagamento_inicial_pendente' => false,
+        ]);
+    }
+
+    public function test_register_vai_ao_dashboard_com_price_full_quando_enforce_false(): void
+    {
+        Config::set('services.stripe.enforce_subscription', false);
+        Config::set('services.stripe.secret', 'sk_test_fake');
+        Config::set('services.stripe.price_full', 'price_test_full');
+        Config::set('services.stripe.price_basic', '');
+
+        $response = $this->post('/register', [
+            'empresa_nome' => 'Empresa Dashboard Primeiro',
+            'name' => 'User Dash',
+            'email' => 'dashfirst@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('dashboard'));
+
+        $this->assertDatabaseHas('empresas', [
+            'nome' => 'Empresa Dashboard Primeiro',
+            'pagamento_inicial_pendente' => false,
+        ]);
     }
 }

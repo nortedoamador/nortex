@@ -56,9 +56,11 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        if (! $this->checkout->planConfigured('completa')) {
+        $enforceSubscription = (bool) config('services.stripe.enforce_subscription', false);
+
+        if ($enforceSubscription && ! $this->checkout->planConfigured('completa')) {
             throw ValidationException::withMessages([
-                'empresa_nome' => __('O pagamento do plano Completo não está disponível no momento. Configure o Stripe (STRIPE_PRICE_FULL) ou contacte o suporte.'),
+                'empresa_nome' => __('O pagamento do plano Completo não está disponível. Configure STRIPE_SECRET e STRIPE_PRICE_FULL no .env. Para desenvolvimento local sem Stripe, use STRIPE_ENFORCE_SUBSCRIPTION=false.'),
             ]);
         }
 
@@ -74,14 +76,79 @@ class RegisteredUserController extends Controller
         }
         $slug = $candidate;
 
+        if ($enforceSubscription && $this->checkout->planConfigured('completa')) {
+            try {
+                [$empresa, $user, $checkoutUrl] = DB::transaction(function () use ($request, $slug, $email): array {
+                    $empresa = Empresa::query()->create([
+                        'nome' => $request->empresa_nome,
+                        'slug' => $slug,
+                        'ativo' => true,
+                        'email_contato' => $email,
+                        'pagamento_inicial_pendente' => true,
+                    ]);
+
+                    $user = User::query()->create([
+                        'empresa_id' => $empresa->id,
+                        'name' => $request->name,
+                        'email' => $email,
+                        'password' => Hash::make($request->password),
+                    ]);
+
+                    $rbac = app(EmpresaRbacService::class);
+                    $rbac->bootstrapEmpresa($empresa);
+                    $rbac->assignRole($user, 'administrador');
+
+                    $session = $this->checkout->createSubscriptionCheckoutSession(
+                        $empresa,
+                        $user,
+                        'completa',
+                        $email,
+                    );
+
+                    $url = is_string($session->url ?? null) ? $session->url : '';
+
+                    return [$empresa, $user, $url];
+                });
+            } catch (\Throwable $e) {
+                Log::error('Registo: falha ao criar empresa ou sessão Stripe.', [
+                    'email' => $email,
+                    'message' => $e->getMessage(),
+                ]);
+
+                return back()
+                    ->withInput()
+                    ->withErrors(['empresa_nome' => __('Não foi possível iniciar o pagamento. Tente novamente ou contacte o suporte.')]);
+            }
+
+            if ($checkoutUrl === '') {
+                return back()
+                    ->withInput()
+                    ->withErrors(['empresa_nome' => __('Resposta inválida do serviço de pagamento.')]);
+            }
+
+            event(new Registered($user));
+
+            Auth::login($user);
+
+            app(EmpresaProcessosDefaultsService::class)->garantirTemplateBasico($empresa);
+
+            if ($this->nxAuthSpa($request)) {
+                return response()->json([
+                    'redirect' => $checkoutUrl,
+                ]);
+            }
+
+            return redirect()->away($checkoutUrl);
+        }
+
         try {
-            [$empresa, $user, $checkoutUrl] = DB::transaction(function () use ($request, $slug, $email): array {
+            [$empresa, $user] = DB::transaction(function () use ($request, $slug, $email): array {
                 $empresa = Empresa::query()->create([
                     'nome' => $request->empresa_nome,
                     'slug' => $slug,
                     'ativo' => true,
                     'email_contato' => $email,
-                    'pagamento_inicial_pendente' => true,
+                    'pagamento_inicial_pendente' => false,
                 ]);
 
                 $user = User::query()->create([
@@ -95,32 +162,17 @@ class RegisteredUserController extends Controller
                 $rbac->bootstrapEmpresa($empresa);
                 $rbac->assignRole($user, 'administrador');
 
-                $session = $this->checkout->createSubscriptionCheckoutSession(
-                    $empresa,
-                    $user,
-                    'completa',
-                    $email,
-                );
-
-                $url = is_string($session->url ?? null) ? $session->url : '';
-
-                return [$empresa, $user, $url];
+                return [$empresa, $user];
             });
         } catch (\Throwable $e) {
-            Log::error('Registo: falha ao criar empresa ou sessão Stripe.', [
+            Log::error('Registo: falha ao criar empresa.', [
                 'email' => $email,
                 'message' => $e->getMessage(),
             ]);
 
             return back()
                 ->withInput()
-                ->withErrors(['empresa_nome' => __('Não foi possível iniciar o registo. Tente novamente ou contacte o suporte.')]);
-        }
-
-        if ($checkoutUrl === '') {
-            return back()
-                ->withInput()
-                ->withErrors(['empresa_nome' => __('Resposta inválida do serviço de pagamento.')]);
+                ->withErrors(['empresa_nome' => __('Não foi possível concluir o registo. Tente novamente ou contacte o suporte.')]);
         }
 
         event(new Registered($user));
@@ -131,10 +183,10 @@ class RegisteredUserController extends Controller
 
         if ($this->nxAuthSpa($request)) {
             return response()->json([
-                'redirect' => $checkoutUrl,
+                'redirect' => route('dashboard'),
             ]);
         }
 
-        return redirect()->away($checkoutUrl);
+        return redirect()->route('dashboard');
     }
 }

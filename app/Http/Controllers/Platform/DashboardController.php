@@ -8,6 +8,7 @@ use App\Models\Empresa;
 use App\Models\PlatformActivityLog;
 use App\Models\User;
 use App\Support\BrazilStates;
+use App\Support\PlatformMaintenance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -84,6 +85,7 @@ class DashboardController extends Controller
 
         $ultimosLogs = $ultimosLogsQuery->get();
         $selectedUfName = $selectedUf ? BrazilStates::label($selectedUf) : 'Brasil';
+        $platformMaintenanceEnabled = PlatformMaintenance::enabled();
 
         return view('platform.dashboard', compact(
             'totEmpresas',
@@ -95,6 +97,7 @@ class DashboardController extends Controller
             'mapStats',
             'selectedUf',
             'selectedUfName',
+            'platformMaintenanceEnabled',
         ));
     }
 

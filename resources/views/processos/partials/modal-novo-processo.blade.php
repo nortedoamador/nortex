@@ -23,7 +23,7 @@
             return [
                 $c->value => $tipos
                     ->filter(fn (\App\Models\PlatformTipoProcesso $t) => $t->categoria === $c)
-                    ->sortBy('nome', SORT_NATURAL | SORT_FLAG_CASE)
+                    ->sortBy(fn (\App\Models\PlatformTipoProcesso $t) => [(int) ($t->ordem ?? 0), (string) ($t->nome ?? '')])
                     ->map(fn (\App\Models\PlatformTipoProcesso $t) => ['id' => $t->id, 'nome' => $t->nome])
                     ->values()
                     ->all(),

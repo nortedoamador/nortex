@@ -54,6 +54,7 @@
             </x-sidebar-nav-link>
         @endif
 
+        @if ($tenantPlanoAtivo ?? true)
         @if ($u->hasPermission('clientes.view'))
             <x-sidebar-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes.*')">
                 <x-slot name="icon">
@@ -90,26 +91,7 @@
             </x-sidebar-nav-link>
         @endif
 
-        @if ($u->hasPermission('usuarios.manage'))
-            <x-sidebar-nav-link :href="route('equipe.index')" :active="request()->routeIs('equipe.*')">
-                <x-slot name="icon">
-                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 21v-2a4 4 0 0 1 4 -4h2.5" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.001 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.001 15.5v1.5" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.001 21v1.5" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M22.032 17.25l-1.299 .75" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.27 20l-1.3 .75" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.97 17.25l1.3 .75" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.733 20l1.3 .75" />
-                    </svg>
-                </x-slot>
-                {{ __('Equipe') }}
-            </x-sidebar-nav-link>
-        @endif
-
-        @if ($u->hasPermission('empresa.manage'))
+        @if ($u->hasPermission('empresa.manage') || $u->hasPermission('usuarios.manage') || $u->hasPermission('auditoria.view'))
             <div
                 class="pt-2 mt-1 border-t border-slate-200/80 dark:border-slate-800"
                 x-show="!sidebarCollapsed"
@@ -117,12 +99,49 @@
             >
                 <p class="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ __('Administração') }}</p>
             </div>
-            <x-sidebar-nav-link :href="route('admin.empresa.edit')" :active="request()->routeIs('admin.empresa.*')">
-                <x-slot name="icon">
-                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008H17.25v-.008Zm0 3h.008v.008H17.25v-.008Zm0 3h.008v.008H17.25v-.008Z" /></svg>
-                </x-slot>
-                {{ __('Empresa') }}
-            </x-sidebar-nav-link>
+        @endif
+
+        @php
+            $empresaSectionActive = request()->routeIs('admin.empresa.*') || request()->routeIs('equipe.*') || request()->routeIs('admin.auditoria.*');
+        @endphp
+        @if ($u->hasPermission('empresa.manage') || $u->hasPermission('usuarios.manage') || $u->hasPermission('auditoria.view'))
+            <div class="space-y-1" x-data="{ open: {{ $empresaSectionActive ? 'true' : 'false' }} }">
+                <button
+                    type="button"
+                    class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition hover:bg-slate-100 dark:hover:bg-slate-800"
+                    :class="[
+                        sidebarCollapsed ? 'justify-center px-2' : '',
+                        {{ $empresaSectionActive ? 'true' : 'false' }} ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white' : 'text-slate-600 dark:text-slate-300',
+                    ]"
+                    @click="open = !open"
+                >
+                    <span class="shrink-0 flex h-5 w-5 items-center justify-center text-slate-500">
+                        <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008H17.25v-.008Zm0 3h.008v.008H17.25v-.008Zm0 3h.008v.008H17.25v-.008Z" /></svg>
+                    </span>
+                    <span x-show="!sidebarCollapsed" x-cloak class="flex-1 truncate">{{ __('Empresa') }}</span>
+                    <span x-show="!sidebarCollapsed" x-cloak class="shrink-0 text-slate-400" :class="open ? 'rotate-180' : ''">
+                        <svg class="h-4 w-4 transition-transform" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                    </span>
+                </button>
+
+                <div class="space-y-1 pl-6" x-show="open && !sidebarCollapsed" x-cloak>
+                    @if ($u->hasPermission('empresa.manage'))
+                        <a href="{{ route('admin.empresa.edit') }}" class="block rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.empresa.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800' }}">
+                            {{ __('Dados') }}
+                        </a>
+                    @endif
+                    @if ($u->hasPermission('usuarios.manage'))
+                        <a href="{{ route('equipe.index') }}" class="block rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('equipe.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800' }}">
+                            {{ __('Equipe') }}
+                        </a>
+                    @endif
+                    @if ($u->hasPermission('auditoria.view'))
+                        <a href="{{ route('admin.auditoria.index') }}" class="block rounded-lg px-3 py-2 text-sm font-medium transition {{ request()->routeIs('admin.auditoria.*') ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800' }}">
+                            {{ __('Auditoria') }}
+                        </a>
+                    @endif
+                </div>
+            </div>
         @endif
 
         @if ($u->hasPermission('aulas.view'))
@@ -164,6 +183,7 @@
                 <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ __('Financeiro') }}</span>
             </div>
         @endif
+        @endif
     </nav>
 
     <div class="mt-auto space-y-1 border-t border-slate-200/80 p-3 dark:border-slate-800">
@@ -179,6 +199,21 @@
             </span>
             <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ __('Modo escuro') }}</span>
         </button>
+
+        @if ($u->empresa_id)
+            <x-sidebar-nav-link
+                :href="route('planos.index')"
+                :active="request()->routeIs('planos.*')"
+                :badge-text="($tenantPlanoAtivo ?? false) ? __('Ativo') : __('Pendente')"
+                :badge-tone="($tenantPlanoAtivo ?? false) ? 'success' : 'warning'"
+                @click="mobileOpen = false"
+            >
+                <x-slot name="icon">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 15h19.5m-16.5-5.25h6m-6 6.75h6m-1.5-13.5h3a3 3 0 0 1 3 3v13.5a3 3 0 0 1-3 3h-3m-6-19.5h3a3 3 0 0 1 3 3v13.5a3 3 0 0 1-3 3h-3m0-19.5v19.5" /></svg>
+                </x-slot>
+                {{ __('Plano') }}
+            </x-sidebar-nav-link>
+        @endif
 
         <a
             href="{{ route('profile.edit') }}"
