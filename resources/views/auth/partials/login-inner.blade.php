@@ -97,9 +97,9 @@
                     class="nx-auth-input"
                     type="password"
                     name="password"
-                    required
                     autocomplete="current-password"
                     placeholder="Senha"
+                    @if($showPasswordStep) required @endif
                 >
                 <div class="nx-auth-row__suffix">
                     <button type="button" class="nx-auth-icon-btn" id="nx-login-toggle-password" aria-label="Mostrar senha">

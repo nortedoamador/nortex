@@ -215,6 +215,9 @@ function initLoginForm() {
         step2?.classList.remove('nx-auth-step-reveal');
         void step2?.offsetWidth;
         step2?.classList.add('nx-auth-step-reveal');
+        if (passwordInput) {
+            passwordInput.required = true;
+        }
         passwordInput?.focus();
     };
 
@@ -281,6 +284,7 @@ function initLoginForm() {
         hideClientError();
         if (passwordInput) {
             passwordInput.value = '';
+            passwordInput.required = false;
         }
         if (emailHidden && emailInput) {
             emailInput.value = emailHidden.value.trim();
@@ -332,6 +336,9 @@ function initLoginForm() {
         step1?.setAttribute('hidden', '');
         brandingDefault?.setAttribute('hidden', '');
         brandingUser?.removeAttribute('hidden');
+        if (passwordInput) {
+            passwordInput.required = true;
+        }
     }
 }
 
