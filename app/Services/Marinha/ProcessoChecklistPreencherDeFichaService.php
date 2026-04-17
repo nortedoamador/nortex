@@ -165,7 +165,7 @@ final class ProcessoChecklistPreencherDeFichaService
     private function codigoUsaCnhFicha(string $codigo): bool
     {
         return ChaChecklistDocumentoCodigos::isCnhComValidade($codigo)
-            || $codigo === 'CHA_CNH_OU_RG';
+            || Normam211DocumentoCodigos::isCnhOuRg($codigo);
     }
 
     private function codigoUsaComprovanteEnderecoFicha(string $codigo): bool

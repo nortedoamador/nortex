@@ -56,15 +56,10 @@
                     @click="mobileOpen = false"
                 >
                     <x-slot name="icon">
-                        {{-- Payment protection (Flaticon); license may require attribution --}}
-                        <img
-                            src="{{ asset('images/sidebar-plano-payment-protection.png') }}"
-                            alt=""
-                            width="20"
-                            height="20"
-                            class="h-5 w-5 shrink-0 object-contain dark:brightness-0 dark:invert"
-                            aria-hidden="true"
-                        />
+                        <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3l7.5 4.5v6c0 5.25-3.4 9.6-7.5 10.5-4.1-.9-7.5-5.25-7.5-10.5v-6L12 3Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 12.25l1.5 1.5 3-3.5" />
+                        </svg>
                     </x-slot>
                     {{ __('Plano') }}
                 </x-sidebar-nav-link>
@@ -146,26 +141,23 @@
             </div>
         @endif
 
-        @php
-            $podeFinanceiroPlano = $u->empresa && $u->empresa->billingIncludesFinanceiro();
-        @endphp
-        @if ($u->hasPermission('financeiro.view') && $podeFinanceiroPlano)
-            <x-sidebar-nav-link :href="route('financeiro.index')" :active="request()->routeIs('financeiro.*')">
-                <x-slot name="icon">
-                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
-                </x-slot>
-                {{ __('Financeiro') }}
-            </x-sidebar-nav-link>
-        @elseif ($u->hasPermission('financeiro.view') && ! $podeFinanceiroPlano)
+        @if ($u->hasPermission('financeiro.view'))
             <div
                 class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 dark:text-slate-600 cursor-not-allowed"
                 :class="sidebarCollapsed ? 'justify-center px-2' : ''"
-                title="{{ __('Plano Essencial: o módulo financeiro não está incluído. Faça upgrade para o plano Completo.') }}"
+                title="{{ __('Em breve') }}"
             >
                 <span class="shrink-0 flex h-5 w-5 items-center justify-center opacity-70">
-                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
+                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
                 </span>
                 <span x-show="!sidebarCollapsed" x-cloak class="truncate">{{ __('Financeiro') }}</span>
+                <span
+                    x-show="!sidebarCollapsed"
+                    x-cloak
+                    class="ml-auto inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                >
+                    {{ __('Em breve') }}
+                </span>
             </div>
         @else
             <div
@@ -217,7 +209,7 @@
         @endif
     </nav>
 
-    <div class="mt-auto space-y-2 border-t border-slate-200/80 p-3 dark:border-slate-800">
+    <div class="mt-auto space-y-2 border-t border-slate-200/80 bg-slate-50/90 p-3 dark:border-slate-800 dark:bg-slate-950/55">
         <div
             class="flex items-center justify-center gap-1"
             :class="sidebarCollapsed ? 'flex-col' : 'flex-row'"
@@ -226,7 +218,7 @@
         >
             <button
                 type="button"
-                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700/80"
+                class="hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700/80"
                 @click="$store.theme.toggle()"
                 title="{{ __('Modo escuro') }}"
                 aria-label="{{ __('Alternar modo escuro') }}"
@@ -239,12 +231,12 @@
 
             <a
                 href="{{ route('profile.edit') }}"
-                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700/80"
+                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yellow-50 text-yellow-700 transition hover:bg-yellow-100 dark:bg-yellow-950/30 dark:text-yellow-300 dark:hover:bg-yellow-950/45"
                 @click="mobileOpen = false"
                 title="{{ __('Configurações') }}"
                 aria-label="{{ __('Configurações') }}"
             >
-                <span class="flex h-5 w-5 items-center justify-center text-slate-500">
+                <span class="flex h-5 w-5 items-center justify-center text-current">
                     <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.37.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
                 </span>
             </a>
@@ -253,7 +245,7 @@
                 @csrf
                 <button
                     type="submit"
-                    class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-red-50 hover:text-red-700 dark:text-slate-300 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                    class="inline-flex h-10 w-10 items-center justify-center rounded-xl text-red-600 transition hover:bg-red-50 hover:text-red-700 dark:text-red-300 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                     title="{{ __('Sair') }}"
                     aria-label="{{ __('Sair') }}"
                 >

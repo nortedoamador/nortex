@@ -26,6 +26,7 @@ class User extends Authenticatable
     protected $fillable = [
         'empresa_id',
         'is_platform_admin',
+        'is_master_admin',
         'is_disabled',
         'name',
         'email',
@@ -53,6 +54,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_platform_admin' => 'boolean',
+            'is_master_admin' => 'boolean',
             'is_disabled' => 'boolean',
         ];
     }
@@ -60,6 +62,14 @@ class User extends Authenticatable
     public function isPlatformAdmin(): bool
     {
         return (bool) $this->is_platform_admin;
+    }
+
+    /**
+     * Dono/NorteX — acesso restrito (ex.: auditoria global).
+     */
+    public function isMasterAdmin(): bool
+    {
+        return (bool) $this->is_master_admin;
     }
 
     public function empresa(): BelongsTo

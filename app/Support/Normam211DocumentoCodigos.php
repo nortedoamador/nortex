@@ -28,6 +28,44 @@ final class Normam211DocumentoCodigos
 
     public const TIE_BDMOTO_SE_ALTERACAO = 'TIE_BDMOTO_SE_ALTERACAO';
 
+    /** Checklist: identificação do procurador (um único tipo; ex-CHA/CIR/TIE). */
+    public const DOCUMENTO_PROCURADOR = 'DOCUMENTO_PROCURADOR';
+
+    /** CNH ou RG (CHA/CIR/tipo «solto» fundidos num único código). */
+    public const CNH_OU_RG = 'CNH_OU_RG';
+
+    /** Duas fotos da embarcação (fundido de vários `TIE_XX_DUAS_FOTOS` numerados). */
+    public const TIE_DUAS_FOTOS_EMBARCACAO = 'TIE_DUAS_FOTOS_EMBARCACAO';
+
+    /**
+     * @return list<string>
+     */
+    public static function codigosCnhOuRg(): array
+    {
+        return [
+            self::CNH_OU_RG,
+            'CHA_CNH_OU_RG',
+            'CIR_CNH_VALIDA_OU_RG',
+        ];
+    }
+
+    public static function isCnhOuRg(?string $codigo): bool
+    {
+        if ($codigo === null || $codigo === '') {
+            return false;
+        }
+
+        $u = strtoupper($codigo);
+
+        foreach (self::codigosCnhOuRg() as $c) {
+            if (strtoupper($c) === $u) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Requerimento 5-H / ocorrência: podem ser satisfeitos com modelo PDF (legado Anexo 2-H decl. extravio) + flags.
      *

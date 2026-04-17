@@ -57,10 +57,20 @@ class ChecklistDocumentosController extends Controller
 
         $q = trim((string) $request->query('q', ''));
 
+        $allowedSorts = ['codigo', 'nome', 'modelo_slug', 'auto_gerado'];
+        $sort = (string) $request->query('sort', 'nome');
+        if (! in_array($sort, $allowedSorts, true)) {
+            $sort = 'nome';
+        }
+        $direction = strtolower((string) $request->query('direction', 'asc'));
+        if (! in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'asc';
+        }
+
         $query = DocumentoTipo::query()
             ->withoutGlobalScope('empresa')
             ->where('empresa_id', $empresaId)
-            ->orderBy('nome');
+            ->orderBy($sort, $direction);
 
         if ($q !== '') {
             $termo = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $q).'%';
@@ -73,7 +83,13 @@ class ChecklistDocumentosController extends Controller
 
         $tipos = $query->get();
 
-        return view('platform.cadastros.checklist-documentos.index', compact('tipos', 'q', 'checklistEmpresa'));
+        return view('platform.cadastros.checklist-documentos.index', compact(
+            'tipos',
+            'q',
+            'checklistEmpresa',
+            'sort',
+            'direction',
+        ));
     }
 
     public function create(): View

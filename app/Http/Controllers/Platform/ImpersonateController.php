@@ -18,7 +18,7 @@ class ImpersonateController extends Controller
     public function start(Request $request, User $user): RedirectResponse
     {
         $actor = $request->user();
-        abort_unless($actor && $actor->is_platform_admin, 403);
+        abort_unless($actor && ($actor->is_platform_admin || $actor->is_master_admin), 403);
 
         if ((int) $actor->id === (int) $user->id) {
             return back()->withErrors(['impersonate' => __('Você já está logado neste usuário.')]);

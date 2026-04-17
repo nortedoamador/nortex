@@ -16,7 +16,7 @@ class AuditDocumentoTiposCommand extends Command
                             {--format=table : Saída: table, json ou markdown}
                             {--output= : Escrever relatório neste ficheiro (UTF-8)}';
 
-    protected $description = 'Auditoria só leitura: duplicados por modelo_slug, por nome normalizado e tipos órfãos (sem pivot nem processo_documentos)';
+    protected $description = 'Auditoria só leitura: duplicados por modelo_slug, por nome, por sufixo CHA/CIR/TIE e tipos órfãos';
 
     public function handle(): int
     {
@@ -34,6 +34,7 @@ class AuditDocumentoTiposCommand extends Command
             'empresa_id' => $empresaFilter,
             'grupo_a_modelo_slug' => $this->collectGrupoA($empresaFilter),
             'grupo_b_nome_normalizado' => $this->collectGrupoB($empresaFilter),
+            'grupo_c_suffix_sem_prefixo_servico' => $this->collectGrupoC($empresaFilter),
             'orfaos' => $this->collectOrfaos($empresaFilter),
         ];
 
@@ -151,6 +152,69 @@ class AuditDocumentoTiposCommand extends Command
     }
 
     /**
+     * Grupo C — vários `codigo` na mesma empresa que só diferem pelo prefixo de serviço (CHA_|CIR_|TIE_).
+     * Ex.: CHA_X, CIR_X, TIE_X → candidatos a fundir num único código canónico (revisão humana).
+     *
+     * @return list<array{empresa_id: int, stem: string, tipos: list<array<string, mixed>}>
+     */
+    private function collectGrupoC(?int $empresaFilter): array
+    {
+        $q = DB::table('documento_tipos')
+            ->orderBy('empresa_id')
+            ->orderBy('codigo');
+
+        if ($empresaFilter !== null) {
+            $q->where('empresa_id', $empresaFilter);
+        }
+
+        $buckets = [];
+        foreach ($q->get(['id', 'empresa_id', 'codigo', 'nome', 'modelo_slug', 'auto_gerado']) as $row) {
+            $stem = $this->codigoSemPrefixoServico((string) $row->codigo);
+            $key = (int) $row->empresa_id.'|'.$stem;
+            $buckets[$key][] = $row;
+        }
+
+        $groups = [];
+        foreach ($buckets as $bucket) {
+            if (count($bucket) < 2) {
+                continue;
+            }
+            $codigos = collect($bucket)->pluck('codigo')->unique()->values();
+            if ($codigos->count() < 2) {
+                continue;
+            }
+            $first = $bucket[0];
+            $stem = $this->codigoSemPrefixoServico((string) $first->codigo);
+            $groups[] = [
+                'empresa_id' => (int) $first->empresa_id,
+                'stem' => $stem,
+                'tipos' => collect($bucket)
+                    ->map(fn ($t) => (array) $t)
+                    ->sortBy('codigo')
+                    ->values()
+                    ->all(),
+            ];
+        }
+
+        usort($groups, fn (array $a, array $b) => [$a['empresa_id'], $a['stem']] <=> [$b['empresa_id'], $b['stem']]);
+
+        return $groups;
+    }
+
+    /**
+     * Remove um prefixo CHA_|CIR_|TIE_ à esquerda (padrão típico de checklist por linha de serviço).
+     */
+    private function codigoSemPrefixoServico(string $codigo): string
+    {
+        $once = preg_replace('/^(CHA|CIR|TIE)_/', '', $codigo);
+        if ($once === null || $once === '' || $once === $codigo) {
+            return $codigo;
+        }
+
+        return $once;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function collectOrfaos(?int $empresaFilter): array
@@ -264,6 +328,36 @@ class AuditDocumentoTiposCommand extends Command
             }
         }
 
+        $lines[] = '## Grupo C — mesmo sufixo de `codigo` após remover `CHA_`/`CIR_`/`TIE_` (candidatos a código canónico)';
+        $lines[] = '';
+        /** @var list<array{empresa_id: int, stem: string, tipos: list<array<string, mixed>>}> $gc */
+        $gc = $report['grupo_c_suffix_sem_prefixo_servico'];
+        if ($gc === []) {
+            $lines[] = '_Nenhum grupo._';
+        } else {
+            foreach ($gc as $g) {
+                $lines[] = sprintf(
+                    '### Empresa %d · sufixo `%s`',
+                    $g['empresa_id'],
+                    str_replace('`', '\\`', $g['stem']),
+                );
+                $lines[] = '';
+                $lines[] = '| id | codigo | nome | modelo_slug | auto_gerado |';
+                $lines[] = '| --- | --- | --- | --- | --- |';
+                foreach ($g['tipos'] as $t) {
+                    $lines[] = sprintf(
+                        '| %s | `%s` | %s | %s | %s |',
+                        $t['id'],
+                        str_replace('`', '\\`', (string) $t['codigo']),
+                        $this->mdCell((string) $t['nome']),
+                        $t['modelo_slug'] !== null && $t['modelo_slug'] !== '' ? '`'.str_replace('`', '\\`', (string) $t['modelo_slug']).'`' : '—',
+                        isset($t['auto_gerado']) && $t['auto_gerado'] ? 'sim' : 'não',
+                    );
+                }
+                $lines[] = '';
+            }
+        }
+
         $lines[] = '## Órfãos — sem `documento_processo` (via `tipo_processos.empresa_id`) e sem `processo_documentos`';
         $lines[] = '';
         /** @var list<array<string, mixed>> $or */
@@ -357,6 +451,31 @@ class AuditDocumentoTiposCommand extends Command
             }
         }
 
+        $style->section('Grupo C — sufixo codigo sem prefixo CHA_/CIR_/TIE_');
+        /** @var list<array{empresa_id: int, stem: string, tipos: list<array<string, mixed>>}> $gc */
+        $gc = $report['grupo_c_suffix_sem_prefixo_servico'];
+        if ($gc === []) {
+            $style->text('Nenhum grupo.');
+        } else {
+            foreach ($gc as $g) {
+                $style->writeln(sprintf(
+                    '<info>Empresa %d</info> · sufixo %s',
+                    $g['empresa_id'],
+                    $g['stem'],
+                ));
+                $style->table(
+                    ['id', 'codigo', 'nome', 'modelo_slug', 'auto_gerado'],
+                    array_map(fn (array $t) => [
+                        $t['id'],
+                        $t['codigo'],
+                        $this->truncate((string) $t['nome'], 48),
+                        $t['modelo_slug'] ?? '',
+                        isset($t['auto_gerado']) && $t['auto_gerado'] ? '1' : '0',
+                    ], $g['tipos']),
+                );
+            }
+        }
+
         $style->section('Órfãos — sem pivot (tipo_processos) e sem processo_documentos');
         /** @var list<array<string, mixed>> $or */
         $or = $report['orfaos'];
@@ -381,6 +500,7 @@ class AuditDocumentoTiposCommand extends Command
             'Resumo:',
             '  Grupo A: '.count($ga).' grupo(s)',
             '  Grupo B: '.count($gb).' grupo(s)',
+            '  Grupo C: '.count($gc).' grupo(s)',
             '  Órfãos: '.count($or).' tipo(s)',
         ]);
 
@@ -403,12 +523,14 @@ class AuditDocumentoTiposCommand extends Command
     {
         $ga = $report['grupo_a_modelo_slug'];
         $gb = $report['grupo_b_nome_normalizado'];
+        $gc = $report['grupo_c_suffix_sem_prefixo_servico'];
         $or = $report['orfaos'];
 
         return sprintf(
-            'Resumo: Grupo A %d grupo(s) · Grupo B %d grupo(s) · Órfãos %d tipo(s) (detalhe no ficheiro).',
+            'Resumo: Grupo A %d grupo(s) · Grupo B %d grupo(s) · Grupo C %d grupo(s) · Órfãos %d tipo(s) (detalhe no ficheiro).',
             count($ga),
             count($gb),
+            count($gc),
             count($or),
         );
     }

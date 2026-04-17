@@ -96,7 +96,7 @@ Route::bind('papel', function (string $value) {
     $auth = auth()->user();
     abort_unless($auth, 403);
 
-    if ($auth->is_platform_admin) {
+    if ($auth->is_platform_admin || $auth->is_master_admin) {
         $empresa = request()->route('empresa');
         $empresaId = null;
         if ($empresa instanceof Empresa) {
@@ -123,7 +123,7 @@ Route::bind('papel', function (string $value) {
 Route::get('/', function () {
     if (auth()->check()) {
         $user = auth()->user();
-        if ($user->is_platform_admin && ! $user->empresa_id) {
+        if (($user->is_platform_admin || $user->is_master_admin) && ! $user->empresa_id) {
             return redirect()->route('platform.dashboard');
         }
 
@@ -247,7 +247,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
         });
 
-        Route::get('/auditoria', [PlatformAuditoriaController::class, 'index'])->name('auditoria.index');
+        Route::middleware('master.admin')->group(function () {
+            Route::get('/auditoria', [PlatformAuditoriaController::class, 'index'])->name('auditoria.index');
+        });
 
         Route::post('/impersonate/{user}', [PlatformImpersonateController::class, 'start'])
             ->whereNumber('user')

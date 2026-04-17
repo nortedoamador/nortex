@@ -102,7 +102,7 @@ final class HabilitacaoChaProcessosTemplateService
             'obrigatorio' => false,
         ];
         $docProcurador = [
-            'codigo' => 'CHA_DOCUMENTO_PROCURADOR',
+            'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
             'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
             'obrigatorio' => false,
         ];
@@ -124,8 +124,8 @@ final class HabilitacaoChaProcessosTemplateService
             'nome' => 'Atestado médico/psicofísico (emitido há menos de 1 ano). Obrigatório quando não houver CNH anexada (processo ou ficha do cliente).',
         ];
         $cnhOuRgSimples = [
-            'codigo' => 'CHA_CNH_OU_RG',
-            'nome' => 'CNH ou RG.',
+            'codigo' => Normam211DocumentoCodigos::CNH_OU_RG,
+            'nome' => 'CNH ou RG do interessado.',
         ];
         $gru = [
             'codigo' => 'GRU_TAXA_MARINHA',

@@ -46,7 +46,7 @@ class EnsureTenantEmpresa
             return $next($request);
         }
 
-        if ($user->is_platform_admin) {
+        if ($user->is_platform_admin || $user->is_master_admin) {
             return redirect()->route('platform.empresas.index');
         }
 

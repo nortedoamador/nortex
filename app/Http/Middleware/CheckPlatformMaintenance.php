@@ -57,7 +57,7 @@ class CheckPlatformMaintenance
     private function bypassUser(Request $request): bool
     {
         $user = $request->user();
-        if ($user?->is_platform_admin) {
+        if ($user?->is_platform_admin || $user?->is_master_admin) {
             return true;
         }
 
@@ -68,6 +68,6 @@ class CheckPlatformMaintenance
 
         $impersonator = User::query()->find($impersonatorId);
 
-        return $impersonator !== null && $impersonator->is_platform_admin;
+        return $impersonator !== null && ($impersonator->is_platform_admin || $impersonator->is_master_admin);
     }
 }

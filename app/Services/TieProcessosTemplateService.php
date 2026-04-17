@@ -171,13 +171,13 @@ final class TieProcessosTemplateService
             'obrigatorio' => false,
         ];
         $docProc = [
-            'codigo' => 'TIE_DOC_PROCURADOR',
+            'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
             'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
             'obrigatorio' => false,
         ];
         $docIdPfPj = [
             'codigo' => 'TIE_DOC_IDENTIDADE_OU_CONTRATO_SOCIAL',
-            'nome' => 'Documento de identidade ou contrato social (se pessoa jurídica).',
+            'nome' => 'Documento de identificação (RG, CNH) e/ou contrato social (PJ).',
         ];
         $docId = [
             'codigo' => 'TIE_DOCUMENTO_IDENTIDADE',
@@ -229,16 +229,7 @@ final class TieProcessosTemplateService
         ];
         $badeBsade = [
             'codigo' => 'TIE_BADE_OU_BSADE',
-            'nome' => 'Boletim de Atualização de Embarcação — BADE/BSADE.',
-        ];
-        $badeBsadeAtualizado = [
-            'codigo' => 'TIE_BADE_OU_BSADE_ATUALIZADO',
-            'nome' => 'Boletim de Atualização de Embarcação — BADE/BSADE atualizado.',
-        ];
-        $badeBsadeSeAlteracao = [
-            'codigo' => 'TIE_BADE_OU_BSADE_SE_ALTERACAO',
-            'nome' => 'Boletim de Atualização de Embarcação — BADE/BSADE (se houver alteração).',
-            'obrigatorio' => false,
+            'nome' => 'Boletim de Atualização de Embarcação — BADE/BSADE (atualizado ou se houver alteração).',
         ];
         $bdmotoSeAlteracao = [
             'codigo' => 'TIE_BDMOTO_SE_ALTERACAO',
@@ -389,7 +380,7 @@ final class TieProcessosTemplateService
             ],
             $docId,
             $resid211,
-            $badeBsadeSeAlteracao,
+            array_merge($badeBsade, ['obrigatorio' => false]),
             $tieOriginal,
             $fotosEmb,
             $seguroDpem,
@@ -405,7 +396,7 @@ final class TieProcessosTemplateService
             $docProc,
             $docId,
             $residSomente,
-            $badeBsadeAtualizado,
+            array_merge($badeBsade, ['obrigatorio' => true]),
             $tieOriginal,
             [
                 'codigo' => 'TIE_DOCS_COMPROVAM_ALTERACAO',
@@ -423,8 +414,9 @@ final class TieProcessosTemplateService
             ],
             $proc,
             [
-                'codigo' => 'TIE_DOC_PROCURADOR_OBRIG',
-                'nome' => 'Documento oficial do procurador.',
+                'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
+                'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
+                'obrigatorio' => true,
             ],
             $docIdPfPj,
             $resid90,
@@ -445,8 +437,9 @@ final class TieProcessosTemplateService
             ],
             $proc,
             [
-                'codigo' => 'TIE_DOC_PROCURADOR_OBRIG',
-                'nome' => 'Documento oficial do procurador.',
+                'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
+                'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
+                'obrigatorio' => true,
             ],
             $docIdPfPj,
             $cpfCnpj,
@@ -472,8 +465,9 @@ final class TieProcessosTemplateService
             ],
             $proc,
             [
-                'codigo' => 'TIE_DOC_PROCURADOR_OBRIG',
-                'nome' => 'Documento oficial do procurador.',
+                'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
+                'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
+                'obrigatorio' => true,
             ],
             $docIdPfPj,
             $residSomente,
@@ -503,8 +497,9 @@ final class TieProcessosTemplateService
             ],
             $proc,
             [
-                'codigo' => 'TIE_DOC_PROCURADOR_OBRIG',
-                'nome' => 'Documento oficial do procurador.',
+                'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
+                'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
+                'obrigatorio' => true,
             ],
             $docIdPfPj,
             $residSomente,
@@ -570,8 +565,9 @@ final class TieProcessosTemplateService
             ],
             $bade,
             [
-                'codigo' => 'TIE_CERTIFICADOS_TECNICOS_TM',
-                'nome' => 'Certificados técnicos.',
+                'codigo' => 'TIE_CERTIFICADOS_TECNICOS',
+                'nome' => 'Certificados técnicos (se aplicável).',
+                'obrigatorio' => false,
             ],
             $seguroDpem,
             $fotosEmb,
@@ -588,8 +584,9 @@ final class TieProcessosTemplateService
             $certFiscais,
             $bade,
             [
-                'codigo' => 'TIE_CERTIFICADOS_TECNICOS_TM',
-                'nome' => 'Certificados técnicos.',
+                'codigo' => 'TIE_CERTIFICADOS_TECNICOS',
+                'nome' => 'Certificados técnicos (se aplicável).',
+                'obrigatorio' => false,
             ],
             $seguroDpem,
             $fotosEmb,
@@ -622,8 +619,9 @@ final class TieProcessosTemplateService
             ],
             $proc,
             [
-                'codigo' => 'TIE_DOC_PROCURADOR_OBRIG',
-                'nome' => 'Documento oficial do procurador.',
+                'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
+                'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
+                'obrigatorio' => true,
             ],
             $docIdPfPj,
             $cpfCnpj,
@@ -640,8 +638,9 @@ final class TieProcessosTemplateService
             ],
             $proc,
             [
-                'codigo' => 'TIE_DOC_PROCURADOR_OBRIG',
-                'nome' => 'Documento oficial do procurador.',
+                'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
+                'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
+                'obrigatorio' => true,
             ],
             $docIdPfPj,
             $cpfCnpj,

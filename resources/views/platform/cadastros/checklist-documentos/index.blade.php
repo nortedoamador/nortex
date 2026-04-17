@@ -24,6 +24,8 @@
         @endif
 
         <form method="GET" action="{{ route('platform.cadastros.checklist-documentos.index') }}" class="flex flex-wrap items-end gap-2">
+            <input type="hidden" name="sort" value="{{ $sort }}" />
+            <input type="hidden" name="direction" value="{{ $direction }}" />
             <div>
                 <label class="block text-xs font-medium text-slate-600 dark:text-slate-400">{{ __('Busca') }}</label>
                 <input type="search" name="q" value="{{ $q }}" placeholder="{{ __('Código, nome ou slug…') }}" class="mt-1 min-w-[240px] rounded-xl border border-slate-200 px-4 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
@@ -33,13 +35,60 @@
 
         <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+                @php
+                    $nxSortLink = static function (string $column) use ($q, $sort, $direction): string {
+                        $params = [
+                            'sort' => $column,
+                            'direction' => ($sort === $column)
+                                ? ($direction === 'asc' ? 'desc' : 'asc')
+                                : 'asc',
+                        ];
+                        if ($q !== '') {
+                            $params['q'] = $q;
+                        }
+
+                        return route('platform.cadastros.checklist-documentos.index', $params);
+                    };
+                @endphp
                 <thead class="bg-slate-50 dark:bg-slate-800/50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Código') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Nome') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Modelo (slug)') }}</th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">{{ __('Auto') }}</th>
-                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400"></th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">
+                            <a href="{{ $nxSortLink('codigo') }}" class="inline-flex items-center gap-1 rounded-md text-slate-700 underline-offset-2 hover:underline dark:text-slate-300">
+                                {{ __('Código') }}
+                                @if ($sort === 'codigo')
+                                    <span class="font-normal normal-case text-slate-400" aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>
+                                    <span class="sr-only">{{ $direction === 'asc' ? __('ascendente') : __('descendente') }}</span>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">
+                            <a href="{{ $nxSortLink('nome') }}" class="inline-flex items-center gap-1 rounded-md text-slate-700 underline-offset-2 hover:underline dark:text-slate-300">
+                                {{ __('Nome') }}
+                                @if ($sort === 'nome')
+                                    <span class="font-normal normal-case text-slate-400" aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>
+                                    <span class="sr-only">{{ $direction === 'asc' ? __('ascendente') : __('descendente') }}</span>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">
+                            <a href="{{ $nxSortLink('modelo_slug') }}" class="inline-flex items-center gap-1 rounded-md text-slate-700 underline-offset-2 hover:underline dark:text-slate-300">
+                                {{ __('Modelo (slug)') }}
+                                @if ($sort === 'modelo_slug')
+                                    <span class="font-normal normal-case text-slate-400" aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>
+                                    <span class="sr-only">{{ $direction === 'asc' ? __('ascendente') : __('descendente') }}</span>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">
+                            <a href="{{ $nxSortLink('auto_gerado') }}" class="inline-flex items-center gap-1 rounded-md text-slate-700 underline-offset-2 hover:underline dark:text-slate-300">
+                                {{ __('Auto') }}
+                                @if ($sort === 'auto_gerado')
+                                    <span class="font-normal normal-case text-slate-400" aria-hidden="true">{{ $direction === 'asc' ? '↑' : '↓' }}</span>
+                                    <span class="sr-only">{{ $direction === 'asc' ? __('ascendente') : __('descendente') }}</span>
+                                @endif
+                            </a>
+                        </th>
+                        <th scope="col" class="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-600 dark:text-slate-400"></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800">

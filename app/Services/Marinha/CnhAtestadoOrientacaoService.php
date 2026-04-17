@@ -3,6 +3,7 @@
 namespace App\Services\Marinha;
 
 use App\Support\ChaChecklistDocumentoCodigos;
+use App\Support\Normam211DocumentoCodigos;
 use Carbon\CarbonInterface;
 
 /**
@@ -68,7 +69,7 @@ final class CnhAtestadoOrientacaoService
         if ($codigo === 'CNH'
             || $codigo === 'CHA_CNH_OU_ATESTADO'
             || $codigo === ChaChecklistDocumentoCodigos::CNH_COM_VALIDADE
-            || $codigo === 'CHA_CNH_OU_RG') {
+            || Normam211DocumentoCodigos::isCnhOuRg($codigo)) {
             $linhas[] = [
                 'nivel' => 'info',
                 'texto' => 'Há dispensa automática de atestado quando existe CNH no processo ou na ficha do cliente (cópia anexada).',

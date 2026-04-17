@@ -12,6 +12,7 @@ final class ChecklistDocumentoMultiplosAnexos
         'FOTOS_POPA_TRAVES',
         'TIE_FOTOS_EMBARCACAO_LATERAL_POPA',
         'TIE_FOTOS_MOTO_AQUATICA',
+        Normam211DocumentoCodigos::TIE_DUAS_FOTOS_EMBARCACAO,
     ];
 
     public static function permite(?string $codigoTipo): bool

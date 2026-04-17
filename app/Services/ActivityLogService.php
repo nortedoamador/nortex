@@ -26,6 +26,12 @@ final class ActivityLogService
         }
 
         $user = Auth::user();
+
+        /** Contas dono NorteX — auditoria apenas em `platform_activity_logs`, não em `activity_logs`. */
+        if (($user->is_master_admin ?? false)) {
+            return;
+        }
+
         $eid = $empresaId ?? (int) ($user->empresa_id ?? 0);
         if ($eid <= 0) {
             return;

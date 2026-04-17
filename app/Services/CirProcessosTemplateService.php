@@ -7,6 +7,7 @@ use App\Models\DocumentoTipo;
 use App\Models\Empresa;
 use App\Models\PlatformTipoProcesso;
 use App\Models\TipoProcesso;
+use App\Support\Normam211DocumentoCodigos;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -95,7 +96,7 @@ final class CirProcessosTemplateService
             'obrigatorio' => false,
         ];
         $docProcurador = [
-            'codigo' => 'CIR_DOCUMENTO_PROCURADOR',
+            'codigo' => Normam211DocumentoCodigos::DOCUMENTO_PROCURADOR,
             'nome' => 'Documento oficial do procurador (obrigatório se houver procuração).',
             'obrigatorio' => false,
         ];
@@ -112,8 +113,8 @@ final class CirProcessosTemplateService
             'nome' => 'CIR (cópia autenticada ou simples com original).',
         ];
         $cnhValidaOuRg = [
-            'codigo' => 'CIR_CNH_VALIDA_OU_RG',
-            'nome' => 'CNH válida ou RG.',
+            'codigo' => Normam211DocumentoCodigos::CNH_OU_RG,
+            'nome' => 'CNH ou RG do interessado.',
         ];
         $residenciaBr90 = [
             'codigo' => 'CIR_COMPROVANTE_RESIDENCIA_90_1L',

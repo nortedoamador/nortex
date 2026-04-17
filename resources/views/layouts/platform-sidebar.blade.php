@@ -100,12 +100,14 @@
             <p class="px-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{{ __('Operação') }}</p>
         </div>
 
-        <x-sidebar-nav-link :href="route('platform.auditoria.index')" :active="request()->routeIs('platform.auditoria.*')">
-            <x-slot name="icon">
-                <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m5-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-            </x-slot>
-            {{ __('Auditoria') }}
-        </x-sidebar-nav-link>
+        @if ($u?->is_master_admin)
+            <x-sidebar-nav-link :href="route('platform.auditoria.index')" :active="request()->routeIs('platform.auditoria.*')">
+                <x-slot name="icon">
+                    <svg fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m5-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                </x-slot>
+                {{ __('Auditoria') }}
+            </x-sidebar-nav-link>
+        @endif
     </nav>
 
     <div class="mt-auto space-y-1 border-t border-slate-200/80 p-3 dark:border-slate-800">

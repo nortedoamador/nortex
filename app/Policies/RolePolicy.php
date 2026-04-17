@@ -9,7 +9,7 @@ class RolePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->is_platform_admin || $user->hasPermission('roles.manage');
+        return $user->is_platform_admin || $user->is_master_admin || $user->hasPermission('roles.manage');
     }
 
     public function view(User $user, Role $role): bool
@@ -19,7 +19,7 @@ class RolePolicy
 
     public function create(User $user): bool
     {
-        return $user->is_platform_admin || $user->hasPermission('roles.manage');
+        return $user->is_platform_admin || $user->is_master_admin || $user->hasPermission('roles.manage');
     }
 
     public function update(User $user, Role $role): bool
@@ -34,7 +34,7 @@ class RolePolicy
 
     private function managesRole(User $user, Role $role): bool
     {
-        if ($user->is_platform_admin) {
+        if ($user->is_platform_admin || $user->is_master_admin) {
             return true;
         }
 

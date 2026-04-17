@@ -73,7 +73,7 @@ class AuthenticatedSessionController extends Controller
     private function defaultAfterLoginUrl(): string
     {
         $user = Auth::user();
-        if ($user && $user->is_platform_admin && ! $user->empresa_id) {
+        if ($user && ($user->is_platform_admin || $user->is_master_admin) && ! $user->empresa_id) {
             return route('platform.dashboard', absolute: false);
         }
 

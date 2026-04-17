@@ -23,7 +23,7 @@ class DocumentoModeloGlobalPreviewController extends Controller
     public function __invoke(Request $request): Response
     {
         $user = $request->user();
-        abort_unless($user && $user->is_platform_admin, 403);
+        abort_unless($user && ($user->is_platform_admin || $user->is_master_admin), 403);
 
         $validated = $request->validate([
             'empresa_id' => ['required', 'integer', 'exists:empresas,id'],

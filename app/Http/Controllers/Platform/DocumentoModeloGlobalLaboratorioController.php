@@ -27,7 +27,7 @@ class DocumentoModeloGlobalLaboratorioController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
-        abort_unless($user && $user->is_platform_admin, 403);
+        abort_unless($user && ($user->is_platform_admin || $user->is_master_admin), 403);
 
         $empresas = Empresa::query()->orderBy('nome')->get(['id', 'nome']);
 
@@ -116,7 +116,7 @@ class DocumentoModeloGlobalLaboratorioController extends Controller
     public function upload(Request $request): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user && $user->is_platform_admin, 403);
+        abort_unless($user && ($user->is_platform_admin || $user->is_master_admin), 403);
 
         $request->validate([
             'slug' => ['required', 'string', 'max:80'],
@@ -166,7 +166,7 @@ class DocumentoModeloGlobalLaboratorioController extends Controller
     public function storeNovo(Request $request): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user && $user->is_platform_admin, 403);
+        abort_unless($user && ($user->is_platform_admin || $user->is_master_admin), 403);
 
         $request->validate([
             'titulo' => ['required', 'string', 'max:160'],

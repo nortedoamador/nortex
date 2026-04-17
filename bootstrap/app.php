@@ -3,6 +3,7 @@
 use App\Http\Middleware\CheckPlatformMaintenance;
 use App\Http\Middleware\EnsureAnyPermission;
 use App\Http\Middleware\EnsurePermission;
+use App\Http\Middleware\EnsureMasterAdmin;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureTenantEmpresa;
 use App\Http\Middleware\EnsureTenantFinanceiroBillingAccess;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => EnsurePermission::class,
             'permission.any' => EnsureAnyPermission::class,
             'platform.admin' => EnsurePlatformAdmin::class,
+            'master.admin' => EnsureMasterAdmin::class,
             'platform.audit' => LogPlatformHttpMutation::class,
         ]);
         $middleware->appendToGroup('web', [

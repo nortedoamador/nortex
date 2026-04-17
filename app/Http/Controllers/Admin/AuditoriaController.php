@@ -17,9 +17,14 @@ class AuditoriaController extends Controller
         $acao = $request->query('acao');
         $acao = is_string($acao) && $acao !== '' ? $acao : null;
 
+        $tenantActorScope = function ($uq): void {
+            $uq->where('is_platform_admin', false)->where('is_master_admin', false);
+        };
+
         $logs = ActivityLog::query()
             ->where('empresa_id', $empresaId)
-            ->with('user:id,name')
+            ->whereHas('user', $tenantActorScope)
+            ->with('user:id,name,is_platform_admin,is_master_admin')
             ->when($acao, fn ($q) => $q->where('action', $acao))
             ->orderByDesc('id')
             ->paginate(30)
@@ -27,6 +32,7 @@ class AuditoriaController extends Controller
 
         $acoes = ActivityLog::query()
             ->where('empresa_id', $empresaId)
+            ->whereHas('user', $tenantActorScope)
             ->selectRaw('action, COUNT(*) as c')
             ->groupBy('action')
             ->orderBy('action')

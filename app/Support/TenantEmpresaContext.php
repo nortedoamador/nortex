@@ -44,7 +44,7 @@ final class TenantEmpresaContext
 
     public static function empresaId(Request $request): int
     {
-        if (self::isPlatformEmpresaAdminRoute($request) && $request->user()?->is_platform_admin) {
+        if (self::isPlatformEmpresaAdminRoute($request) && ($request->user()?->is_platform_admin || $request->user()?->is_master_admin)) {
             $e = $request->route('empresa');
             if ($e instanceof Empresa) {
                 $request->attributes->set('tenant_route_empresa', $e);
@@ -77,7 +77,7 @@ final class TenantEmpresaContext
     public static function canAccessLaboratorioPdf(User $user, Request $request): bool
     {
         if (self::isPlatformEmpresaAdminRoute($request)) {
-            return $user->is_platform_admin;
+            return $user->is_platform_admin || $user->is_master_admin;
         }
 
         return $user->hasPermission('cadastros.manage') || $user->hasPermission('clientes.manage');
@@ -86,7 +86,7 @@ final class TenantEmpresaContext
     public static function canAccessDocumentoModeloVerificacao(User $user, Request $request): bool
     {
         if (self::isPlatformEmpresaAdminRoute($request)) {
-            return $user->is_platform_admin;
+            return $user->is_platform_admin || $user->is_master_admin;
         }
 
         return $user->hasPermission('cadastros.manage') || $user->hasPermission('clientes.manage');
@@ -95,7 +95,7 @@ final class TenantEmpresaContext
     public static function canEditDocumentoModeloConteudo(User $user, Request $request): bool
     {
         if (self::isPlatformEmpresaAdminRoute($request)) {
-            return $user->is_platform_admin;
+            return $user->is_platform_admin || $user->is_master_admin;
         }
 
         return $user->hasPermission('clientes.manage');

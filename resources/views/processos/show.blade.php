@@ -518,8 +518,6 @@
                                         'BSADE_NORMAM_2D',
                                         'TIE_BADE',
                                         'TIE_BADE_OU_BSADE',
-                                        'TIE_BADE_OU_BSADE_ATUALIZADO',
-                                        'TIE_BADE_OU_BSADE_SE_ALTERACAO',
                                         \App\Support\Normam211DocumentoCodigos::TIE_BDMOTO_212_2B,
                                         \App\Support\Normam211DocumentoCodigos::TIE_BDMOTO_SE_ALTERACAO,
                                     ], true)) {

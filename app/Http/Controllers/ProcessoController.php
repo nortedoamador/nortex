@@ -859,8 +859,6 @@ class ProcessoController extends Controller
             'BSADE_NORMAM_2D',
             'TIE_BADE',
             'TIE_BADE_OU_BSADE',
-            'TIE_BADE_OU_BSADE_ATUALIZADO',
-            'TIE_BADE_OU_BSADE_SE_ALTERACAO',
             Normam211DocumentoCodigos::TIE_BDMOTO_212_2B,
             Normam211DocumentoCodigos::TIE_BDMOTO_SE_ALTERACAO,
         ], true)) {
