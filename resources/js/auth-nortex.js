@@ -1,3 +1,20 @@
+// #region agent log
+(() => {
+    fetch('http://127.0.0.1:7902/ingest/d5e0dfbe-4898-4e54-8349-aaf5bfe73113', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'bc9c3d' },
+        body: JSON.stringify({
+            sessionId: 'bc9c3d',
+            hypothesisId: 'H3',
+            location: 'auth-nortex.js:bundle-entry',
+            message: 'auth_bundle_executed',
+            data: { href: typeof location !== 'undefined' ? location.href : null },
+            timestamp: Date.now(),
+            runId: 'pre-fix',
+        }),
+    }).catch(() => {});
+})();
+// #endregion
 const PT_WEEKDAYS = [
     'DOMINGO',
     'SEGUNDA-FEIRA',
@@ -552,6 +569,21 @@ document.addEventListener('DOMContentLoaded', () => {
     tickClock(clock);
     setInterval(() => tickClock(clock), 1000 * 15);
 
+    // #region agent log
+    fetch('http://127.0.0.1:7902/ingest/d5e0dfbe-4898-4e54-8349-aaf5bfe73113', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'bc9c3d' },
+        body: JSON.stringify({
+            sessionId: 'bc9c3d',
+            hypothesisId: 'H5',
+            location: 'auth-nortex.js:DOMContentLoaded',
+            message: 'before_initLoginForm',
+            data: { step2Hidden: !document.getElementById('nx-login-step2') ? null : document.getElementById('nx-login-step2').hasAttribute('hidden') },
+            timestamp: Date.now(),
+            runId: 'pre-fix',
+        }),
+    }).catch(() => {});
+    // #endregion
     initLoginForm();
     bindSpaLinks();
     bindAuthFormSubmits();
