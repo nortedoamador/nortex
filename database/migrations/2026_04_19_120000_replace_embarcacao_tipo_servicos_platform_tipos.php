@@ -5,7 +5,6 @@ use App\Support\EmbarcacaoTipoServicoCatalogo;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use RuntimeException;
 
 return new class extends Migration
 {
