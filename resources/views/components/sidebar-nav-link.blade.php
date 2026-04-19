@@ -17,7 +17,9 @@
         'success' => $active
             ? 'bg-emerald-400/25 text-emerald-50 ring-1 ring-emerald-200/60'
             : 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300/70 dark:bg-emerald-950/45 dark:text-emerald-300 dark:ring-emerald-500/45',
-        'warning' => 'bg-amber-400/20 text-amber-900 ring-1 ring-amber-300/60 dark:text-amber-200',
+        'warning' => $active
+            ? 'bg-white/15 text-white ring-1 ring-white/40'
+            : 'bg-amber-400/20 text-amber-900 ring-1 ring-amber-300/60 dark:bg-amber-950/35 dark:text-amber-200 dark:ring-amber-500/40',
     ];
     $badgeClasses = $badgeTones[$badgeTone] ?? $badgeTones['success'];
 @endphp
